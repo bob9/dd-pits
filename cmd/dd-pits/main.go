@@ -245,6 +245,8 @@ func main() {
 		"fixed broadcast buffer to hold booth audio to when you set the OBS video delay BY HAND (ignored when -obs-url is set)")
 	boothMinDelay := flag.Duration("booth-min-delay", 0,
 		"auto mode (-obs-url) only: minimum broadcast buffer to start from and never dip below (e.g. 40s) — generous headroom so early calls are never late; the buffer only grows from here")
+	demo := flag.Bool("demo", envOr("DD_PITS_DEMO", "") == "1",
+		"read-only public demo: every page renders, but nothing can be changed, saved, installed or restarted")
 	showVersion := flag.Bool("version", false, "print the agent version and exit")
 	flag.Parse()
 
@@ -253,6 +255,10 @@ func main() {
 		return
 	}
 	log.Printf("dd-pits %s (%s) starting", version, commit)
+	demoMode = *demo
+	if demoMode {
+		log.Printf("dd-pits: DEMO mode — read-only, nothing can be changed")
+	}
 	log.Printf("dd-pits is free and open source — if it helps your race days, support it at %s", supportURL)
 
 	// Model-server mode: this process lends its GPU to another machine and runs

@@ -65,9 +65,22 @@ func parseTemplates() *template.Template {
 }
 
 type pageData struct {
-	SiteURL string
-	Links   map[string]string
+	SiteURL   string
+	Links     map[string]string
+	Overlays  []siteOverlayGroup
+	Downloads []siteDownload
 }
+
+type siteOverlay struct{ Img, Title, What string }
+
+type siteOverlayGroup struct {
+	Name  string
+	Items []siteOverlay
+}
+
+// siteDownload is one platform's binary from the latest GitHub release. The
+// asset names carry no version, so these links always fetch the newest build.
+type siteDownload struct{ OS, Label, Note, Asset string }
 
 var data = pageData{
 	SiteURL: siteURL,
@@ -80,6 +93,46 @@ var data = pageData{
 		"fpvtrackside":  "https://fpvtrackside.com",
 		"tdl":           "https://threedigitalllamas.com.au",
 		"demo":          "https://demo.dd-pits.threedigitalllamas.com.au",
+		"demoOverlays":  "https://demo.dd-pits.threedigitalllamas.com.au/overlays",
+		"author":        "https://github.com/bob9",
+		"latest":        "https://github.com/bob9/dd-pits/releases/latest/download/",
+	},
+	Downloads: []siteDownload{
+		{"mac", "Mac · Apple Silicon", "M1 or later", "dd-pits-darwin-arm64"},
+		{"mac-intel", "Mac · Intel", "Older Macs", "dd-pits-darwin-amd64"},
+		{"windows", "Windows", "64-bit", "dd-pits-windows-amd64.exe"},
+		{"linux", "Linux", "x86-64 PC", "dd-pits-linux-amd64"},
+		{"linux-arm", "Linux · ARM", "Raspberry Pi 4/5", "dd-pits-linux-arm64"},
+	},
+	Overlays: []siteOverlayGroup{
+		{"Live timing", []siteOverlay{
+			{"scorebug", "Scorebug", "TV-style badge with the time of day; the heat strip slides in when a heat is cued, stays up while it races, and shows the result."},
+			{"topbar", "Top bar", "Racing now / on deck / just raced, the race timer, the meeting and your club across the top."},
+			{"corner", "Corner", "Logo, time of day and the heat, glowing red while it races."},
+			{"race", "Race grid", "Transparent tiles over your FPV feeds, each with the pilot, position and last four laps."},
+			{"node-2", "Pilot cam tag", "A lower third for one pilot's feed: position, channel, lap, last, best and total."},
+			{"strip", "Racing now strip", "The pilots in the air, ringed in their channel colours."},
+			{"lapchart", "Lap chart", "Every lap of the heat, the fastest highlighted."},
+			{"fastest", "Fastest lap", "The quickest lap of the heat and who set it."},
+			{"panel", "Race panel", "Positions, laps, totals and the clock in a compact panel."},
+			{"lowerthird", "Lower third", "The lineup across the bottom, F1 style."},
+		}},
+		{"Between heats", []siteOverlay{
+			{"strip-next", "Up next strip", "The next heat's pilots and channels, bottom left."},
+			{"lineup-next", "Lineup", "A full-screen walk-on with each pilot's rank and best times."},
+			{"lineup", "Lineup — racing", "The same scene once the heat runs: positions, totals and laps."},
+			{"upnow-next", "Up Now", "Pilot cards walk on with rank, best lap and best consecutive, then step off. Loops."},
+			{"banner-next", "Up Now banner", "The Up Now cards as a lower-third banner."},
+		}},
+		{"Standings", []siteOverlay{
+			{"spotlight", "Spotlight", "One pilot's profile or two head to head — push it to stream from the gallery."},
+			{"leaderboard", "Leaderboard", "The meeting standings with ▲▼ movement since the last heat."},
+			{"laps", "Laps rail", "One time per pilot, 🔥 for whoever just improved."},
+			{"standings", "Standings", "The leader as the hero, the rest of the field below. Live, then final."},
+			{"podium", "Podium", "The top four on podium steps, the winner crowned."},
+			{"results", "Results card", "A results scene from the URL alone — type the finishing order."},
+			{"notice", "Notice", "Your own message: a weather hold, a sponsor, the next round."},
+		}},
 	},
 }
 

@@ -15,7 +15,8 @@ beside the binary.
 **[Website](https://dd-pits.threedigitalllamas.com.au)** ·
 **[Live demo](https://demo.dd-pits.threedigitalllamas.com.au)** ·
 **[Download](../../releases)** ·
-[ELRS Netpack](https://github.com/bob9/elrs-netpack)
+[ELRS Netpack](https://github.com/bob9/elrs-netpack) ·
+made by **[bob9](https://github.com/bob9)**
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support%20dd--pits-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/bobnine)
 
@@ -30,14 +31,38 @@ beside the binary.
 | ![Commentary setup](docs/screenshots/booth.webp) **Commentary booth:** choose a writer, a voice and a style. | ![Goggle pilots setup](docs/screenshots/pilots.webp) **Goggle pilots:** one bind phrase per pilot. |
 | ![Race calls setup](docs/screenshots/calls.webp) **Race calls:** decide who speaks the lap times. | ![First-run screen](docs/screenshots/waiting.webp) **First run:** the board lights up when FPVTrackside does. |
 
-### OBS overlay examples
+### OBS overlays
 
-Add `/overlay` to OBS as a Browser Source (1920×1080). The background is
-transparent, and the overlay follows every heat on its own:
+22 broadcast overlays, all transparent and all following the meeting on their own.
+Open **`/overlays`** in dd-pits to see them live. Each has a **Customise** panel
+(title, colours, which heat, how many pilots and so on) with a live preview, and
+**Add to OBS** puts it straight into your current OBS scene over obs-websocket.
+You can also copy the URL into an OBS Browser source at 1920×1080.
+[Try them in the live demo →](https://demo.dd-pits.threedigitalllamas.com.au/overlays)
 
-| On the grid | Racing | Final lap |
+**Live timing**
+
+| | | |
 | --- | --- | --- |
-| ![Overlay showing the next heat's lineup](docs/screenshots/overlay-staged.webp) | ![Overlay mid-race with positions, laps and clock](docs/screenshots/overlay-midrace.webp) | ![Overlay on the final lap](docs/screenshots/overlay-final.webp) |
+| ![Scorebug](docs/screenshots/overlays/scorebug.webp)<br>**Scorebug** `/overlay/scorebug` | ![Top bar](docs/screenshots/overlays/topbar.webp)<br>**Top bar** `/overlay/topbar` | ![Corner](docs/screenshots/overlays/corner.webp)<br>**Corner** `/overlay/corner` |
+| ![Race grid](docs/screenshots/overlays/race.webp)<br>**Race grid** `/overlay/race` | ![Pilot cam tag](docs/screenshots/overlays/node-2.webp)<br>**Pilot cam tag** `/overlay/node/2` | ![Racing now strip](docs/screenshots/overlays/strip.webp)<br>**Racing now strip** `/overlay/strip` |
+| ![Lap chart](docs/screenshots/overlays/lapchart.webp)<br>**Lap chart** `/overlay/lapchart` | ![Fastest lap](docs/screenshots/overlays/fastest.webp)<br>**Fastest lap** `/overlay/fastest` | ![Race panel](docs/screenshots/overlays/panel.webp)<br>**Race panel** `/overlay/panel` |
+| ![Lower third](docs/screenshots/overlays/lowerthird.webp)<br>**Lower third** `/overlay/lowerthird` |  |  |
+
+**Between heats**
+
+| | | |
+| --- | --- | --- |
+| ![Up next strip](docs/screenshots/overlays/strip-next.webp)<br>**Up next strip** `/overlay/strip/next` | ![Lineup](docs/screenshots/overlays/lineup-next.webp)<br>**Lineup** `/overlay/lineup/next` | ![Lineup, racing](docs/screenshots/overlays/lineup.webp)<br>**Lineup, racing** `/overlay/lineup` |
+| ![Up Now](docs/screenshots/overlays/upnow-next.webp)<br>**Up Now** `/overlay/upnow/next` | ![Up Now banner](docs/screenshots/overlays/banner-next.webp)<br>**Up Now banner** `/overlay/banner/next` |  |
+
+**Standings**
+
+| | | |
+| --- | --- | --- |
+| ![Spotlight](docs/screenshots/overlays/spotlight.webp)<br>**Spotlight** `/overlay/spotlight?p=A&p=B` | ![Leaderboard](docs/screenshots/overlays/leaderboard.webp)<br>**Leaderboard** `/overlay/leaderboard` | ![Laps rail](docs/screenshots/overlays/laps.webp)<br>**Laps rail** `/overlay/laps` |
+| ![Standings](docs/screenshots/overlays/standings.webp)<br>**Standings** `/overlay/standings` | ![Podium](docs/screenshots/overlays/podium.webp)<br>**Podium** `/overlay/podium` | ![Results card](docs/screenshots/overlays/results.webp)<br>**Results card** `/overlay/results?title=…&r=Name|time` |
+| ![Notice](docs/screenshots/overlays/notice.webp)<br>**Notice** `/overlay/notice?text=…` |  |  |
 
 <p align="center"><img src="docs/screenshots/mobile.webp" width="300" alt="The dashboard on a phone"><br><em>Every pilot can follow along on their phone.</em></p>
 
@@ -170,10 +195,27 @@ enter its name or address. ELRS Netpack was originally created by
 extended by [bob9](https://github.com/bob9/elrs-netpack). It is not affiliated
 with the ExpressLRS project.
 
+## Download
+
+Every change to `main` is built and released automatically. These links always
+fetch the latest build:
+
+| Computer | Download |
+| --- | --- |
+| Mac, Apple Silicon (M1 or later) | [dd-pits-darwin-arm64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-darwin-arm64) |
+| Mac, Intel | [dd-pits-darwin-amd64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-darwin-amd64) |
+| Windows | [dd-pits-windows-amd64.exe](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-windows-amd64.exe) |
+| Linux PC | [dd-pits-linux-amd64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-linux-amd64) |
+| Raspberry Pi 4/5 (Linux ARM) | [dd-pits-linux-arm64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-linux-arm64) |
+
+**Mac:** run `chmod +x dd-pits-darwin-*` and
+`xattr -d com.apple.quarantine dd-pits-darwin-*` once in Terminal.
+**Windows:** if SmartScreen warns, choose More info → Run anyway.
+
 ## Quick start
 
-1. Download the binary for your platform from
-   [Releases](../../releases), or build it yourself (see below).
+1. [Download](#download) the binary for your computer, or build it yourself
+   (see below).
 2. Start FPVTrackside and open your event.
 3. Run `dd-pits`. With no arguments it serves on port `8088` and opens the
    setup guide in your browser on first run.
@@ -275,6 +317,12 @@ event.
 dd-pits is free and built in spare time between race days. If it makes your
 club's events run smoother, you can help keep it going at
 **[buymeacoffee.com/bobnine](https://buymeacoffee.com/bobnine)** ☕
+
+## Author
+
+dd-pits is made by **[bob9](https://github.com/bob9)** (Glenn Pringle), a race
+director who builds the tools his own race days need. Also by bob9:
+[ELRS Netpack](https://github.com/bob9/elrs-netpack).
 
 ## License
 

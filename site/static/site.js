@@ -19,3 +19,12 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
   else start();
 })();
+
+// Highlight the download for this visitor's computer.
+(function () {
+  var ua = navigator.userAgent, p = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
+  var os = /Win/i.test(p + ua) ? "windows" : /Mac/i.test(p + ua) ? "mac" : /Linux/i.test(p + ua) ? (/arm|aarch/i.test(ua) ? "linux-arm" : "linux") : "";
+  if (!os) return;
+  var el = document.querySelector('.dl-btn[data-os="' + os + '"]');
+  if (el) el.classList.add("mine");
+})();

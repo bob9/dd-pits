@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -106,48 +107,11 @@ func (o *boothOBS) run(ctx context.Context) {
 }
 
 func (o *boothOBS) session(ctx context.Context) error {
-	cfg, err := websocket.NewConfig(o.url, "http://localhost/")
+	ws, err := obsDial(o.url, o.password)
 	if err != nil {
-		return fmt.Errorf("bad -obs-url %q: %w", o.url, err)
-	}
-	cfg.Protocol = []string{"obswebsocket.json"}
-	ws, err := websocket.DialConfig(cfg)
-	if err != nil {
-		return fmt.Errorf("connect: %w", err)
+		return err
 	}
 	defer ws.Close()
-
-	// Hello (op 0) → Identify (op 1) → Identified (op 2).
-	var hello struct {
-		Op int `json:"op"`
-		D  struct {
-			Authentication *struct {
-				Challenge string `json:"challenge"`
-				Salt      string `json:"salt"`
-			} `json:"authentication"`
-		} `json:"d"`
-	}
-	ws.SetReadDeadline(time.Now().Add(10 * time.Second))
-	if err := websocket.JSON.Receive(ws, &hello); err != nil {
-		return fmt.Errorf("hello: %w", err)
-	}
-	identD := map[string]any{"rpcVersion": 1, "eventSubscriptions": 0}
-	if hello.D.Authentication != nil {
-		identD["authentication"] = obsAuth(o.password, hello.D.Authentication.Salt, hello.D.Authentication.Challenge)
-	}
-	if err := websocket.JSON.Send(ws, map[string]any{"op": 1, "d": identD}); err != nil {
-		return fmt.Errorf("identify: %w", err)
-	}
-	var id struct {
-		Op int `json:"op"`
-	}
-	ws.SetReadDeadline(time.Now().Add(10 * time.Second))
-	if err := websocket.JSON.Receive(ws, &id); err != nil {
-		return fmt.Errorf("identify recv: %w", err)
-	}
-	if id.Op != 2 {
-		return fmt.Errorf("authentication rejected (check -obs-password)")
-	}
 	o.mu.Lock()
 	o.connected, o.appliedMs = true, -1
 	o.mu.Unlock()
@@ -174,6 +138,61 @@ func (o *boothOBS) session(ctx context.Context) error {
 		case <-tick.C: // periodic re-assert (survives an OBS scene/filter edit)
 		}
 	}
+}
+
+// obsDial connects to obs-websocket (v5) and completes the Hello → Identify →
+// Identified handshake, authenticating when OBS asks for a password.
+func obsDial(url, password string) (*websocket.Conn, error) {
+	cfg, err := websocket.NewConfig(url, "http://localhost/")
+	if err != nil {
+		return nil, fmt.Errorf("bad OBS address %q: %w", url, err)
+	}
+	cfg.Protocol = []string{"obswebsocket.json"}
+	cfg.Dialer = &net.Dialer{Timeout: 5 * time.Second}
+	ws, err := websocket.DialConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("connect: %w", err)
+	}
+	ok := false
+	defer func() {
+		if !ok {
+			ws.Close()
+		}
+	}()
+
+	// Hello (op 0) → Identify (op 1) → Identified (op 2).
+	var hello struct {
+		Op int `json:"op"`
+		D  struct {
+			Authentication *struct {
+				Challenge string `json:"challenge"`
+				Salt      string `json:"salt"`
+			} `json:"authentication"`
+		} `json:"d"`
+	}
+	ws.SetReadDeadline(time.Now().Add(10 * time.Second))
+	if err := websocket.JSON.Receive(ws, &hello); err != nil {
+		return nil, fmt.Errorf("hello: %w", err)
+	}
+	identD := map[string]any{"rpcVersion": 1, "eventSubscriptions": 0}
+	if hello.D.Authentication != nil {
+		identD["authentication"] = obsAuth(password, hello.D.Authentication.Salt, hello.D.Authentication.Challenge)
+	}
+	if err := websocket.JSON.Send(ws, map[string]any{"op": 1, "d": identD}); err != nil {
+		return nil, fmt.Errorf("identify: %w", err)
+	}
+	var id struct {
+		Op int `json:"op"`
+	}
+	ws.SetReadDeadline(time.Now().Add(10 * time.Second))
+	if err := websocket.JSON.Receive(ws, &id); err != nil {
+		return nil, fmt.Errorf("identify recv: %w", err)
+	}
+	if id.Op != 2 {
+		return nil, fmt.Errorf("authentication rejected (check the OBS websocket password)")
+	}
+	ok = true
+	return ws, nil
 }
 
 // apply brings OBS in line with the current buffer: every target scene's video

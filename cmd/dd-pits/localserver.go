@@ -1133,7 +1133,7 @@ func newLiveServer(b brand) *liveServer {
 			}
 			return out
 		},
-	}).Parse(pageTemplates))
+	}).Funcs(overlayFuncs).Parse(pageTemplates + overlayTemplates))
 	return s
 }
 
@@ -1340,6 +1340,9 @@ func (s *liveServer) handler() http.Handler {
 	mux.HandleFunc("/dronedash/pilot", s.servePilot)
 	mux.HandleFunc("/live", page("live"))
 	mux.HandleFunc("/overlay", page("overlay"))
+	mux.HandleFunc("/overlay/", s.overlayPage)
+	mux.HandleFunc("/overlays", s.overlayGallery)
+	mux.HandleFunc("/overlays/spotlight", s.overlaySpotlightPush)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "ok") })
 	mux.Handle("/assets/", assetHandler())
 
@@ -2176,7 +2179,7 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
   <span class="name">{{if eq .Brand.Name "dd-pits"}}<span class="dd">dd</span>-pits{{else}}{{.Brand.Name}}{{end}}</span>
   {{if .M}}<span class="meet">{{.M.Name}}</span>{{end}}
   <nav>
-    <a href="/">Home</a><a href="/live">Live</a><a href="/dronedash/races">Races</a><a href="/overlay">Overlay</a>
+    <a href="/">Home</a><a href="/live">Live</a><a href="/dronedash/races">Races</a><a href="/overlays">Overlays</a>
   </nav>
   <a class="bmc" href="` + supportURL + `" target="_blank" rel="noopener" title="dd-pits is free — support the developer">☕ Support</a>
   {{if .Brand.Version}}<span class="ver" title="dd-pits version — quote this when reporting a problem">{{.Brand.Version}}</span>{{end}}
@@ -2242,7 +2245,8 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
   <span class="pill"><i></i>Waiting for FPVTrackside</span>
   <h1>Race day, <span>live.</span></h1>
   <p>Open your event in FPVTrackside and this board lights up on its own: heats, lap times and standings, on every phone at the field.</p>
-  <div class="cta"><a href="/setup/help">Get set up</a><a class="sec" href="/setup">Settings</a></div>
+  <div class="cta"><a href="/setup/help">Get set up</a><a class="sec" href="/setup">Settings</a><a class="sec" href="/overlays">OBS overlays</a></div>
+  <p style="margin-top:1.4rem;font-size:.9rem;color:#9aa3af">Free and open source · made by <a href="https://github.com/bob9" target="_blank" rel="noopener">bob9</a></p>
 </div></section>{{end}}
 
 {{define "home"}}<!doctype html><html><head><meta charset="utf-8"><title>{{.Brand.Name}} — Live</title>{{template "css" .}}</head>

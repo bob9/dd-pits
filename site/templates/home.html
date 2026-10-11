@@ -45,7 +45,7 @@
     </nav>
     <div class="nav-cta">
       <a class="btn-coffee sm" href="{{.Links.coffee}}" target="_blank" rel="noopener"><span aria-hidden="true">☕</span> Support</a>
-      <a class="btn sm" href="{{.Links.releases}}">Get dd-pits</a>
+      <a class="btn sm" href="#download">Get dd-pits</a>
     </div>
   </div>
 </header>
@@ -64,10 +64,11 @@
     <h1 class="display">Race day,<br><span class="grad">run from one laptop.</span></h1>
     <p class="lede">A live dashboard on every phone. Race calls in one voice. AI commentary for your stream. Lap times in pilots' goggles. All from the timing laptop — no internet, no account.</p>
     <div class="ctas">
-      <a class="btn" href="{{.Links.releases}}">Get dd-pits</a>
+      <a class="btn" href="#download">Get dd-pits</a>
       <a class="btn demo" href="{{.Links.demo}}">Try the live demo <span aria-hidden="true">→</span></a>
       <a class="btn ghost" href="{{.Links.github}}">View on GitHub</a>
     </div>
+    <p class="byline">Free and open source · made by <a href="{{.Links.author}}">bob9</a></p>
   </div>
   <a class="scroll-hint" href="#stats" aria-label="Scroll to learn more"><span></span></a>
 </section>
@@ -237,7 +238,7 @@
     </li>
   </ol>
   <div class="ctas center reveal">
-    <a class="btn" href="{{.Links.releases}}">Get dd-pits</a>
+    <a class="btn" href="#download">Get dd-pits</a>
     <a class="btn demo" href="{{.Links.demo}}">Try the live demo <span aria-hidden="true">→</span></a>
   </div>
 </section>
@@ -272,29 +273,35 @@
   </div>
 </section>
 
-<!-- OBS OVERLAY EXAMPLES -->
+<!-- OBS OVERLAYS -->
 <section class="obs-ex" id="overlay" aria-labelledby="obs-h">
   <div class="wrap center">
-    <p class="eyebrow reveal">On stream</p>
-    <h2 class="headline reveal" id="obs-h">Broadcast graphics.<br><span class="grad">Zero effort.</span></h2>
-    <p class="sub reveal">Add <code>/overlay</code> to OBS as a Browser Source. It follows every heat on its own: the lineup on the grid, live positions and lap counts with a running clock, all the way to the flag. It stays invisible between meetings, so nothing odd goes out on air.</p>
+    <p class="eyebrow reveal">On stream · 22 overlays</p>
+    <h2 class="headline reveal" id="obs-h">Broadcast graphics.<br><span class="grad">One click into OBS.</span></h2>
+    <p class="sub reveal">Every overlay follows the meeting on its own and sits transparently over any scene. Open the gallery in dd-pits, customise any of them (titles, colours, which heat, how many pilots), watch the preview update, and press <b>Add to OBS</b>. It lands in the scene you're on. Or copy the URL into a Browser source.</p>
+    <div class="ctas center reveal"><a class="btn demo" href="{{.Links.demoOverlays}}">Try them in the live demo <span aria-hidden="true">→</span></a></div>
   </div>
-  <div class="obs-grid">
-    <figure class="obs-fig reveal">
-      <img src="{{asset "img/screens/overlay-staged.webp"}}" alt="The dd-pits OBS overlay showing the lineup for the next heat over a stream frame" loading="lazy" width="1600" height="900">
-      <figcaption><b>On the grid</b> The next heat's lineup, in channel colours.</figcaption>
-    </figure>
-    <figure class="obs-fig reveal">
-      <img src="{{asset "img/screens/overlay-midrace.webp"}}" alt="The dd-pits OBS overlay mid-race with live positions, laps and race clock" loading="lazy" width="1600" height="900">
-      <figcaption><b>Racing</b> Live positions, laps and the race clock.</figcaption>
-    </figure>
-    <figure class="obs-fig reveal">
-      <img src="{{asset "img/screens/overlay-final.webp"}}" alt="The dd-pits OBS overlay on the final lap" loading="lazy" width="1600" height="900">
-      <figcaption><b>Final lap</b> Totals as each pilot crosses the line.</figcaption>
-    </figure>
-  </div>
+  {{range .Overlays}}<div class="obs-group">
+    <h3 class="obs-gh reveal">{{.Name}}</h3>
+    <div class="obs-grid">{{range .Items}}<figure class="obs-fig reveal">
+      <img src="{{asset (printf "img/overlays/%s.webp" .Img)}}" alt="The dd-pits {{.Title}} overlay over a stream frame" loading="lazy" width="1280" height="720">
+      <figcaption><b>{{.Title}}</b> {{.What}}</figcaption>
+    </figure>{{end}}</div>
+  </div>{{end}}
   <div class="wrap center obs-how reveal">
-    <p><b>In OBS:</b> Sources → <b>+</b> → Browser → URL <code>http://&lt;laptop&gt;:8088/overlay</code>, width 1920, height 1080. The background is transparent, so it sits over any scene.</p>
+    <p><b>Manually in OBS:</b> Sources → <b>+</b> → Browser → paste the overlay URL, width 1920, height 1080.</p>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section class="dl" id="download" aria-labelledby="dl-h">
+  <div class="wrap center">
+    <p class="eyebrow reveal">Download</p>
+    <h2 class="headline reveal" id="dl-h">Free. <span class="grad">One file.</span></h2>
+    <p class="sub reveal">Built from the latest code on every change. Download the file for your computer, put it next to FPVTrackside and run it. The setup guide opens in your browser.</p>
+    <div class="dl-grid reveal">{{range .Downloads}}<a class="dl-btn" data-os="{{.OS}}" href="{{$.Links.latest}}{{.Asset}}"><b>{{.Label}}</b><span>{{.Note}}</span><code>{{.Asset}}</code></a>{{end}}</div>
+    <p class="dl-note reveal"><b>Mac:</b> in Terminal, run <code>chmod +x dd-pits-darwin-*</code> and <code>xattr -d com.apple.quarantine dd-pits-darwin-*</code> once. <b>Windows:</b> if SmartScreen warns, choose More info → Run anyway.
+    <br><a href="{{.Links.releases}}">All releases and checksums</a> · <a href="{{.Links.github}}">Source on GitHub</a> · made by <a href="{{.Links.author}}">bob9</a></p>
   </div>
 </section>
 
@@ -498,7 +505,7 @@
     <img class="final-icon" src="{{asset "img/icon-256.webp"}}" alt="" width="96" height="96">
     <h2 class="display-2" id="final-h"><span class="grad">Your next race day</span><br>starts here.</h2>
     <div class="ctas center">
-      <a class="btn" href="{{.Links.releases}}">Get dd-pits</a>
+      <a class="btn" href="#download">Get dd-pits</a>
       <a class="btn ghost" href="{{.Links.github}}">View on GitHub <span aria-hidden="true">→</span></a>
     </div>
   </div>
@@ -516,7 +523,7 @@
       <a href="{{.Links.fpvtrackside}}">FPVTrackside</a>
       <a href="{{.Links.coffee}}">Buy me a coffee</a>
     </nav>
-    <p class="foot-note">Built by Glenn Pringle (bob9) · <a href="{{.Links.tdl}}">Three Digital Llamas</a>. Free and open source under the MIT licence. © {{year}}.</p>
+    <p class="foot-note">Built by <a href="{{.Links.author}}">bob9 on GitHub</a> (Glenn Pringle) · <a href="{{.Links.tdl}}">Three Digital Llamas</a>. Free and open source under the MIT licence. © {{year}}.</p>
   </div>
 </footer>
 </body>

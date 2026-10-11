@@ -66,6 +66,9 @@ func setSetupBase(addr string) {
 // the machine that is already running the meeting. Anything else needs the PIN,
 // which the operator has to set deliberately.
 func localSetupAllowed(r *http.Request) bool {
+	if demoMode {
+		return false
+	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		host = r.RemoteAddr
@@ -85,6 +88,15 @@ func localSetupAllowed(r *http.Request) bool {
 func setupDenied(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusForbidden)
+	if demoMode {
+		fmt.Fprint(w, setupPage("Live demo", `<div class="card"><h2>This is a read-only demo</h2>
+<p>You are looking at a real dd-pits, fed by a simulated race meeting. Everything you can see works
+exactly as it does at a venue, but nothing here can be changed, saved or installed.</p>
+<p>On your own laptop, this page does what it says. <a href="https://github.com/bob9/dd-pits/releases">Get dd-pits</a>
+— it is free — and run it next to FPVTrackside.</p>
+<p><a href="/"><button>Back to the live dashboard</button></a> <a href="/overlays"><button class="sec">See the OBS overlays</button></a></p></div>`))
+		return
+	}
 	fmt.Fprint(w, setupPage("Not from here", `
 <p>Setup can only be changed <strong>from the timing laptop itself</strong>
 (<code>`+esc(setupBaseURL)+`/setup</code>).</p>
@@ -168,13 +180,14 @@ func setupPage(title, body string) string {
  <a href="/setup/booth">Commentary</a>
  <a href="/setup/calls">Race calls</a>
  <a href="/goggles">Goggle control</a>
+ <a href="/overlays">OBS overlays</a>
  <a href="/setup/models">AI models</a>
  <a href="/setup/debug">Debug</a>
  <a href="/setup/help">Help</a>
  <a class="bmc" href="` + supportURL + `" target="_blank" rel="noopener">☕ Support dd-pits</a>
 </nav></header>
-<main>` + banner + body + `</main>
-<footer>dd-pits is free and open source. If it makes your race days easier,
+<main>` + demoBanner() + banner + body + `</main>
+<footer>dd-pits is free and open source, made by <a href="https://github.com/bob9" target="_blank" rel="noopener">bob9</a>. If it makes your race days easier,
 <a href="` + supportURL + `" target="_blank" rel="noopener">buy the developer a coffee ☕</a>.</footer>
 <script>for(const a of document.querySelectorAll('nav a'))if(a.getAttribute('href')===location.pathname)a.classList.add('on')</script>
 </body></html>`
@@ -195,6 +208,7 @@ var setupBanners = map[string]struct{ img, eyebrow, line string }{
 	"FPVTrackside":   {"desk.webp", "Timing", "Where FPVTrackside lives and what dd-pits reads from it."},
 	"Debug":          {"desk.webp", "Debug", "The log, in the browser — send it when something goes wrong."},
 	"Help":           {"hero.webp", "Getting started", "Everything a race director needs, in five minutes."},
+	"OBS overlays":   {"stream.webp", "On stream", "Broadcast graphics that follow the meeting on their own. Paste a URL into OBS."},
 }
 
 // reloadELRSConfig re-reads the goggle config after an edit, when ELRS is on.
@@ -2567,4 +2581,17 @@ func humourOptions(selected string) string {
 		fmt.Fprintf(b, `<option value="%s"%s>%s</option>`, esc(o.Key), sel, esc(o.Name))
 	}
 	return b.String()
+}
+
+// demoMode makes the whole agent read-only, for a public demo: every setting
+// page still renders, but nothing can be saved, installed or restarted.
+var demoMode bool
+
+func demoBanner() string {
+	if !demoMode {
+		return ""
+	}
+	return `<div class="card" style="border-color:rgba(198,255,61,.35);background:rgba(198,255,61,.08)"><b>Read-only demo.</b>
+<span class="mut">A real dd-pits fed by a simulated meeting. Look around: nothing here can be changed.
+<a href="https://github.com/bob9/dd-pits/releases">Get dd-pits</a> to run it at your venue.</span></div>`
 }
