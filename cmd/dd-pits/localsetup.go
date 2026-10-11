@@ -101,38 +101,63 @@ func esc(s string) string { return htmlesc.EscapeString(s) }
 // tool used once at the start of a meeting, on a laptop, by someone who wants
 // it to be obvious rather than pretty.
 func setupPage(title, body string) string {
+	banner := ""
+	if b, ok := setupBanners[title]; ok {
+		banner = `<section class="banner" style="background-image:linear-gradient(90deg,rgba(7,8,10,.92) 15%,rgba(7,8,10,.35) 70%,rgba(7,8,10,.15)),url(/assets/` + b.img + `)">
+<div><p class="eyebrow">` + esc(b.eyebrow) + `</p><h1>` + esc(title) + `</h1><p>` + esc(b.line) + `</p></div></section>`
+	}
 	return `<!doctype html><html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+` + headBrand + `
 <title>` + esc(title) + ` — dd-pits setup</title>
 <style>
- :root{--bg:#111;--fg:#eee;--mut:#999;--line:#2a2a2a;--card:#1a1a1a;--acc:#2d7}
+ :root{--bg:#07080a;--fg:#f2f4f7;--mut:#8e96a3;--line:rgba(255,255,255,.09);--card:rgba(22,24,30,.72);--acc:#c6ff3d;--accent:#c6ff3d;--cyan:#3de0ff;--ok:#c6ff3d}
  *{box-sizing:border-box}
- body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
- header{padding:1rem 1.2rem;border-bottom:1px solid var(--line);display:flex;gap:1rem;align-items:baseline;flex-wrap:wrap}
- header h1{margin:0;font-size:1.05rem}
- nav a{color:var(--mut);text-decoration:none;margin-right:1rem;font-size:0.9rem}
- nav a:hover,nav a.on{color:var(--acc)}
- main{max-width:53rem;margin:0 auto;padding:1.2rem}
- .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem;margin-bottom:1rem}
- h2{font-size:1rem;margin:0 0 .6rem}
- p{margin:.4rem 0}
- .mut{color:var(--mut);font-size:.88rem}
- table{width:100%;border-collapse:collapse;font-size:.92rem}
- th,td{text-align:left;padding:.45rem .5rem;border-bottom:1px solid var(--line)}
- th{color:var(--mut);font-weight:600;font-size:.82rem}
- input[type=text],input[type=password],select,textarea{background:#000;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:.45rem .5rem;font:inherit;width:100%}
- label{display:block;font-size:.85rem;color:var(--mut);margin:.5rem 0 .15rem}
- button{background:var(--acc);color:#052;border:0;border-radius:7px;padding:.5rem .9rem;font-weight:700;cursor:pointer;font:inherit}
- button.sec{background:#333;color:#ccc}
- .row{display:flex;gap:.8rem;flex-wrap:wrap}
+ body{margin:0;color:var(--fg);font:15px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;
+  background:radial-gradient(1000px 520px at 90% -10%,rgba(198,255,61,.10),transparent 60%),radial-gradient(800px 480px at -10% 0,rgba(61,224,255,.07),transparent 60%),var(--bg);background-attachment:fixed;min-height:100vh}
+ a{color:var(--acc)}
+ header{position:sticky;top:0;z-index:10;padding:.65rem 1.2rem;border-bottom:1px solid var(--line);display:flex;gap:1rem;align-items:center;flex-wrap:wrap;
+  background:rgba(9,10,13,.66);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px)}
+ header .brand{display:flex;align-items:center;gap:.6rem;text-decoration:none;color:var(--fg);font-weight:750;font-size:1.05rem;letter-spacing:-.02em}
+ header .brand img{width:30px;height:30px;border-radius:8px;box-shadow:0 0 18px rgba(198,255,61,.3)}
+ header .brand .dd{background:linear-gradient(90deg,var(--acc),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+ header .brand small{color:var(--mut);font-weight:600;font-size:.78rem;padding:.12rem .5rem;border:1px solid var(--line);border-radius:999px}
+ nav{display:flex;gap:.15rem;flex-wrap:wrap}
+ nav a{color:#c3c9d2;text-decoration:none;font-size:.86rem;font-weight:600;padding:.34rem .72rem;border-radius:999px;transition:background .15s,color .15s}
+ nav a:hover{background:rgba(255,255,255,.07);color:#fff}
+ nav a.on{background:rgba(198,255,61,.14);color:var(--acc)}
+ nav a.bmc{color:#ffdd00;background:rgba(255,221,0,.08);border:1px solid rgba(255,221,0,.22)}
+ main{max-width:60rem;margin:0 auto;padding:1.4rem 1.2rem 1rem}
+ .banner{border-radius:26px;min-height:190px;background-size:cover;background-position:center;display:flex;align-items:flex-end;padding:1.6rem 1.8rem;margin-bottom:1.3rem;
+  border:1px solid var(--line);box-shadow:0 30px 60px -30px rgba(0,0,0,.9)}
+ .banner h1{margin:.1rem 0 .3rem;font-size:clamp(1.9rem,4.4vw,2.8rem);letter-spacing:-.04em;line-height:1.05}
+ .banner p{margin:0;color:#c9ced6;max-width:30rem}
+ .banner .eyebrow{color:var(--acc);font-weight:700;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase}
+ .card{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01)),var(--card);border:1px solid var(--line);border-radius:22px;padding:1.2rem 1.35rem;margin-bottom:1rem;
+  box-shadow:0 18px 50px -24px rgba(0,0,0,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+ h2{font-size:1.15rem;margin:0 0 .65rem;letter-spacing:-.02em}
+ h3{letter-spacing:-.01em}
+ p{margin:.45rem 0}
+ .mut{color:var(--mut);font-size:.9rem}
+ table{width:100%;border-collapse:collapse;font-size:.93rem}
+ th,td{text-align:left;padding:.55rem .5rem;border-bottom:1px solid rgba(255,255,255,.06)}
+ th{color:var(--mut);font-weight:650;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase}
+ input[type=text],input[type=password],input[type=number],select,textarea{background:rgba(0,0,0,.45);color:var(--fg);border:1px solid rgba(255,255,255,.12);border-radius:12px;
+  padding:.6rem .75rem;font:inherit;width:100%;transition:border-color .15s,box-shadow .15s}
+ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(198,255,61,.18)}
+ label{display:block;font-size:.85rem;color:var(--mut);margin:.65rem 0 .25rem}
+ button{background:var(--acc);color:#07080a;border:0;border-radius:999px;padding:.6rem 1.15rem;font:inherit;font-weight:700;cursor:pointer;transition:transform .12s,box-shadow .15s}
+ button:hover{transform:translateY(-1px);box-shadow:0 8px 24px -8px rgba(198,255,61,.55)}
+ button.sec{background:rgba(255,255,255,.08);color:#e6e9ee;border:1px solid var(--line)}
+ button.sec:hover{box-shadow:none;background:rgba(255,255,255,.12)}
+ .row{display:flex;gap:.9rem;flex-wrap:wrap}
  .row>*{flex:1;min-width:11rem}
- code{background:#000;padding:.1rem .3rem;border-radius:4px;font-size:.88em}
- .ok{color:var(--acc)}.warn{color:#e94}
- nav a.bmc{color:#fd0}
- footer{max-width:53rem;margin:0 auto;padding:0 1.2rem 2rem;color:var(--mut);font-size:.85rem}
- footer a{color:#fd0}
+ code{background:rgba(0,0,0,.5);border:1px solid var(--line);padding:.1rem .4rem;border-radius:6px;font-size:.86em}
+ .ok{color:var(--acc)}.warn{color:#ffb340}
+ footer{max-width:60rem;margin:0 auto;padding:.5rem 1.2rem 2.5rem;color:var(--mut);font-size:.86rem}
+ footer a{color:#ffdd00}
+ @media(max-width:640px){header{padding:.6rem .8rem}.banner{min-height:150px;padding:1.2rem;border-radius:20px}main{padding:1rem .8rem}}
 </style></head><body>
-<header><h1>🏁 dd-pits — local setup</h1>
+<header><a class="brand" href="/"><img src="/assets/icon-256.webp" alt=""><span><span class="dd">dd</span>-pits</span><small>setup</small></a>
 <nav>
  <a href="/setup">Overview</a>
  <a href="/setup/pilots">Goggle pilots</a>
@@ -148,10 +173,28 @@ func setupPage(title, body string) string {
  <a href="/setup/help">Help</a>
  <a class="bmc" href="` + supportURL + `" target="_blank" rel="noopener">☕ Support dd-pits</a>
 </nav></header>
-<main>` + body + `</main>
+<main>` + banner + body + `</main>
 <footer>dd-pits is free and open source. If it makes your race days easier,
 <a href="` + supportURL + `" target="_blank" rel="noopener">buy the developer a coffee ☕</a>.</footer>
+<script>for(const a of document.querySelectorAll('nav a'))if(a.getAttribute('href')===location.pathname)a.classList.add('on')</script>
 </body></html>`
+}
+
+// setupBanners gives each setup page its artwork and a one-line summary.
+var setupBanners = map[string]struct{ img, eyebrow, line string }{
+	"Overview":       {"desk.webp", "Your venue", "What dd-pits is reading, and what this venue is running."},
+	"Goggle pilots":  {"goggles.webp", "Goggles", "One bind phrase per pilot: lap times, DVR names and the clock in their goggles."},
+	"OSD screen":     {"goggles.webp", "Goggles", "Choose what pilots see on their goggle screen."},
+	"Backpack":       {"netpack.webp", "ELRS", "Connect an ELRS netpack on the network, or a USB backpack."},
+	"Goggle control": {"director.webp", "Race director", "Change a pilot's video channel or send a message to their goggles."},
+	"Commentary":     {"booth.webp", "Commentary booth", "AI play-by-play and colour, in a voice you choose."},
+	"Race calls":     {"director.webp", "Race calls", "Decide who speaks the lap times: dd-pits or FPVTrackside."},
+	"AI models":      {"offline.webp", "Runs on this machine", "Install local voice and writing models — no internet needed on the day."},
+	"Video":          {"stream.webp", "After the race", "Turn your YouTube stream into Watch links and chapters."},
+	"Watch":          {"stream.webp", "After the race", "Watch any heat, with commentary over the video."},
+	"FPVTrackside":   {"desk.webp", "Timing", "Where FPVTrackside lives and what dd-pits reads from it."},
+	"Debug":          {"desk.webp", "Debug", "The log, in the browser — send it when something goes wrong."},
+	"Help":           {"hero.webp", "Getting started", "Everything a race director needs, in five minutes."},
 }
 
 // reloadELRSConfig re-reads the goggle config after an edit, when ELRS is on.
@@ -1044,7 +1087,9 @@ DVR file naming, the clock, channel changes — goes through it.</p>
  <p><label><input type="radio" name="mode" value="netpack"%s style="width:auto">
   <strong>Network (netpack)</strong>
   <span class="mut">— faster, and the only one that reports whether a message actually reached
-  the goggles. Needs the venue network to resolve its name.</span></label></p>
+  the goggles. Needs the venue network to resolve its name. Runs the open-source
+  <a href="https://github.com/bob9/elrs-netpack" target="_blank" rel="noopener">ELRS Netpack</a>
+  firmware on an Ethernet ESP32 board.</span></label></p>
 
  <p><label><input type="radio" name="mode" value="usb"%s style="width:auto">
   <strong>USB backpack</strong>
@@ -1951,9 +1996,12 @@ apply on the next heat.</p>
 
 <p><strong>The backpack</strong> — <a href="/setup/backpack">Backpack</a>. Choose one:</p>
 <ul>
-<li><strong>Network (netpack)</strong> — a netpack on the venue wifi. Faster, and the only option that
-tells you whether a message actually reached the goggles. Its name is usually
-<code>elrs-netpack.local</code>.</li>
+<li><strong>Network (netpack)</strong> — an
+<a href="https://github.com/bob9/elrs-netpack" target="_blank" rel="noopener">ELRS Netpack</a>
+(open-source firmware for an Ethernet ESP32 board; one PoE cable powers and connects it) on the
+venue network. Faster, and the only option that tells you whether a message actually reached the
+goggles. Its name is usually <code>elrs-netpack.local</code>, and browsing to that address shows its
+firmware update page and a goggle test console.</li>
 <li><strong>USB backpack</strong> — plugged into this laptop. Nothing network-related to go wrong.
 Pick the port from the list, or leave it on "find it automatically".</li>
 <li><strong>Network, falling back to USB</strong> — the safest if you have both. Only real redundancy

@@ -1077,10 +1077,10 @@ func newLiveServer(b brand) *liveServer {
 	// dark would give an unreadable near-black timer, so fall back to the AUFPV
 	// brand lime (high-contrast on the dark surface) in that case.
 	if accentTooDarkForDashboard(s.brand.Accent) {
-		s.brand.Accent = "#b6e925"
+		s.brand.Accent = "#c6ff3d"
 	}
 	if s.brand.Name == "" {
-		s.brand.Name = "DroneDash (local)"
+		s.brand.Name = "dd-pits"
 	}
 	s.tmpl = template.Must(template.New("dd").Funcs(template.FuncMap{
 		// watchLink is empty unless the meeting's stream has been anchored, so
@@ -1313,7 +1313,12 @@ func (s *liveServer) handler() http.Handler {
 			// every request for the route.
 			view := name
 			if !ok {
+				// The overlay sits on a live stream, so it waits invisibly
+				// rather than putting the full-screen welcome on air.
 				view, mv = "waiting", nil
+				if name == "overlay" {
+					view = "overlay-waiting"
+				}
 			}
 			if r.URL.Query().Get("fragment") == "1" {
 				s.fragment(w, r, view, mv)
@@ -1336,6 +1341,7 @@ func (s *liveServer) handler() http.Handler {
 	mux.HandleFunc("/live", page("live"))
 	mux.HandleFunc("/overlay", page("overlay"))
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "ok") })
+	mux.Handle("/assets/", assetHandler())
 
 	// Is the bus speaking RIGHT NOW?
 	//
@@ -1494,6 +1500,7 @@ func base64Encode(b []byte) string { return base64.StdEncoding.EncodeToString(b)
 // the page and swaps #app in place (no flash) while ticking the running clock.
 const pageTemplates = `
 {{define "css"}}
+` + headBrand + `
 <style>
 :root{ --accent:{{.Accent}}; --bg:#0f1115; --panel:#1b1e24; --panel2:#23272f; --line:#313742; --txt:#e8eaed; --muted:#9aa3af; }
 *{box-sizing:border-box}
@@ -1586,7 +1593,7 @@ table.rt:not(.lb) td:nth-child(3){white-space:nowrap}
    data need, and the pane with the lap times is the one that matters. 1500 is
    the width at which both panes are comfortable; below it, one full-width
    column under the other beats two cramped ones. */
-@media(max-width:1500px){.home-grid{grid-template-columns:1fr}.home-right{position:static}}
+@media(max-width:1500px){.home-grid{grid-template-columns:minmax(0,1fr)}.home-right{position:static}}
 /* Lite (?lite=1). A sticky element keeps its own compositor layer alive for as
    long as the page exists, and the leaderboard scrolls underneath two of them;
    the shadow and the medal gradients are then re-composited against it. None of
@@ -1712,6 +1719,105 @@ a.pilot-stat-card:hover .pilot-stat-go{color:var(--accent)}
 .pilot-empty{color:var(--muted);text-align:center;padding:2rem}
 body.overlay{background:transparent}
 body.overlay .top,body.overlay .sub{display:none}
+
+/* ── Theme ────────────────────────────────────────────────────────────────
+   A layer over the layout rules above: colour, depth and type only, so every
+   column-width and stacking fix above still holds. Lite mode and the OBS
+   overlay opt out of the expensive parts (blur, glows, the backdrop image). */
+:root{--bg:#07080a;--panel:rgba(22,24,30,.72);--panel2:rgba(34,37,46,.66);--line:rgba(255,255,255,.08);
+  --txt:#f2f4f7;--muted:#8e96a3;--cyan:#3de0ff;--glow:0 0 0 1px rgba(255,255,255,.04),0 18px 50px -20px rgba(0,0,0,.8)}
+body{font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",Roboto,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;letter-spacing:-.005em;
+  background:radial-gradient(1200px 600px at 85% -10%,color-mix(in srgb,var(--accent) 14%,transparent),transparent 60%),
+    radial-gradient(900px 500px at -10% 10%,rgba(61,224,255,.08),transparent 60%),var(--bg);background-attachment:fixed;min-height:100vh}
+body:not(.overlay)::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:url(/assets/ambient.webp) center top/cover no-repeat;opacity:.18;mix-blend-mode:screen}
+.top{background:rgba(9,10,13,.62);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid var(--line);padding:.6rem 1.2rem}
+.top .logo{height:30px;width:30px;border-radius:8px;box-shadow:0 0 18px color-mix(in srgb,var(--accent) 35%,transparent)}
+.top .name{font-weight:750;font-size:1.08rem;letter-spacing:-.02em}
+.top .name .dd{background:linear-gradient(90deg,var(--accent),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.top .meet{color:var(--muted);font-size:.86rem;padding:.2rem .65rem;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.03)}
+.top nav a{border:1px solid transparent;border-radius:999px;padding:.38rem .85rem;color:#cfd4dc;font-weight:600;transition:background .15s,color .15s}
+.top nav a:hover{background:rgba(255,255,255,.07);border-color:transparent;color:#fff}
+.top .bmc{padding:.34rem .75rem;border-radius:999px;background:rgba(255,221,0,.1);border:1px solid rgba(255,221,0,.25);color:#ffdd00;font-weight:600}
+.top .bmc:hover{background:rgba(255,221,0,.18)}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01)),var(--panel);border:1px solid var(--line);
+  border-radius:22px;padding:1.2rem 1.35rem;box-shadow:var(--glow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.card h2{font-size:1.28rem;font-weight:750;letter-spacing:-.025em}
+.card h2 .sub{font-weight:600;margin-left:.35rem}
+.badge{letter-spacing:.06em}
+.badge.run{background:rgba(52,199,89,.14);color:#5df08a;border:1px solid rgba(93,240,138,.35);position:relative;padding-left:1.15rem}
+.badge.run::before{content:"";position:absolute;left:.45rem;top:50%;width:.42rem;height:.42rem;margin-top:-.21rem;border-radius:50%;
+  background:#5df08a;box-shadow:0 0 0 0 rgba(93,240,138,.7);animation:ddpulse 1.6s infinite}
+@keyframes ddpulse{0%{box-shadow:0 0 0 0 rgba(93,240,138,.6)}70%{box-shadow:0 0 0 .5rem rgba(93,240,138,0)}100%{box-shadow:0 0 0 0 rgba(93,240,138,0)}}
+.clock{font-size:2rem;font-weight:800;letter-spacing:-.03em;text-shadow:0 0 28px color-mix(in srgb,var(--accent) 55%,transparent)}
+table.rt th{font-size:.68rem;letter-spacing:.09em;font-weight:650;border-bottom:1px solid var(--line)}
+table.rt td{border-bottom:1px solid rgba(255,255,255,.05);padding-top:.55rem;padding-bottom:.55rem}
+table.rt tbody tr{transition:background .15s}
+table.rt tbody tr:hover{background:rgba(255,255,255,.03)}
+.pos{border-radius:9px;min-width:2.1rem;background:rgba(255,255,255,.08)}
+.pos.p1{box-shadow:0 0 16px rgba(255,200,40,.35)}
+.lap{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.14rem .45rem}
+.lap.best{border-color:color-mix(in srgb,var(--accent) 70%,transparent);color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.chip.consec,.next-racing{color:var(--accent)}
+.chip.consec{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.tile{background:var(--panel2);border-radius:18px;border:1px solid var(--line);border-left:4px solid var(--accent);box-shadow:var(--glow)}
+.up-chip,.pilot-meta-chip,.pilot-upcoming-competitor{background:rgba(255,255,255,.05)}
+.pilot-stat-card{background:var(--panel2);border:1px solid var(--line);border-radius:18px}
+.pilot-tab-panel{background:var(--panel);border-radius:22px}
+.empty h2{font-size:1.6rem;letter-spacing:-.03em}
+/* The waiting screen is the first thing a new venue sees. */
+.hero-wait{position:relative;min-height:calc(100vh - 3.5rem);display:grid;place-items:center;text-align:center;overflow:hidden;padding:2rem 1.2rem}
+.hero-wait::before{content:"";position:absolute;inset:0;background:url(/assets/hero.webp) center/cover no-repeat;opacity:.55;
+  -webkit-mask-image:linear-gradient(180deg,#000 40%,transparent);mask-image:linear-gradient(180deg,#000 40%,transparent)}
+.hero-wait>div{position:relative;max-width:40rem}
+.hero-wait h1{font-size:clamp(2.2rem,6vw,4.2rem);line-height:1.02;letter-spacing:-.045em;margin:.6rem 0;font-weight:800}
+.hero-wait h1 span{background:linear-gradient(90deg,var(--accent),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-wait p{color:#c3c9d2;font-size:1.1rem;margin:.4rem auto 1.4rem}
+.hero-wait .pill{display:inline-flex;align-items:center;gap:.55rem;padding:.45rem 1rem;border-radius:999px;background:rgba(0,0,0,.45);
+  border:1px solid var(--line);color:#dfe3e8;font-weight:600;font-size:.9rem;backdrop-filter:blur(10px)}
+.hero-wait .pill i{width:.55rem;height:.55rem;border-radius:50%;background:var(--accent);animation:ddpulse 1.6s infinite}
+.hero-wait .cta{display:inline-flex;gap:.6rem;flex-wrap:wrap;justify-content:center;margin-top:1.2rem}
+.hero-wait .cta a{padding:.7rem 1.3rem;border-radius:999px;font-weight:700;background:var(--accent);color:#07080a}
+.hero-wait .cta a.sec{background:rgba(255,255,255,.08);color:#fff;border:1px solid var(--line)}
+html[data-lite] body{background:var(--bg)}
+html[data-lite] body::before,html[data-lite] .hero-wait::before{display:none}
+html[data-lite] .top,html[data-lite] .card{backdrop-filter:none;-webkit-backdrop-filter:none}
+html[data-lite] .badge.run::before{animation:none}
+html[data-lite] .clock{text-shadow:none}
+body.overlay{background:transparent!important}
+/* OBS overlay: a compact broadcast panel, top-left, readable at stream size. */
+.obs{position:fixed;left:28px;top:28px;width:420px;border-radius:18px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(14,16,20,.92),rgba(8,9,12,.88));border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 20px 50px -18px rgba(0,0,0,.9),0 0 0 1px rgba(198,255,61,.08);font-variant-numeric:tabular-nums}
+.obs-head{display:flex;align-items:center;gap:.55rem;padding:.6rem .85rem;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 22%,transparent),transparent 70%);border-bottom:1px solid rgba(255,255,255,.08)}
+.obs-head img{width:22px;height:22px;border-radius:6px}
+.obs-race{font-weight:800;letter-spacing:-.01em;font-size:1rem}
+.obs-live{font-size:.66rem;font-weight:800;letter-spacing:.1em;color:#07080a;background:var(--accent);padding:.12rem .45rem;border-radius:6px}
+.obs-clock{margin-left:auto;font-weight:800;font-size:1.15rem;color:var(--accent)}
+.obs-row{display:flex;align-items:center;gap:.6rem;padding:.48rem .85rem;border-top:1px solid rgba(255,255,255,.05)}
+.obs-row:first-child{border-top:0}
+.obs-row .pos{min-width:1.8rem;font-size:.9rem}
+.obs-row i{width:4px;height:1.3rem;border-radius:2px;flex:none}
+.obs-row b{flex:1;font-size:1.02rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.obs-laps{color:var(--muted);font-size:.85rem;font-weight:700}
+.obs-total{font-weight:800;min-width:4.6rem;text-align:right}
+body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
+@media(prefers-reduced-motion:reduce){.badge.run::before,.hero-wait .pill i{animation:none}}
+.top .name{white-space:nowrap}
+@media(max-width:640px){
+  .top{gap:.5rem;padding:.55rem .8rem;flex-wrap:nowrap}
+  .top .meet,.top .ver{display:none}
+  .top nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-left:auto;min-width:0}
+  .top nav::-webkit-scrollbar{display:none}
+  .top nav a{padding:.32rem .6rem;white-space:nowrap}
+  .top .bmc{font-size:0;padding:.3rem .55rem}.top .bmc::before{content:"☕";font-size:.9rem}
+  .card{border-radius:18px;padding:1rem;overflow-x:auto}
+  table.rt:not(.lb){min-width:34rem}
+  .wrap.home{padding:.8rem}
+  .clock{font-size:1.5rem}}
 </style>
 {{end}}
 
@@ -2066,9 +2172,9 @@ body.overlay .top,body.overlay .sub{display:none}
 
 {{define "shell-top"}}
 <div class="top">
-  {{if .Brand.LogoB64}}<img src="{{.Brand.LogoB64}}" alt="">{{end}}
-  <span class="name">{{.Brand.Name}}</span>
-  {{if .M}}<span class="meet">· {{.M.Name}}</span>{{end}}
+  {{if .Brand.LogoB64}}<img src="{{.Brand.LogoB64}}" alt="">{{else}}<a href="/"><img class="logo" src="/assets/icon-256.webp" alt="dd-pits"></a>{{end}}
+  <span class="name">{{if eq .Brand.Name "dd-pits"}}<span class="dd">dd</span>-pits{{else}}{{.Brand.Name}}{{end}}</span>
+  {{if .M}}<span class="meet">{{.M.Name}}</span>{{end}}
   <nav>
     <a href="/">Home</a><a href="/live">Live</a><a href="/dronedash/races">Races</a><a href="/overlay">Overlay</a>
   </nav>
@@ -2129,10 +2235,15 @@ body.overlay .top,body.overlay .sub{display:none}
      <div id="app"> must contain nothing but its body partial, or a refresh will
      silently drop whatever else was in there. */}}
 
-{{define "waiting"}}<!doctype html><html><head><meta charset="utf-8"><title>DroneDash (local)</title>{{template "css" .}}</head>
+{{define "waiting"}}<!doctype html><html><head><meta charset="utf-8"><title>dd-pits — waiting for FPVTrackside</title>{{template "css" .}}</head>
 <body>{{template "shell-top" .}}<div id="app">{{template "waiting-body" .}}</div>{{template "js" (dictRefresh 2000 .)}}</body></html>{{end}}
 
-{{define "waiting-body"}}<div class="empty"><h2>Waiting for FPVTrackside…</h2><p>This local dashboard updates automatically when timing data arrives.</p></div>{{end}}
+{{define "waiting-body"}}<section class="hero-wait"><div>
+  <span class="pill"><i></i>Waiting for FPVTrackside</span>
+  <h1>Race day, <span>live.</span></h1>
+  <p>Open your event in FPVTrackside and this board lights up on its own: heats, lap times and standings, on every phone at the field.</p>
+  <div class="cta"><a href="/setup/help">Get set up</a><a class="sec" href="/setup">Settings</a></div>
+</div></section>{{end}}
 
 {{define "home"}}<!doctype html><html><head><meta charset="utf-8"><title>{{.Brand.Name}} — Live</title>{{template "css" .}}</head>
 <body>{{template "shell-top" .}}<div id="app">{{template "home-body" .}}</div>{{template "js" (dictRefresh 2500 .)}}</body></html>{{end}}
@@ -2341,16 +2452,30 @@ body.overlay .top,body.overlay .sub{display:none}
 {{- end -}}
 {{end}}
 
+{{define "overlay-waiting"}}<!doctype html><html><head><meta charset="utf-8"><title>Overlay</title>{{template "css" .}}</head>
+<body class="overlay"><div id="app">{{template "overlay-waiting-body" .}}</div>{{template "js" (dictRefresh 2000 .)}}</body></html>{{end}}
+{{define "overlay-waiting-body"}}{{end}}
+
 {{define "overlay"}}<!doctype html><html><head><meta charset="utf-8"><title>Overlay</title>{{template "css" .}}</head>
 <body class="overlay"><div id="app">{{template "overlay-body" .}}</div>{{template "js" (dictRefresh 800 .)}}</body></html>{{end}}
 
 {{define "overlay-body"}}
   {{with .M.Current}}{{$race := .}}
-  <div style="padding:.6rem">
-    <table class="rt" style="background:rgba(15,17,21,.82);border-radius:10px">
-      <thead><tr><th>Pos</th><th>Name</th><th>Total</th>{{if .IsTT}}<th>Best {{.ConsecWindow}}</th>{{end}}</tr></thead>
-      <tbody>{{range .Pilots}}<tr><td><span class="pos{{if le .Position 3}} p{{.Position}}{{end}}">{{.Position}}</span></td><td class="pname">{{.Name}}</td><td>{{f3 .Total}}</td>{{if $race.IsTT}}<td>{{f2 .BestConsec}}</td>{{end}}</tr>{{end}}</tbody>
-    </table>
+  {{/* Every element is keyed: the soft refresh pairs children by data-key,
+       and unkeyed siblings get paired by position, which mixes pilots up. */}}
+  <div class="obs">
+    <div class="obs-head" data-key="head">
+      <img data-key="logo" src="/assets/icon-256.webp" alt="">
+      <span data-key="race" class="obs-race">{{.Label}}</span>
+      {{if eq .State "running"}}<span data-key="live" class="obs-live">LIVE</span><span data-key="clock" class="obs-clock" data-clock-start="{{.StartMs}}">0.0</span>{{end}}
+    </div>
+    <div class="obs-rows" data-key="rows">{{range .Pilots}}<div class="obs-row" data-key="{{.Name}}">
+      <span data-key="pos" class="pos{{if le .Position 3}} p{{.Position}}{{end}}">{{.Position}}</span>
+      <i data-key="chan" style="background:{{.ChannelColor}}"></i>
+      <b data-key="name">{{.Name}}</b>
+      <span data-key="laps" class="obs-laps">{{if $race.IsTT}}{{f2 .BestConsec}}{{else}}L{{len .DispLaps}}{{end}}</span>
+      <span data-key="total" class="obs-total">{{f3 .Total}}</span>
+    </div>{{end}}</div>
   </div>
   {{end}}
 {{end}}

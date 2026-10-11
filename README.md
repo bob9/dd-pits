@@ -1,3 +1,5 @@
+<p align="center"><img src="cmd/dd-pits/assets/icon-256.webp" width="96" alt="dd-pits icon"></p>
+
 # dd-pits
 
 **A race-day companion for [FPVTrackside](https://github.com/FPVTrackside).**
@@ -10,7 +12,25 @@ It runs entirely on the venue laptop and needs no internet connection or
 account. Everything is configured in a browser and stored in one JSON file
 beside the binary.
 
+**[Website](https://dd-pits.threedigitalllamas.com.au)** ·
+**[Live demo](https://demo.dd-pits.threedigitalllamas.com.au)** ·
+**[Download](../../releases)** ·
+[ELRS Netpack](https://github.com/bob9/elrs-netpack)
+
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support%20dd--pits-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/bobnine)
+
+![The live dashboard during a heat](docs/screenshots/dashboard.webp)
+
+## Screenshots
+
+| | |
+| --- | --- |
+| ![Live TV view](docs/screenshots/live.webp) **TV view** (`/live`): the current race, full-screen. | ![OBS overlay on a stream](docs/screenshots/overlay.webp) **OBS overlay** (`/overlay`): a broadcast panel for your stream. |
+| ![Pilot analytics page](docs/screenshots/pilot.webp) **Pilot pages:** stats, lap chart and every lap of the meeting. | ![Race history](docs/screenshots/races.webp) **Race history:** every heat with its lap times. |
+| ![Commentary setup](docs/screenshots/booth.webp) **Commentary booth:** choose a writer, a voice and a style. | ![Goggle pilots setup](docs/screenshots/pilots.webp) **Goggle pilots:** one bind phrase per pilot. |
+| ![Race calls setup](docs/screenshots/calls.webp) **Race calls:** decide who speaks the lap times. | ![First-run screen](docs/screenshots/waiting.webp) **First run:** the board lights up when FPVTrackside does. |
+
+<p align="center"><img src="docs/screenshots/mobile.webp" width="300" alt="The dashboard on a phone"><br><em>Every pilot can follow along on their phone.</em></p>
 
 ## Features
 
@@ -88,8 +108,9 @@ beside the binary.
   optional custom layout per pilot.
 - **Goggle control** (`/goggles`): change a pilot's video channel from the
   desk, or send a message to some or all pilots.
-- **Connection:** a netpack on the venue wifi (it can confirm delivery), a USB
-  backpack, or netpack with USB fallback.
+- **Connection:** an [ELRS Netpack](#works-with-elrs-netpack) on the venue
+  network (it can confirm delivery), a USB backpack, or netpack with USB
+  fallback.
 
 ### After the race
 
@@ -109,6 +130,36 @@ beside the binary.
 - **JSON API** (`/docs`): meeting, race, round, leaderboard, pilot and channel
   data as JSON, with an OpenAPI spec and a live event stream, for building
   your own displays.
+
+## Works with ELRS Netpack
+
+[**ELRS Netpack**](https://github.com/bob9/elrs-netpack) is open-source
+firmware that turns an Ethernet-equipped ESP32 board into an ExpressLRS timer
+backpack you reach over the network instead of a USB cable. dd-pits talks to it
+over TCP (port `8080`, found at `elrs-netpack.local`), and it relays goggle
+messages to every pilot at the field. That covers lap times on the OSD, DVR
+names, clock sync and channel changes.
+
+- **One cable:** on a PoE board (Waveshare ESP32-S3-ETH PoE, Olimex
+  ESP32-POE-ISO) a single Ethernet cable powers the netpack and connects it.
+  Put it anywhere on the venue network, not tethered to the timing laptop.
+- **Delivery confirmation:** the netpack reports back whether each message
+  reached the goggles, so dd-pits knows a pilot actually got it.
+- **Over-the-air updates:** browse to `http://elrs-netpack.local/` and drop in
+  a new firmware file. No USB needed after the first flash.
+- **Goggle test console** (`/test`): send an OSD message, change a channel,
+  set the clock or name a DVR recording from any browser. Useful for checking
+  a pilot's goggles before the meeting starts.
+
+| Firmware console | Goggle test console |
+| --- | --- |
+| ![ELRS Netpack firmware update page](docs/screenshots/netpack-update.webp) | ![ELRS Netpack goggle test console](docs/screenshots/netpack-test.webp) |
+
+Set it up in dd-pits at `/setup/backpack`: choose **Network (netpack)** and
+enter its name or address. ELRS Netpack was originally created by
+[i-am-grub](https://github.com/i-am-grub/elrs-netpack), and is forked and
+extended by [bob9](https://github.com/bob9/elrs-netpack). It is not affiliated
+with the ExpressLRS project.
 
 ## Quick start
 
@@ -170,6 +221,20 @@ make release        # cross-compile for macOS, Windows and Linux into ./dist
 On macOS, in-process audio uses CGo (`ebitengine/oto`). Cross-compiled builds
 fall back to the Python audio sidecar.
 
+### Developing without a timing system
+
+`cmd/fpvtrackside-sim` serves a simulated FPVTrackside meeting over the same
+API dd-pits reads. Heats are staged, raced and finished back to back in real
+time, so every page has live data to show:
+
+```sh
+go run ./cmd/fpvtrackside-sim -addr 127.0.0.1:8080 &
+go run ./cmd/dd-pits -fpvtrackside http://127.0.0.1:8080
+```
+
+The [live demo](https://demo.dd-pits.threedigitalllamas.com.au) runs exactly
+this.
+
 ## Project layout
 
 ```
@@ -184,7 +249,9 @@ internal/gemini/     Gemini client (AI Studio key or Vertex AI)
 internal/qwenchat/   Qwen chat client (commentary writer)
 internal/qwentts/    Qwen3-TTS client
 internal/localchat/  local MLX chat model sidecar
-docs/                design notes
+cmd/fpvtrackside-sim/ simulated FPVTrackside meeting for development and demos
+site/                the promo website (dd-pits.threedigitalllamas.com.au)
+docs/                design notes and screenshots
 ```
 
 ## Contributing

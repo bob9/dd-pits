@@ -51,22 +51,31 @@ func (ra *raceAnnouncer) serveRaceControl(w http.ResponseWriter, r *http.Request
 
 	var b strings.Builder
 	b.WriteString(`<!doctype html><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Race calls</title>
+` + headBrand + `
+<title>Race calls — dd-pits</title>
 <style>
- body{font:16px -apple-system,system-ui,sans-serif;background:#111;color:#eee;margin:0;padding:20px;max-width:640px}
- h1{font-size:20px;margin:0 0 4px}
- p.sub{color:#888;margin:0 0 20px;font-size:14px}
- form{background:#1c1c1c;border:1px solid #2a2a2a;border-radius:10px;padding:14px;margin-bottom:12px}
- .lbl{font-weight:600;margin-bottom:2px}
- .det{color:#888;font-size:13px;margin-bottom:10px}
- input{background:#111;border:1px solid #333;color:#eee;border-radius:7px;padding:10px;font-size:16px;width:100%;box-sizing:border-box;margin-bottom:8px}
- button{background:#2d7;border:0;color:#052;font-weight:700;border-radius:7px;padding:12px 18px;font-size:16px;width:100%;cursor:pointer}
- button:active{opacity:.75}
+ body{font:16px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:#f2f4f7;margin:0;padding:20px 16px 40px;
+  background:radial-gradient(700px 400px at 100% -10%,rgba(198,255,61,.12),transparent 60%),#07080a;min-height:100vh}
+ .wrap{max-width:640px;margin:0 auto}
+ .brand{display:flex;align-items:center;gap:.55rem;margin-bottom:18px;color:#f2f4f7;text-decoration:none;font-weight:750;letter-spacing:-.02em}
+ .brand img{width:28px;height:28px;border-radius:7px;box-shadow:0 0 16px rgba(198,255,61,.3)}
+ .brand .dd{background:linear-gradient(90deg,#c6ff3d,#3de0ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+ h1{font-size:30px;letter-spacing:-.035em;margin:0 0 4px}
+ p.sub{color:#8e96a3;margin:0 0 22px;font-size:15px}
+ form{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01)),rgba(22,24,30,.8);border:1px solid rgba(255,255,255,.09);border-radius:20px;padding:16px;margin-bottom:12px;
+  box-shadow:0 18px 40px -24px rgba(0,0,0,.9)}
+ .lbl{font-weight:700;font-size:17px;margin-bottom:2px;letter-spacing:-.01em}
+ .det{color:#8e96a3;font-size:14px;margin-bottom:12px}
+ input{background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.12);color:#f2f4f7;border-radius:12px;padding:12px;font-size:16px;width:100%;box-sizing:border-box;margin-bottom:10px}
+ input:focus{outline:none;border-color:#c6ff3d;box-shadow:0 0 0 3px rgba(198,255,61,.18)}
+ button{background:#c6ff3d;border:0;color:#07080a;font-weight:800;border-radius:999px;padding:14px 18px;font-size:16px;width:100%;cursor:pointer;transition:transform .1s}
+ button:active{transform:scale(.98)}
  .off{opacity:.45}
- .off button{background:#333;color:#888}
- .note{color:#777;font-size:13px;margin-top:18px;line-height:1.5}
+ .off button{background:#2a2d33;color:#8e96a3}
+ .note{color:#8e96a3;font-size:13px;margin-top:18px;line-height:1.55}
 </style>
+<div class="wrap">
+<a class="brand" href="/"><img src="/assets/icon-256.webp" alt=""><span><span class="dd">dd</span>-pits</span></a>
 <h1>Race calls</h1>
 <p class="sub">Spoken in the meeting voice, on the same bus as the automatic calls.</p>
 `)
@@ -98,7 +107,7 @@ func (ra *raceAnnouncer) serveRaceControl(w http.ResponseWriter, r *http.Request
 	// Says WHERE the wording comes from, so nobody goes looking for it here.
 	b.WriteString(`<p class="note">The words for each call come from FPVTrackside's own sound
 settings — change them there and this page follows. A call switched off there stays
-off here too.</p>`)
+off here too.</p></div>`)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(b.String()))

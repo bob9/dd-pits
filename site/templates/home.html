@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>dd-pits — Race day, run from one laptop</title>
+<meta name="description" content="dd-pits is a free, open-source race-day companion for FPVTrackside: live dashboard, OBS overlays, race calls, AI commentary and lap times in pilots' goggles. No internet. No account.">
+<meta name="theme-color" content="#050607">
+<link rel="canonical" href="{{.SiteURL}}/">
+<link rel="icon" type="image/png" sizes="32x32" href="{{asset "img/favicon-32.png"}}">
+<link rel="icon" type="image/png" sizes="64x64" href="{{asset "img/favicon-64.png"}}">
+<link rel="apple-touch-icon" href="{{asset "img/apple-touch-icon.png"}}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="dd-pits">
+<meta property="og:title" content="dd-pits — Race day, run from one laptop">
+<meta property="og:description" content="Live dashboard, race calls, AI commentary and goggle OSD for FPVTrackside. Free, open source, fully offline.">
+<meta property="og:url" content="{{.SiteURL}}/">
+<meta property="og:image" content="{{.SiteURL}}{{asset "img/hero.webp"}}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="dd-pits — Race day, run from one laptop">
+<meta name="twitter:description" content="Live dashboard, race calls, AI commentary and goggle OSD for FPVTrackside. Free and open source.">
+<meta name="twitter:image" content="{{.SiteURL}}{{asset "img/hero.webp"}}">
+<link rel="preload" as="image" href="{{asset "img/hero.webp"}}" type="image/webp">
+<link rel="stylesheet" href="{{asset "site.css"}}">
+<script src="{{asset "site.js"}}" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="nav-in">
+    <a class="brand" href="#top" aria-label="dd-pits home">
+      <img src="{{asset "img/icon-256.webp"}}" alt="" width="28" height="28">
+      <span class="wordmark"><span class="grad">dd</span>-pits</span>
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#how-to">How to use</a>
+      <a href="#displays">Displays</a>
+      <a href="#calls">Race calls</a>
+      <a href="#booth">Commentary</a>
+      <a href="#goggles">Goggles</a>
+      <a href="#netpack">Netpack</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn-coffee sm" href="{{.Links.coffee}}" target="_blank" rel="noopener"><span aria-hidden="true">☕</span> Support</a>
+      <a class="btn sm" href="{{.Links.releases}}">Get dd-pits</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- HERO -->
+<section class="hero">
+  <picture>
+    <source media="(max-width: 700px)" srcset="{{asset "img/hero-sm.webp"}}">
+    <img class="hero-img" src="{{asset "img/hero.webp"}}" alt="A racing drone flying through glowing neon race gates at night" width="2400" height="1340">
+  </picture>
+  <div class="hero-shade"></div>
+  <div class="hero-copy">
+    <p class="eyebrow">Free &amp; open source · for FPVTrackside</p>
+    <h1 class="display">Race day,<br><span class="grad">run from one laptop.</span></h1>
+    <p class="lede">A live dashboard on every phone. Race calls in one voice. AI commentary for your stream. Lap times in pilots' goggles. All from the timing laptop — no internet, no account.</p>
+    <div class="ctas">
+      <a class="btn" href="{{.Links.releases}}">Get dd-pits</a>
+      <a class="btn demo" href="{{.Links.demo}}">Try the live demo <span aria-hidden="true">→</span></a>
+      <a class="btn ghost" href="{{.Links.github}}">View on GitHub</a>
+    </div>
+  </div>
+  <a class="scroll-hint" href="#stats" aria-label="Scroll to learn more"><span></span></a>
+</section>
+
+<!-- STATS -->
+<section class="stats" id="stats" aria-label="At a glance">
+  <div class="stat reveal"><b>0</b><span>internet needed</span></div>
+  <div class="stat reveal"><b>1</b><span>laptop runs it all</span></div>
+  <div class="stat reveal"><b>100<small>ms</small></b><span>lap freshness while racing</span></div>
+  <div class="stat reveal"><b>$0</b><span>MIT licensed, forever</span></div>
+</section>
+
+<!-- INTRO / LAPTOP -->
+<section class="intro" aria-labelledby="intro-h">
+  <div class="wrap center">
+    <p class="eyebrow reveal">Meet dd-pits</p>
+    <h2 class="headline reveal" id="intro-h">Everything after the timer.</h2>
+    <p class="sub reveal">dd-pits sits beside FPVTrackside on the timing laptop and turns its timing data into everything a race director wants on the day. Configure it all in a browser. Store it in one file.</p>
+  </div>
+  <div class="laptop reveal">
+    <div class="laptop-screen">
+      <img src="{{asset "img/screens/dashboard.webp"}}" alt="The dd-pits live dashboard showing the current heat, positions, holeshots, lap times and totals" loading="lazy" width="2000" height="1250">
+    </div>
+    <div class="laptop-base"></div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" aria-labelledby="how-h">
+  <div class="wrap center">
+    <p class="eyebrow reveal">How it works</p>
+    <h2 class="headline reveal" id="how-h">One source of truth.<br><span class="grad">Every screen, speaker and goggle.</span></h2>
+  </div>
+  <div class="diagram reveal">
+    <svg viewBox="0 0 1000 420" role="img" aria-labelledby="dg-t dg-d">
+      <title id="dg-t">How dd-pits connects</title>
+      <desc id="dg-d">FPVTrackside feeds timing data to dd-pits on the same laptop. dd-pits serves phones and TVs over the venue wifi, sends overlays and audio to OBS, plays calls through the speakers, and reaches pilots' goggles through an ELRS netpack or USB backpack.</desc>
+      <defs>
+        <linearGradient id="g1" gradientUnits="userSpaceOnUse" x1="200" y1="0" x2="980" y2="0"><stop offset="0" stop-color="#c6ff3d"/><stop offset="1" stop-color="#3de0ff"/></linearGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <g class="dg-lines" fill="none" stroke="url(#g1)" stroke-width="2">
+        <path d="M220 210 H390"/>
+        <path d="M610 210 C680 210 690 60 770 60"/>
+        <path d="M610 210 C680 210 690 160 770 160"/>
+        <path d="M610 210 C680 210 690 260 770 260"/>
+        <path d="M610 210 C680 210 690 360 770 360"/>
+      </g>
+      <g class="dg-pulses" fill="#c6ff3d" filter="url(#glow)">
+        <circle r="5"><animateMotion dur="2.4s" repeatCount="indefinite" path="M220 210 H390"/></circle>
+        <circle r="4"><animateMotion dur="2.8s" repeatCount="indefinite" path="M610 210 C680 210 690 60 770 60"/></circle>
+        <circle r="4"><animateMotion dur="2.2s" repeatCount="indefinite" path="M610 210 C680 210 690 160 770 160"/></circle>
+        <circle r="4"><animateMotion dur="2.6s" repeatCount="indefinite" path="M610 210 C680 210 690 260 770 260"/></circle>
+        <circle r="4"><animateMotion dur="3s" repeatCount="indefinite" path="M610 210 C680 210 690 360 770 360"/></circle>
+      </g>
+      <g class="dg-node">
+        <rect x="20" y="160" width="200" height="100" rx="18"/>
+        <text x="120" y="205" text-anchor="middle" class="t1">FPVTrackside</text>
+        <text x="120" y="232" text-anchor="middle" class="t2">timing &amp; laps</text>
+      </g>
+      <g class="dg-core">
+        <rect x="390" y="130" width="220" height="160" rx="28"/>
+        <text x="500" y="205" text-anchor="middle" class="t0">dd-pits</text>
+        <text x="500" y="236" text-anchor="middle" class="t2">same laptop · offline</text>
+      </g>
+      <g class="dg-node">
+        <rect x="770" y="30" width="210" height="60" rx="14"/><text x="875" y="66" text-anchor="middle" class="t1">Phones &amp; TVs</text>
+        <rect x="770" y="130" width="210" height="60" rx="14"/><text x="875" y="166" text-anchor="middle" class="t1">OBS stream</text>
+        <rect x="770" y="230" width="210" height="60" rx="14"/><text x="875" y="266" text-anchor="middle" class="t1">Speakers</text>
+        <rect x="770" y="330" width="210" height="60" rx="14"/><text x="875" y="366" text-anchor="middle" class="t1">Goggles · ELRS</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- HOW TO USE -->
+<section class="howto" id="how-to" aria-labelledby="howto-h">
+  <div class="wrap center">
+    <p class="eyebrow reveal">How to use dd-pits</p>
+    <h2 class="headline reveal" id="howto-h">From download<br><span class="grad">to race day in minutes.</span></h2>
+    <p class="sub reveal">Seven steps, all in the browser. Do the first two and you already have a live dashboard; the rest are optional.</p>
+  </div>
+  <ol class="steps">
+    <li class="step reveal">
+      <div class="step-copy">
+        <span class="step-n">1</span>
+        <h3>Download and run</h3>
+        <p>Grab dd-pits from Releases and run it on the laptop next to FPVTrackside. The setup guide opens in your browser on first run.</p>
+        <code class="step-code">./dd-pits</code>
+      </div>
+      <figure class="browser step-shot">
+        <div class="browser-bar"><i></i><i></i><i></i><span>localhost:8088/setup</span></div>
+        <img src="{{asset "img/screens/setup.webp"}}" alt="The dd-pits setup guide in a browser" loading="lazy" width="2000" height="1250">
+      </figure>
+    </li>
+    <li class="step reveal">
+      <div class="step-copy">
+        <span class="step-n">2</span>
+        <h3>Open your event</h3>
+        <p>Open your event in FPVTrackside and the dashboard lights up. Share the laptop's address with pilots over the venue wifi.</p>
+        <code class="step-code">http://&lt;laptop&gt;:8088</code>
+      </div>
+      <figure class="browser step-shot">
+        <div class="browser-bar"><i></i><i></i><i></i><span>&lt;laptop&gt;:8088</span></div>
+        <img src="{{asset "img/screens/mobile.webp"}}" alt="The live dashboard on a pilot's phone" loading="lazy" width="2000" height="1250">
+      </figure>
+    </li>
+    <li class="step reveal">
+      <div class="step-copy">
+        <span class="step-n">3</span>
+        <h3>Put it on screens</h3>
+        <p>Open the TV view on a screen at the pits, and add the overlay to OBS as a Browser Source.</p>
+        <code class="step-code">/live  ·  /overlay</code>
+      </div>
+      <figure class="browser step-shot">
+        <div class="browser-bar"><i></i><i></i><i></i><span>&lt;laptop&gt;:8088/live</span></div>
+        <img src="{{asset "img/screens/live.webp"}}" alt="The full-screen live race view" loading="lazy" width="2000" height="1250">
+      </figure>
+    </li>
+    <li class="step reveal">
+      <div class="step-copy">
+        <span class="step-n">4</span>
+        <h3>Choose who speaks</h3>
+        <p>Pick whether dd-pits or FPVTrackside makes the race calls. dd-pits sets FPVTrackside's speech to match.</p>
+        <code class="step-code">/setup/calls</code>
+      </div>
+      <figure class="browser step-shot">
+        <div class="browser-bar"><i></i><i></i><i></i><span>localhost:8088/setup/calls</span></div>
+        <img src="{{asset "img/screens/calls.webp"}}" alt="The race calls settings page" loading="lazy" width="2000" height="1250">
+      </figure>
+    </li>
+    <li class="step reveal">
+      <div class="step-copy">
+        <span class="step-n">5</span>
+        <h3>Wire up the goggles</h3>
+        <p>Add each pilot's bind phrase, connect an ELRS netpack or USB backpack, then lay out the goggle screen.</p>
+        <code class="step-code">/setup/pilots  ·  /setup/backpack  ·  /setup/osd</code>
+      </div>
+      <figure class="browser step-shot">
+        <div class="browser-bar"><i></i><i></i><i></i><span>localhost:8088/setup/pilots</span></div>
+        <img src="{{asset "img/screens/pilots.webp"}}" alt="The goggle pilots settings page" loading="lazy" width="2000" height="1250">
+      </figure>
+    </li>
+    <li class="step reveal">
+      <div class="step-copy">
+        <span class="step-n">6</span>
+        <h3>Turn on commentary</h3>
+        <p>Pick a writer and a voice. Hear it on the laptop's speakers, or add the audio to OBS as a Media Source.</p>
+        <code class="step-code">/setup/booth  ·  /booth.wav</code>
+      </div>
+      <figure class="browser step-shot">
+        <div class="browser-bar"><i></i><i></i><i></i><span>localhost:8088/setup/booth</span></div>
+        <img src="{{asset "img/screens/booth.webp"}}" alt="The commentary settings page" loading="lazy" width="2000" height="1250">
+      </figure>
+    </li>
+    <li class="step reveal">
+      <div class="step-copy">
+        <span class="step-n">7</span>
+        <h3>After the race</h3>
+        <p>Paste the stream's YouTube link and place one heat. Every heat gets a Watch link, and you get chapters to paste into the description.</p>
+        <code class="step-code">/setup/video</code>
+      </div>
+      <figure class="browser step-shot">
+        <div class="browser-bar"><i></i><i></i><i></i><span>localhost:8088/setup/video</span></div>
+        <img src="{{asset "img/screens/overlay.webp"}}" alt="dd-pits race views ready for the stream" loading="lazy" width="2000" height="1250">
+      </figure>
+    </li>
+  </ol>
+  <div class="ctas center reveal">
+    <a class="btn" href="{{.Links.releases}}">Get dd-pits</a>
+    <a class="btn demo" href="{{.Links.demo}}">Try the live demo <span aria-hidden="true">→</span></a>
+  </div>
+</section>
+
+<!-- DISPLAYS -->
+<section class="feature" id="displays" aria-labelledby="displays-h">
+  <div class="split">
+    <div class="split-copy reveal">
+      <p class="eyebrow">Dashboard &amp; displays</p>
+      <h2 class="headline" id="displays-h">Every pilot.<br><span class="grad">Every phone.</span></h2>
+      <p class="sub">Anyone on the venue wifi opens the dashboard and watches the current heat, who's next, standings, best consecutive laps and time trials — updating live, no refreshing.</p>
+    </div>
+    <div class="phone-wrap reveal">
+      <img class="split-photo" src="{{asset "img/pits-sm.webp"}}" alt="A pilot holding a phone showing a glowing live leaderboard at the race field" loading="lazy" width="900" height="675">
+      <div class="phone">
+        <img src="{{asset "img/screens/mobile.webp"}}" alt="The dd-pits dashboard on a phone" loading="lazy" width="1100" height="2000">
+      </div>
+    </div>
+  </div>
+  <div class="bento">
+    <article class="tile big reveal">
+      <h3>Pilot pages</h3>
+      <p>Per-pilot analytics with stat cards that jump to the heat that set them, a lap chart, and lap and race tables. Rendered on the laptop, so it works offline.</p>
+      <img class="tile-shot" src="{{asset "img/screens/pilot.webp"}}" alt="A dd-pits pilot analytics page" loading="lazy" width="2000" height="1250">
+    </article>
+    <article class="tile reveal"><span class="ico" aria-hidden="true">🗂</span><h3>Race history</h3><p>Every heat with its lap times, at <code>/dronedash/races</code>.</p></article>
+    <article class="tile reveal"><span class="ico" aria-hidden="true">📺</span><h3>TV view</h3><p>The current race full-screen at <code>/live</code>, for a screen at the pits.</p></article>
+    <article class="tile reveal"><span class="ico" aria-hidden="true">🎬</span><h3>OBS overlay</h3><p>Add <code>/overlay</code> as a Browser Source and the race is on stream.</p></article>
+    <article class="tile reveal"><span class="ico" aria-hidden="true">🛫</span><h3>Practice rounds</h3><p>Shown on the board, but they don't count towards standings.</p></article>
+    <article class="tile reveal"><span class="ico" aria-hidden="true">🪫</span><h3>Lite mode</h3><p>Add <code>?lite=1</code> to any page for an old TV or tablet that struggles.</p></article>
+    <article class="tile reveal"><span class="ico" aria-hidden="true">⚡</span><h3>Always live</h3><p>Every page updates the moment FPVTrackside does — nobody presses refresh.</p></article>
+  </div>
+</section>
+
+<!-- RACE CALLS -->
+<section class="feature alt" id="calls" aria-labelledby="calls-h">
+  <div class="split rev">
+    <div class="split-copy reveal">
+      <p class="eyebrow">Race calls</p>
+      <h2 class="headline" id="calls-h">One voice.<br><span class="grad">Right on the lap.</span></h2>
+      <p class="sub">Laps, holeshots, results and "next up" — spoken by dd-pits instead of FPVTrackside's own speech, in your club's own wording.</p>
+    </div>
+    <figure class="photo reveal">
+      <img src="{{asset "img/director-sm.webp"}}" srcset="{{asset "img/director-sm.webp"}} 900w, {{asset "img/director.webp"}} 1400w" sizes="(max-width: 900px) 100vw, 50vw" alt="A race director with a tablet at the start line as four drones wait on launch pads" loading="lazy" width="1400" height="1050">
+    </figure>
+  </div>
+  <div class="grid3">
+    <div class="card reveal"><h3>Your club's wording</h3><p>Calls are read from FPVTrackside's own <code>Sounds.xml</code>, so the phrasing and on/off switches you set there carry over. dd-pits finds FPVTrackside's files itself, and an audit flags settings that disagree.</p></div>
+    <div class="card reveal"><h3>One switch decides who speaks</h3><p>dd-pits sets FPVTrackside's speech volume to match, so you never hear both — or neither. No voice set up? FPVTrackside keeps speaking and dd-pits stays out of the audio.</p></div>
+    <div class="card reveal"><h3>Fast calls</h3><p>dd-pits listens for FPVTrackside's live events as well as polling it. Voice packs of pre-generated clips make common calls play instantly.</p></div>
+    <div class="card reveal"><h3>Race director controls</h3><p>Hurry Up, Announce Race and the other calls FPVTrackside binds to keyboard shortcuts — trigger them from the laptop or any phone at the field.</p></div>
+    <div class="card reveal"><h3>Pronunciations</h3><p>Tell the voice how to say a tricky callsign without changing how it's spelled anywhere else.</p></div>
+    <div class="card reveal"><h3>Clean hand-offs</h3><p>When the operator moves to the next race, anything still waiting to be said about the last one is dropped.</p></div>
+  </div>
+</section>
+
+<!-- COMMENTARY -->
+<section class="cinema" id="booth" aria-labelledby="booth-h">
+  <picture>
+    <source media="(max-width: 700px)" srcset="{{asset "img/booth-sm.webp"}}">
+    <img class="cinema-img" src="{{asset "img/booth.webp"}}" alt="A broadcast microphone in a commentary booth overlooking a floodlit drone track" loading="lazy" width="1400" height="1050">
+  </picture>
+  <div class="cinema-shade"></div>
+  <div class="cinema-copy reveal">
+    <p class="eyebrow">Commentary booth</p>
+    <h2 class="display-2" id="booth-h">An AI commentator<br><span class="grad">that never misses a lap.</span></h2>
+    <p class="sub">Play-by-play and colour written from the live timing data. Commentary and race calls share one audio bus, so a lap call always cuts in instead of waiting behind colour.</p>
+  </div>
+</section>
+<section class="feature" aria-label="Commentary details">
+  <div class="choose reveal">
+    <div class="choose-col">
+      <h3>The writer</h3>
+      <ul class="pills"><li>Local model · Apple Silicon (MLX)</li><li>Google Gemini</li><li>Qwen</li></ul>
+    </div>
+    <div class="choose-x" aria-hidden="true">×</div>
+    <div class="choose-col">
+      <h3>The voice</h3>
+      <ul class="pills"><li>Local cloned voice · Qwen3-TTS on MLX</li><li>Qwen3-TTS over the network</li></ul>
+    </div>
+  </div>
+  <p class="center sub reveal">Mix and match. <code>/setup/models</code> checks the machine and installs the local models for you.</p>
+  <div class="grid3">
+    <div class="card reveal"><h3>Your own commentator</h3><p>Clone a voice from a recording you upload, or record one straight in the browser. Qwen can also design a voice from a description.</p></div>
+    <div class="card reveal"><h3>Style</h3><p>Personality, humour, energy, language and accent. Solo or a two-person duo — and you choose which phases and moments it talks about.</p></div>
+    <div class="card reveal"><h3>Hear it anywhere</h3><p>Play it through the laptop's speakers, or add <code>/booth.wav</code> to OBS. Connect the OBS websocket and dd-pits delays the video automatically to stay in sync.</p></div>
+    <div class="card reveal"><h3>Cost tracking</h3><p>The <code>/booth</code> page shows the session's AI spend and the recent on-air lines.</p></div>
+    <div class="card reveal"><h3>Model host mode</h3><p>A Windows race PC can borrow a Mac's GPU over the LAN with <code>-model-host</code> and <code>-model-url</code>.</p></div>
+    <div class="card reveal"><h3>Offline when you want it</h3><p>Run the writer and the voice locally on a Mac and the whole booth works with no network at all.</p></div>
+  </div>
+</section>
+
+<!-- GOGGLES -->
+<section class="feature alt" id="goggles" aria-labelledby="goggles-h">
+  <div class="split">
+    <div class="split-copy reveal">
+      <p class="eyebrow">Goggles · ELRS backpack</p>
+      <h2 class="headline" id="goggles-h">Lap times,<br><span class="grad">right in their eyes.</span></h2>
+      <p class="sub">Each pilot needs only a bind phrase — dd-pits derives the goggle ID from it, exactly like the ExpressLRS firmware does.</p>
+      <ul class="ticks">
+        <li>Lap times and race info on the goggle OSD</li>
+        <li>DVR recordings named after the heat</li>
+        <li>Goggle clock set correctly</li>
+        <li>OSD layout at <code>/setup/osd</code>, with custom screens per pilot</li>
+        <li>Change a pilot's video channel from the desk</li>
+        <li>Send a message to some or all pilots</li>
+        <li>Netpack on wifi, USB backpack, or netpack with USB fallback</li>
+      </ul>
+    </div>
+    <figure class="photo reveal">
+      <img src="{{asset "img/goggles-sm.webp"}}" srcset="{{asset "img/goggles-sm.webp"}} 900w, {{asset "img/goggles.webp"}} 1400w" sizes="(max-width: 900px) 100vw, 50vw" alt="FPV goggles glowing with an on-screen display beside a small ELRS backpack module" loading="lazy" width="1400" height="1050">
+    </figure>
+  </div>
+</section>
+
+<!-- NETPACK -->
+<section class="netpack" id="netpack" aria-labelledby="netpack-h">
+  <div class="wrap center">
+    <p class="eyebrow reveal">Works with ELRS Netpack</p>
+    <h2 class="headline reveal" id="netpack-h">One Ethernet cable.<br><span class="grad">Every goggle on the field.</span></h2>
+    <p class="sub reveal"><a href="{{.Links.netpack}}">ELRS Netpack</a> is firmware for Ethernet ESP32 boards that acts as the ELRS timer backpack over the network. dd-pits talks to it over TCP — and it tells you whether each message actually reached the goggles.</p>
+  </div>
+  <div class="netpack-grid">
+    <figure class="photo tall reveal">
+      <img src="{{asset "img/netpack-sm.webp"}}" srcset="{{asset "img/netpack-sm.webp"}} 900w, {{asset "img/netpack.webp"}} 1400w" sizes="(max-width: 900px) 100vw, 40vw" alt="An ESP32 Ethernet board running ELRS Netpack firmware in a black case with a cable plugged in" loading="lazy" width="1400" height="1050">
+    </figure>
+    <div class="np-specs reveal">
+      <div class="spec"><b>Boards</b><span>Waveshare ESP32-S3-ETH · Olimex ESP32-POE-ISO</span></div>
+      <div class="spec"><b>Power over Ethernet</b><span>On a PoE board, one cable powers and connects it</span></div>
+      <div class="spec"><b>Timer backpack over TCP</b><span>dd-pits connects to <code>elrs-netpack.local:8080</code></span></div>
+      <div class="spec"><b>Delivery confirmation</b><span>Know which goggles got the message</span></div>
+      <div class="spec"><b>Over-the-air updates</b><span>Drop new firmware on <code>http://elrs-netpack.local/</code></span></div>
+      <div class="spec"><b>Goggle test console</b><span>OSD message, channel change, clock and DVR name — built in</span></div>
+    </div>
+  </div>
+  <div class="np-shots">
+    <figure class="browser reveal">
+      <div class="browser-bar"><i></i><i></i><i></i><span>elrs-netpack.local</span></div>
+      <img src="{{asset "img/screens/netpack-update.webp"}}" alt="The ELRS Netpack firmware console showing version, build date and a firmware drop zone" loading="lazy" width="1800" height="1400">
+      <figcaption>Firmware console — over-the-air updates</figcaption>
+    </figure>
+    <figure class="browser reveal">
+      <div class="browser-bar"><i></i><i></i><i></i><span>elrs-netpack.local/test</span></div>
+      <img src="{{asset "img/screens/netpack-test.webp"}}" alt="The ELRS Netpack goggle test console with OSD, channel change, clock and DVR controls" loading="lazy" width="1800" height="2200">
+      <figcaption>Goggle test console</figcaption>
+    </figure>
+  </div>
+  <p class="credit reveal">ELRS Netpack was originally created by <a href="{{.Links.netpackOrigin}}">i-am-grub</a>, and forked and extended by <a href="{{.Links.netpack}}">bob9</a>. Not affiliated with the ExpressLRS project.</p>
+  <div class="center reveal"><a class="btn ghost" href="{{.Links.netpack}}">ELRS Netpack on GitHub <span aria-hidden="true">→</span></a></div>
+</section>
+
+<!-- AFTER THE RACE -->
+<section class="feature alt" aria-labelledby="after-h">
+  <div class="split rev">
+    <div class="split-copy reveal">
+      <p class="eyebrow">After the race</p>
+      <h2 class="headline" id="after-h">Your stream,<br><span class="grad">chaptered in seconds.</span></h2>
+      <p class="sub">Paste a YouTube stream address and place one heat on the timeline. Every heat gets a ▶ Watch link, and dd-pits builds a chapter list to paste into the video description.</p>
+      <p class="sub">Streamed with nobody on the mic? Generate commentary for finished heats, and the Watch player plays it over the muted video — in sync as you scrub.</p>
+    </div>
+    <figure class="photo reveal">
+      <img src="{{asset "img/stream-sm.webp"}}" srcset="{{asset "img/stream-sm.webp"}} 900w, {{asset "img/stream.webp"}} 2000w" sizes="(max-width: 900px) 100vw, 50vw" alt="A livestream production setup at the trackside with a monitor showing a race broadcast" loading="lazy" width="2000" height="1116">
+    </figure>
+  </div>
+</section>
+
+<!-- OFFLINE / RUNNING IT -->
+<section class="feature" aria-labelledby="run-h">
+  <div class="split">
+    <div class="split-copy reveal">
+      <p class="eyebrow">Running it</p>
+      <h2 class="headline" id="run-h">No internet.<br><span class="grad">No account. No drama.</span></h2>
+      <p class="sub">Everything runs on the venue laptop. Settings live in one JSON file beside the app — copy it to another laptop and the whole setup moves with it.</p>
+    </div>
+    <figure class="photo reveal">
+      <img src="{{asset "img/offline-sm.webp"}}" srcset="{{asset "img/offline-sm.webp"}} 900w, {{asset "img/offline.webp"}} 1400w" sizes="(max-width: 900px) 100vw, 50vw" alt="A laptop on a picnic table in a remote field at twilight" loading="lazy" width="1400" height="1050">
+    </figure>
+  </div>
+  <div class="grid3">
+    <div class="card reveal"><h3>Browser setup</h3><p>Everything is configured at <code>/setup</code>, with a guided first run and help at <code>/setup/help</code>.</p></div>
+    <div class="card reveal"><h3>Debug page</h3><p>The log in the browser at <code>/setup/debug</code>, with API keys removed, plus a downloadable report to send when something goes wrong.</p></div>
+    <div class="card reveal"><h3>JSON API</h3><p>Meeting, race, round, leaderboard, pilot and channel data at <code>/docs</code> — with an OpenAPI spec and a live event stream for your own displays.</p></div>
+  </div>
+</section>
+
+<!-- REQUIREMENTS -->
+<section class="reqs" aria-labelledby="req-h">
+  <div class="wrap center">
+    <p class="eyebrow reveal">What you need</p>
+    <h2 class="headline reveal" id="req-h">Probably what you already have.</h2>
+  </div>
+  <div class="req-grid">
+    <div class="req reveal"><b>A laptop</b><span>One app for macOS, Windows and Linux, beside FPVTrackside.</span></div>
+    <div class="req reveal"><b>Local AI</b><span>Apple Silicon for on-device voice and commentary.</span></div>
+    <div class="req reveal"><b>Cloud AI</b><span>Or a Gemini or Qwen API key on any hardware.</span></div>
+    <div class="req reveal"><b>ELRS backpack</b><span>Optional — a netpack or USB backpack for goggle OSD.</span></div>
+  </div>
+</section>
+
+<!-- COMMUNITY / COFFEE -->
+<section class="community" id="support" aria-labelledby="support-h">
+  <picture>
+    <source media="(max-width: 700px)" srcset="{{asset "img/crowd-sm.webp"}}">
+    <img class="cinema-img" src="{{asset "img/crowd.webp"}}" alt="FPV pilots in goggles sitting together at dusk under string lights" loading="lazy" width="2000" height="1116">
+  </picture>
+  <div class="cinema-shade"></div>
+  <div class="coffee-card reveal">
+    <p class="eyebrow coffee">Free. Open source. Built between race days.</p>
+    <h2 class="headline" id="support-h">Built by a race director,<br>for race directors.</h2>
+    <p class="sub">dd-pits is free for every club. If it makes your race days run smoother, a coffee keeps new features coming.</p>
+    <a class="btn-coffee" href="{{.Links.coffee}}" target="_blank" rel="noopener"><span aria-hidden="true">☕</span> Buy me a coffee</a>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq" id="faq" aria-labelledby="faq-h">
+  <div class="wrap narrow">
+    <h2 class="headline center reveal" id="faq-h">Questions.</h2>
+    <details class="reveal"><summary>Does it replace FPVTrackside?</summary><p>No. FPVTrackside keeps doing the timing. dd-pits reads it on the same laptop and does everything else: the dashboard, overlays, race calls, commentary and goggles.</p></details>
+    <details class="reveal"><summary>Does it need the internet?</summary><p>No. The dashboard, overlays, race calls, goggle OSD and API all run on the laptop. Only the cloud AI options (Gemini or Qwen) and YouTube Watch links use a connection — and the commentary booth can run fully locally on Apple Silicon.</p></details>
+    <details class="reveal"><summary>How do pilots see the dashboard?</summary><p>They open the laptop's address on their phones over the venue wifi. Settings pages only accept changes from the laptop itself, so a phone in the pits can't change anyone's goggle channel.</p></details>
+    <details class="reveal"><summary>What does it cost?</summary><p>Nothing. dd-pits is MIT licensed. If you use cloud AI for commentary, you pay your provider for what you use — and the <code>/booth</code> page shows the running spend.</p></details>
+    <details class="reveal"><summary>Do I need an ELRS backpack?</summary><p>Only for goggle features. A <a href="{{.Links.netpack}}">netpack</a> on the network is fastest and confirms delivery; a USB backpack plugged into the laptop works too.</p></details>
+    <details class="reveal"><summary>What if no voice is set up?</summary><p>FPVTrackside keeps announcing exactly as it always has, and dd-pits stays out of the audio. You can never end up with silence by accident.</p></details>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final" aria-labelledby="final-h">
+  <img class="final-bg" src="{{asset "img/ambient.webp"}}" alt="" loading="lazy" width="2400" height="1028">
+  <div class="final-copy reveal">
+    <img class="final-icon" src="{{asset "img/icon-256.webp"}}" alt="" width="96" height="96">
+    <h2 class="display-2" id="final-h"><span class="grad">Your next race day</span><br>starts here.</h2>
+    <div class="ctas center">
+      <a class="btn" href="{{.Links.releases}}">Get dd-pits</a>
+      <a class="btn ghost" href="{{.Links.github}}">View on GitHub <span aria-hidden="true">→</span></a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot-in">
+    <div class="foot-brand"><img src="{{asset "img/icon-256.webp"}}" alt="" width="24" height="24"> <span class="wordmark"><span class="grad">dd</span>-pits</span></div>
+    <nav class="foot-links" aria-label="Footer">
+      <a href="{{.Links.github}}">GitHub</a>
+      <a href="{{.Links.releases}}">Releases</a>
+      <a href="{{.Links.netpack}}">ELRS Netpack</a>
+      <a href="{{.Links.fpvtrackside}}">FPVTrackside</a>
+      <a href="{{.Links.coffee}}">Buy me a coffee</a>
+    </nav>
+    <p class="foot-note">Built by Glenn Pringle (bob9) · <a href="{{.Links.tdl}}">Three Digital Llamas</a>. Free and open source under the MIT licence. © {{year}}.</p>
+  </div>
+</footer>
+</body>
+</html>

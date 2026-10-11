@@ -753,19 +753,32 @@ func (b *booth) servePage(w http.ResponseWriter, r *http.Request) {
 	b.usage.mu.Unlock()
 	syncLine := boothSyncLine(b)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprint(w, `<!doctype html><meta charset="utf-8"><title>Booth — live commentary</title>
-<body style="font:14px system-ui;background:#0f1115;color:#e8eaed;padding:2rem;max-width:720px;margin:auto">
-<h1 style="font-size:1.2rem">🎙 Live commentary booth — `+template_escape(state)+`</h1>
-<p style="color:#9aa0a6">Estimated AI spend: `+template_escape(spend)+`</p>
-<p style="color:#9aa0a6">`+template_escape(syncLine)+`</p>
-<p>Add this URL to OBS as a <b>Media Source</b> (untick "Local File", set Input):</p>
-<pre style="background:#1a1d23;padding:.6rem;border-radius:6px">http://`+r.Host+`/booth.wav</pre>
-<audio controls src="/booth.wav"></audio>
-<h2 style="font-size:1rem;margin-top:1.5rem">Recently on air</h2><pre style="background:#1a1d23;padding:.6rem;border-radius:6px;white-space:pre-wrap">`)
+	fmt.Fprint(w, `<!doctype html><meta charset="utf-8">`+headBrand+`<title>Booth — live commentary</title>
+<style>
+body{font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:#f2f4f7;margin:0;padding:0 1rem 3rem;min-height:100vh;
+ background:linear-gradient(180deg,rgba(7,8,10,.35),#07080a 420px),url(/assets/booth.webp) center top/100% auto no-repeat,#07080a}
+.wrap{max-width:760px;margin:0 auto;padding-top:9rem}
+h1{font-size:clamp(1.8rem,5vw,2.6rem);letter-spacing:-.04em;margin:0 0 .4rem}
+.state{display:inline-block;padding:.3rem .8rem;border-radius:999px;background:rgba(198,255,61,.14);color:#c6ff3d;font-weight:700;font-size:.9rem}
+.mut{color:#a3abb7}
+.card{background:rgba(22,24,30,.78);border:1px solid rgba(255,255,255,.09);border-radius:20px;padding:1.1rem 1.25rem;margin:1rem 0;backdrop-filter:blur(14px)}
+pre{background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08);padding:.7rem .85rem;border-radius:12px;white-space:pre-wrap;margin:.5rem 0}
+audio{width:100%;margin-top:.4rem}
+h2{font-size:1.1rem;letter-spacing:-.02em;margin:0 0 .4rem}
+</style>
+<div class="wrap">
+<h1>🎙 Live commentary</h1>
+<span class="state">`+template_escape(state)+`</span>
+<p class="mut">Estimated AI spend: `+template_escape(spend)+`<br>`+template_escape(syncLine)+`</p>
+<div class="card"><h2>Add it to OBS</h2>
+<p class="mut">Add this URL as a <b>Media Source</b> (untick "Local File", set Input):</p>
+<pre>http://`+r.Host+`/booth.wav</pre>
+<audio controls src="/booth.wav"></audio></div>
+<div class="card"><h2>Recently on air</h2><pre>`)
 	for _, l := range recent {
 		fmt.Fprintln(w, template_escape(l))
 	}
-	fmt.Fprint(w, `</pre><script>setTimeout(()=>location.reload(),15000)</script></body>`)
+	fmt.Fprint(w, `</pre></div></div><script>setTimeout(()=>location.reload(),15000)</script></body>`)
 }
 
 func template_escape(s string) string {
