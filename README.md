@@ -14,30 +14,101 @@ beside the binary.
 
 ## Features
 
-- **Live dashboard** (`/`): current heat, standings, best consecutive laps,
-  time trials, and per-pilot analytics. Anyone on the venue wifi can open it.
+### Dashboard and displays
+
+- **Live dashboard** (`/`): the current heat, who's next, standings, best
+  consecutive laps and time trials. Anyone on the venue wifi can open it on
+  their phone, and it updates live without refreshing.
+- **Pilot pages** (`/dronedash/pilot?name=…`): per-pilot analytics, with stat
+  cards that jump to the heat that set them, a lap chart, and lap and race
+  tables. Everything is rendered on the laptop, so it works offline.
 - **Race history** (`/dronedash/races`): every heat with its lap times.
-- **TV and stream views**: full-screen current race (`/live`) and an OBS
-  browser-source overlay (`/overlay`).
-- **Race calls**: lap times, holeshots and results spoken in one consistent
-  voice. You can leave FPVTrackside speaking its own calls, and dd-pits stays
-  out of the audio.
-- **Commentary booth**: AI-written play-by-play and colour, mixed with the race
-  calls on a single audio bus. Serve it to OBS as `/booth.wav` or play it
-  through the laptop's speakers. Optional OBS websocket integration delays the
-  video so the commentary lines up with it.
-  - **Writer**: a local model on Apple Silicon (MLX), Google Gemini, or Qwen.
-  - **Voice**: a local cloned voice (Qwen3-TTS on MLX), or Qwen3-TTS over the
+- **TV view** (`/live`): the current race full-screen, for a screen at the
+  pits.
+- **OBS overlay** (`/overlay`): add it as a Browser Source.
+- **Practice rounds** show on the board but don't count towards standings.
+- **Slow displays:** add `?lite=1` to any page for an old TV or tablet that
+  struggles.
+
+### Race calls
+
+- **One voice for every call:** laps, holeshots, results and "next up" can be
+  spoken by dd-pits instead of FPVTrackside's own speech.
+- **Your club's wording:** calls are read from FPVTrackside's own
+  `Sounds.xml`, so the phrasing and on/off switches you set there carry over.
+  dd-pits finds FPVTrackside's files itself, and an audit flags settings that
+  disagree.
+- **One switch decides who speaks.** dd-pits sets FPVTrackside's speech volume
+  to match, so you never hear both or neither. If no voice is set up,
+  FPVTrackside keeps speaking and dd-pits stays out of the audio.
+- **Fast calls:** dd-pits listens for FPVTrackside's live events as well as
+  polling it. Voice packs of pre-generated clips make common calls play
+  instantly.
+- **Race director controls** (`/calls`): Hurry Up, Announce Race and the
+  other calls FPVTrackside binds to keyboard shortcuts. Trigger them from the
+  laptop or any phone at the field.
+- **Pronunciations:** tell the voice how to say a tricky callsign without
+  changing how it's spelled anywhere else.
+- When the operator moves to the next race, anything still waiting to be said
+  about the last one is dropped.
+
+### Commentary booth
+
+- **AI commentary:** play-by-play and colour written from the live timing
+  data. Commentary and race calls share one audio bus, so a lap call always
+  cuts in instead of waiting behind colour.
+- **Choose where it runs:**
+  - Writer: a local model on Apple Silicon (MLX), Google Gemini, or Qwen.
+  - Voice: a local cloned voice (Qwen3-TTS on MLX), or Qwen3-TTS over the
     network.
-  - **Model host mode** (`-model-host` / `-model-url`) lets a Windows race PC
-    borrow a Mac's GPU over the LAN.
-- **ELRS backpack OSD**: lap times in pilots' goggles, DVR recordings named
-  after the heat, goggle clock sync, channel changes from the desk, and
-  announcements to pilots. Works over a netpack (TCP) or a USB backpack.
-- **YouTube chapters**: anchor one heat in a recorded stream and every heat
-  gets a Watch link, plus a chapter list to paste into the video description.
-  Finished heats can have commentary generated after the fact.
-- **JSON API** (`/docs`): build your own displays.
+  - Mix and match. `/setup/models` checks the machine and installs the local
+    models for you.
+- **Your own commentator:** clone a voice from a recording you upload, or
+  record one straight in the browser. Qwen can also design a voice from a
+  description.
+- **Style:** personality, humour, energy, language and accent. Commentary can
+  be solo or a two-person duo, and you choose which phases (before, during and
+  after the race) and which moments it talks about.
+- **Hearing it:** play it through the laptop's speakers, or add `/booth.wav` to
+  OBS as a Media Source. With the OBS websocket connected, dd-pits delays the
+  video automatically so the commentary stays in sync, and can add the audio to
+  every scene.
+- **Cost tracking:** the `/booth` page shows the session's AI spend and recent
+  on-air lines.
+- **Model host mode** (`-model-host` / `-model-url`): a Windows race PC can
+  borrow a Mac's GPU over the LAN.
+
+### Goggles (ELRS backpack)
+
+- **On-screen info:** lap times and race info appear in pilots' goggles. Each
+  pilot needs only a bind phrase; dd-pits derives the goggle ID from it.
+- **DVR names:** recordings are named after the heat.
+- **Clock sync:** the goggle clock is set correctly.
+- **Configurable screen:** the OSD layout is set at `/setup/osd`, with an
+  optional custom layout per pilot.
+- **Goggle control** (`/goggles`): change a pilot's video channel from the
+  desk, or send a message to some or all pilots.
+- **Connection:** a netpack on the venue wifi (it can confirm delivery), a USB
+  backpack, or netpack with USB fallback.
+
+### After the race
+
+- **Watch links:** paste a YouTube stream address and place one heat on the
+  timeline. Every heat then gets a ▶ Watch link, and dd-pits builds a chapter
+  list to paste into the video description.
+- **Commentary after the fact:** generate commentary for finished heats, and
+  the Watch player plays it over the muted video, in sync as you scrub.
+
+### Running it
+
+- **Browser setup:** everything is configured at `/setup`, with a guided
+  first run and help at `/setup/help`. Settings are stored in one JSON file you
+  can copy to another laptop.
+- **Debug page** (`/setup/debug`): the log in the browser, with API keys
+  removed, plus a downloadable report to send when something goes wrong.
+- **JSON API** (`/docs`): meeting, race, round, leaderboard, pilot and channel
+  data as JSON, with an OpenAPI spec and a live event stream, for building
+  your own displays.
 
 ## Quick start
 
