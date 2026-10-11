@@ -10,6 +10,8 @@ It runs entirely on the venue laptop and needs no internet connection or
 account. Everything is configured in a browser and stored in one JSON file
 beside the binary.
 
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support%20dd--pits-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/bobnine)
+
 ## Features
 
 - **Live dashboard** (`/`): current heat, standings, best consecutive laps,
@@ -120,6 +122,12 @@ Issues and pull requests are welcome. Run `make test` before sending a PR. If
 you change anything that touches race-day timing (the poll loop, race calls or
 the audio bus), say how you tested it against a real or recorded FPVTrackside
 event.
+
+## Support
+
+dd-pits is free and built in spare time between race days. If it makes your
+club's events run smoother, you can help keep it going at
+**[buymeacoffee.com/bobnine](https://buymeacoffee.com/bobnine)** ☕
 
 ## License
 

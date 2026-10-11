@@ -1505,6 +1505,8 @@ a{color:var(--accent);text-decoration:none}
 .top .name{font-weight:800;font-size:1.05rem}
 .top .meet{color:var(--muted);font-size:.85rem}
 .top nav{margin-left:auto;display:flex;gap:.3rem;flex-wrap:wrap}
+.top .bmc{color:#fd0;font-size:.78rem;text-decoration:none;white-space:nowrap}
+.overlay .bmc{display:none}
 .top .ver{color:var(--muted);font-size:.72rem;opacity:.55;margin-left:.6rem;font-variant-numeric:tabular-nums;white-space:nowrap}
 .top nav a{padding:.35rem .7rem;border:1px solid var(--line);border-radius:8px;color:var(--txt);font-weight:600;font-size:.82rem}
 .top nav a:hover{border-color:var(--accent)}
@@ -2070,6 +2072,7 @@ body.overlay .top,body.overlay .sub{display:none}
   <nav>
     <a href="/">Home</a><a href="/live">Live</a><a href="/dronedash/races">Races</a><a href="/overlay">Overlay</a>
   </nav>
+  <a class="bmc" href="` + supportURL + `" target="_blank" rel="noopener" title="dd-pits is free — support the developer">☕ Support</a>
   {{if .Brand.Version}}<span class="ver" title="dd-pits version — quote this when reporting a problem">{{.Brand.Version}}</span>{{end}}
 </div>
 {{end}}

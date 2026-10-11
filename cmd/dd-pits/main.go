@@ -47,6 +47,10 @@ var (
 	commit  = "unknown"
 )
 
+// supportURL is the developer's Buy Me a Coffee page, linked from the
+// dashboard, the setup pages and the startup log.
+const supportURL = "https://buymeacoffee.com/bobnine"
+
 func envOr(key, fallback string) string {
 	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
 		return v
@@ -249,6 +253,7 @@ func main() {
 		return
 	}
 	log.Printf("dd-pits %s (%s) starting", version, commit)
+	log.Printf("dd-pits is free and open source — if it helps your race days, support it at %s", supportURL)
 
 	// Model-server mode: this process lends its GPU to another machine and runs
 	// no agent at all, so it must be handled before anything else starts.

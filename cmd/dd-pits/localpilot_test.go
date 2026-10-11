@@ -486,7 +486,9 @@ func TestPilotPageServes(t *testing.T) {
 		}
 	}
 	// No CDN: the venue is offline, so nothing may be fetched off the network.
-	if strings.Contains(body, "//cdn.") || strings.Contains(body, "https://") {
+	// The support link is a plain hyperlink, not a fetched resource.
+	offline := strings.ReplaceAll(body, supportURL, "")
+	if strings.Contains(offline, "//cdn.") || strings.Contains(offline, "https://") {
 		t.Error("pilot page references an external URL — it must work offline")
 	}
 

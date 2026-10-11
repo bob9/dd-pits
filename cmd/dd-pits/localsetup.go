@@ -128,6 +128,9 @@ func setupPage(title, body string) string {
  .row>*{flex:1;min-width:11rem}
  code{background:#000;padding:.1rem .3rem;border-radius:4px;font-size:.88em}
  .ok{color:var(--acc)}.warn{color:#e94}
+ nav a.bmc{color:#fd0}
+ footer{max-width:53rem;margin:0 auto;padding:0 1.2rem 2rem;color:var(--mut);font-size:.85rem}
+ footer a{color:#fd0}
 </style></head><body>
 <header><h1>🏁 dd-pits — local setup</h1>
 <nav>
@@ -143,8 +146,12 @@ func setupPage(title, body string) string {
  <a href="/setup/models">AI models</a>
  <a href="/setup/debug">Debug</a>
  <a href="/setup/help">Help</a>
+ <a class="bmc" href="` + supportURL + `" target="_blank" rel="noopener">☕ Support dd-pits</a>
 </nav></header>
-<main>` + body + `</main></body></html>`
+<main>` + body + `</main>
+<footer>dd-pits is free and open source. If it makes your race days easier,
+<a href="` + supportURL + `" target="_blank" rel="noopener">buy the developer a coffee ☕</a>.</footer>
+</body></html>`
 }
 
 // reloadELRSConfig re-reads the goggle config after an edit, when ELRS is on.
@@ -2031,6 +2038,12 @@ against the real footage and adjust.</p>
 <p>A heat with <strong>no recorded lap times</strong> is refused. There is nothing to
 describe, and a commentator handed nothing does not say so &mdash; it makes a race up,
 which sounds exactly as convincing as a real one.</p>
+</div>
+
+<div class="card"><h2>☕ Support dd-pits</h2>
+<p>dd-pits is free and open source, built by a race director for race directors. If it
+saves your club time on race day, you can say thanks and help keep it going at
+<a href="`+supportURL+`" target="_blank" rel="noopener">buymeacoffee.com/bobnine</a>.</p>
 </div>
 
 <div class="card"><h2>Who can change these settings</h2>
