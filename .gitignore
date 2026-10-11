@@ -1,0 +1,7 @@
+/bin/
+/dist/
+dd-pits-local.json
+*.wav
+!docs/**/*.wav
+.DS_Store
+__pycache__/
