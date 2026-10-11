@@ -30,6 +30,15 @@ beside the binary.
 | ![Commentary setup](docs/screenshots/booth.webp) **Commentary booth:** choose a writer, a voice and a style. | ![Goggle pilots setup](docs/screenshots/pilots.webp) **Goggle pilots:** one bind phrase per pilot. |
 | ![Race calls setup](docs/screenshots/calls.webp) **Race calls:** decide who speaks the lap times. | ![First-run screen](docs/screenshots/waiting.webp) **First run:** the board lights up when FPVTrackside does. |
 
+### OBS overlay examples
+
+Add `/overlay` to OBS as a Browser Source (1920×1080). The background is
+transparent, and the overlay follows every heat on its own:
+
+| On the grid | Racing | Final lap |
+| --- | --- | --- |
+| ![Overlay showing the next heat's lineup](docs/screenshots/overlay-staged.webp) | ![Overlay mid-race with positions, laps and clock](docs/screenshots/overlay-midrace.webp) | ![Overlay on the final lap](docs/screenshots/overlay-final.webp) |
+
 <p align="center"><img src="docs/screenshots/mobile.webp" width="300" alt="The dashboard on a phone"><br><em>Every pilot can follow along on their phone.</em></p>
 
 ## Features

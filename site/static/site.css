@@ -334,3 +334,14 @@ section { position: relative; }
   .faq summary { font-size: 18px; }
   code { white-space: normal; }
 }
+
+/* OBS overlay examples */
+.obs-ex { padding: clamp(64px, 9vw, 120px) 0; }
+.obs-grid { max-width: 1320px; margin: 48px auto 0; padding: 0 22px; display: grid; gap: 20px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.obs-fig { margin: 0; border-radius: 18px; overflow: hidden; border: 1px solid rgba(255,255,255,.12); background: #111; box-shadow: 0 30px 70px -30px rgba(0,0,0,.8); }
+.obs-fig img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+.obs-fig figcaption { padding: 12px 16px; font-size: 14px; color: var(--mut); border-top: 1px solid var(--line); }
+.obs-fig figcaption b { color: #f5f5f7; margin-right: 6px; }
+.obs-how { margin-top: 28px; color: var(--mut); font-size: 15px; }
+.obs-how b { color: #f5f5f7; }
+@media (max-width: 900px) { .obs-grid { grid-template-columns: 1fr; max-width: 640px; } }

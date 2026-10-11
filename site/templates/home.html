@@ -36,6 +36,7 @@
     <nav class="nav-links" aria-label="Sections">
       <a href="#how-to">How to use</a>
       <a href="#displays">Displays</a>
+      <a href="#overlay">OBS overlay</a>
       <a href="#calls">Race calls</a>
       <a href="#booth">Commentary</a>
       <a href="#goggles">Goggles</a>
@@ -268,6 +269,32 @@
     <article class="tile reveal"><span class="ico" aria-hidden="true">🛫</span><h3>Practice rounds</h3><p>Shown on the board, but they don't count towards standings.</p></article>
     <article class="tile reveal"><span class="ico" aria-hidden="true">🪫</span><h3>Lite mode</h3><p>Add <code>?lite=1</code> to any page for an old TV or tablet that struggles.</p></article>
     <article class="tile reveal"><span class="ico" aria-hidden="true">⚡</span><h3>Always live</h3><p>Every page updates the moment FPVTrackside does — nobody presses refresh.</p></article>
+  </div>
+</section>
+
+<!-- OBS OVERLAY EXAMPLES -->
+<section class="obs-ex" id="overlay" aria-labelledby="obs-h">
+  <div class="wrap center">
+    <p class="eyebrow reveal">On stream</p>
+    <h2 class="headline reveal" id="obs-h">Broadcast graphics.<br><span class="grad">Zero effort.</span></h2>
+    <p class="sub reveal">Add <code>/overlay</code> to OBS as a Browser Source. It follows every heat on its own: the lineup on the grid, live positions and lap counts with a running clock, all the way to the flag. It stays invisible between meetings, so nothing odd goes out on air.</p>
+  </div>
+  <div class="obs-grid">
+    <figure class="obs-fig reveal">
+      <img src="{{asset "img/screens/overlay-staged.webp"}}" alt="The dd-pits OBS overlay showing the lineup for the next heat over a stream frame" loading="lazy" width="1600" height="900">
+      <figcaption><b>On the grid</b> The next heat's lineup, in channel colours.</figcaption>
+    </figure>
+    <figure class="obs-fig reveal">
+      <img src="{{asset "img/screens/overlay-midrace.webp"}}" alt="The dd-pits OBS overlay mid-race with live positions, laps and race clock" loading="lazy" width="1600" height="900">
+      <figcaption><b>Racing</b> Live positions, laps and the race clock.</figcaption>
+    </figure>
+    <figure class="obs-fig reveal">
+      <img src="{{asset "img/screens/overlay-final.webp"}}" alt="The dd-pits OBS overlay on the final lap" loading="lazy" width="1600" height="900">
+      <figcaption><b>Final lap</b> Totals as each pilot crosses the line.</figcaption>
+    </figure>
+  </div>
+  <div class="wrap center obs-how reveal">
+    <p><b>In OBS:</b> Sources → <b>+</b> → Browser → URL <code>http://&lt;laptop&gt;:8088/overlay</code>, width 1920, height 1080. The background is transparent, so it sits over any scene.</p>
   </div>
 </section>
 
