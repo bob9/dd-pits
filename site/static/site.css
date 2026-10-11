@@ -103,6 +103,23 @@ code {
 .ctas { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 36px; }
 .ctas.center { justify-content: center; }
 
+/* ── coffee bar ─────────────────────────────────────── */
+.coffee-bar {
+  position: relative; z-index: 60;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 10px 22px; min-height: 40px;
+  background: linear-gradient(90deg, #ffd000, #ffe45c 50%, #ffd000);
+  background-size: 200% 100%; animation: cbShine 8s linear infinite;
+  color: #1a1400; font-size: 14px; line-height: 1.3; text-align: center;
+}
+.coffee-bar:hover { text-decoration: none; color: #000; }
+.coffee-bar b { font-weight: 700; }
+.cb-cup { font-size: 17px; }
+.cb-go { font-weight: 700; transition: transform .2s ease; }
+.coffee-bar:hover .cb-go { transform: translateX(4px); }
+.coffee-bar .cb-text { text-decoration: underline; text-decoration-color: rgba(26,20,0,.35); text-underline-offset: 3px; }
+@keyframes cbShine { to { background-position: -200% 0; } }
+
 /* ── nav ────────────────────────────────────────────── */
 .nav {
   position: sticky; top: 0; z-index: 50;
@@ -301,6 +318,7 @@ section { position: relative; }
   .js .reveal { opacity: 1; transform: none; transition: none; }
   .hero-img, .scroll-hint span { animation: none; }
   .dg-pulses { display: none; }
+  .coffee-bar { animation: none; }
 }
 
 /* ── responsive ─────────────────────────────────────── */
@@ -328,6 +346,8 @@ section { position: relative; }
   .hero-copy { padding: 120px 20px 90px; }
   .hero-img { object-position: 70% 50%; }
   .btn-coffee.sm { display: none; }
+  .coffee-bar { font-size: 13px; padding: 9px 16px; }
+  .cb-more { display: none; }
   .split-photo { width: 100%; }
   .phone { width: 44%; bottom: -30px; right: -6px; }
   .diagram { padding: 0 8px; }
