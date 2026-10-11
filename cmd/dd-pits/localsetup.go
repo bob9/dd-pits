@@ -1969,8 +1969,11 @@ machine and stored in one file beside the agent.</p>
 </div>
 
 <div class="card"><h2>Getting started — 5 minutes</h2>
-<p><strong>1. Start FPVTrackside</strong> and open your event. dd-pits reads it at
-<code>http://localhost:8080</code>; nothing to configure if it is on this machine.</p>
+<p><strong>1. Turn on FPVTrackside's web server</strong>: it is off by default, and it is how
+dd-pits reads the timing. In FPVTrackside open <strong>Menu → Application Settings</strong>, and under
+<strong>Web</strong> tick <strong>Auto start HTTP Server</strong>. Restart FPVTrackside and open your event.
+<a href="http://localhost:8080" target="_blank" rel="noopener">http://localhost:8080</a> should now show
+FPVTrackside's page. Run dd-pits on the same laptop.</p>
 
 <p><strong>2. Check the dashboard.</strong> Open <a href="/">the dashboard</a>. If you can see your
 event and pilots, dd-pits is talking to FPVTrackside and the hard part is done. Pilots can
@@ -1986,6 +1989,12 @@ One <strong>bind phrase</strong> per pilot is all it takes. See "Goggles" below.
 
 <p><strong>5. Turn on commentary</strong> (optional) — <a href="/setup/booth">Commentary</a>.
 See "Commentary" below; it needs two things, not one.</p>
+
+<p><strong>6. Faster lap calls</strong> (optional): in FPVTrackside's <strong>Menu → Application
+Settings</strong>, under <strong>Gate / LED POST notifications</strong>, set <strong>Notifier enabled / mode</strong>
+to <code>LegacyMode</code> (or <code>ExtensionMode</code> if you have it) and <strong>NotificationURL</strong> to
+<code>`+base+`/fpvtrackside/events</code>, then restart FPVTrackside. Each lap then reaches dd-pits the
+moment it happens instead of on the next poll.</p>
 
 <p class="mut">Settings take effect when you restart dd-pits, except pilots and OSD screens, which
 apply on the next heat.</p>

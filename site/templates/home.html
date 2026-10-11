@@ -156,7 +156,7 @@
       <div class="step-copy">
         <span class="step-n">1</span>
         <h3>Download and run</h3>
-        <p>Grab dd-pits from Releases and run it on the laptop next to FPVTrackside. The setup guide opens in your browser on first run.</p>
+        <p><a href="#download">Download dd-pits</a> and run it on the same laptop as FPVTrackside. The setup guide opens in your browser on first run.</p>
         <code class="step-code">./dd-pits</code>
       </div>
       <figure class="browser step-shot">
@@ -167,9 +167,10 @@
     <li class="step reveal">
       <div class="step-copy">
         <span class="step-n">2</span>
-        <h3>Open your event</h3>
-        <p>Open your event in FPVTrackside and the dashboard lights up. Share the laptop's address with pilots over the venue wifi.</p>
-        <code class="step-code">http://&lt;laptop&gt;:8088</code>
+        <h3>Switch on FPVTrackside's web server</h3>
+        <p>It's off by default, and it's how dd-pits reads the timing. In FPVTrackside open <b>Menu → Application Settings</b>, tick <b>Auto start HTTP Server</b> under Web, restart, and open your event. The dashboard lights up; share the laptop's address with pilots over the venue wifi.</p>
+        <code class="step-code">Application Settings → Web → Auto start HTTP Server</code>
+        <p class="step-tip">Optional, for faster lap calls: under <b>Gate / LED POST notifications</b>, set the notifier to <code>LegacyMode</code> and NotificationURL to <code>http://localhost:8088/fpvtrackside/events</code>.</p>
       </div>
       <figure class="browser step-shot">
         <div class="browser-bar"><i></i><i></i><i></i><span>&lt;laptop&gt;:8088</span></div>

@@ -1781,6 +1781,9 @@ table.rt tbody tr:hover{background:rgba(255,255,255,.03)}
 .hero-wait .pill{display:inline-flex;align-items:center;gap:.55rem;padding:.45rem 1rem;border-radius:999px;background:rgba(0,0,0,.45);
   border:1px solid var(--line);color:#dfe3e8;font-weight:600;font-size:.9rem;backdrop-filter:blur(10px)}
 .hero-wait .pill i{width:.55rem;height:.55rem;border-radius:50%;background:var(--accent);animation:ddpulse 1.6s infinite}
+.hero-wait .steps{display:inline-block;text-align:left;margin:.2rem auto 1rem;padding:1rem 1.3rem 1rem 2.6rem;border-radius:18px;
+  background:rgba(0,0,0,.45);border:1px solid var(--line);backdrop-filter:blur(10px);color:#dfe3e8;line-height:1.7}
+.hero-wait .steps b{color:#fff}
 .hero-wait .cta{display:inline-flex;gap:.6rem;flex-wrap:wrap;justify-content:center;margin-top:1.2rem}
 .hero-wait .cta a{padding:.7rem 1.3rem;border-radius:999px;font-weight:700;background:var(--accent);color:#07080a}
 .hero-wait .cta a.sec{background:rgba(255,255,255,.08);color:#fff;border:1px solid var(--line)}
@@ -2245,6 +2248,11 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
   <span class="pill"><i></i>Waiting for FPVTrackside</span>
   <h1>Race day, <span>live.</span></h1>
   <p>Open your event in FPVTrackside and this board lights up on its own: heats, lap times and standings, on every phone at the field.</p>
+  <ol class="steps">
+    <li>In FPVTrackside: <b>Menu → Application Settings → Web</b>, tick <b>Auto start HTTP Server</b>.</li>
+    <li>Restart FPVTrackside and open your event.</li>
+    <li>This page updates by itself. Nothing else to do.</li>
+  </ol>
   <div class="cta"><a href="/setup/help">Get set up</a><a class="sec" href="/setup">Settings</a><a class="sec" href="/overlays">OBS overlays</a></div>
   <p style="margin-top:1.4rem;font-size:.9rem;color:#9aa3af">Free and open source · made by <a href="https://github.com/bob9" target="_blank" rel="noopener">bob9</a></p>
 </div></section>{{end}}

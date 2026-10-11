@@ -14,7 +14,8 @@ beside the binary.
 
 **[Website](https://dd-pits.threedigitalllamas.com.au)** ·
 **[Live demo](https://demo.dd-pits.threedigitalllamas.com.au)** ·
-**[Download](../../releases)** ·
+**[Download](#download)** ·
+**[Set up with FPVTrackside](#set-up-with-fpvtrackside)** ·
 [ELRS Netpack](https://github.com/bob9/elrs-netpack) ·
 made by **[bob9](https://github.com/bob9)**
 
@@ -212,17 +213,53 @@ fetch the latest build:
 `xattr -d com.apple.quarantine dd-pits-darwin-*` once in Terminal.
 **Windows:** if SmartScreen warns, choose More info → Run anyway.
 
-## Quick start
+## Set up with FPVTrackside
 
-1. [Download](#download) the binary for your computer, or build it yourself
-   (see below).
-2. Start FPVTrackside and open your event.
-3. Run `dd-pits`. With no arguments it serves on port `8088` and opens the
-   setup guide in your browser on first run.
-4. Open `http://localhost:8088/` to check the dashboard can see your event,
-   then work through `http://localhost:8088/setup`.
+Run dd-pits on the **same laptop** as FPVTrackside. It takes about five minutes.
 
-The in-app help at `/setup/help` covers race-day setup in detail.
+**1. Turn on FPVTrackside's web server.** This is the one setting dd-pits needs,
+and it is off by default. In FPVTrackside open **Menu → Application Settings**.
+Under **Web**, tick **Auto start HTTP Server**, then restart FPVTrackside. To
+check it worked, open <http://localhost:8080> in a browser and FPVTrackside's
+page should appear.
+
+**2. Start dd-pits.** [Download](#download) it, put it anywhere, and run it.
+With no arguments it serves on port `8088` and opens its setup guide in your
+browser on first run.
+
+**3. Open your event in FPVTrackside.** The dashboard at
+<http://localhost:8088> lights up with the meeting. Give pilots
+`http://<this-laptop's-address>:8088` over the venue wifi; the setup overview
+shows the exact address.
+
+That's all you need for the dashboard, TV view, overlays and API. The next two
+steps are optional.
+
+**4. Faster lap calls (optional).** Let FPVTrackside push each lap the moment
+it happens, instead of dd-pits polling for it. In **Menu → Application
+Settings**, under **Gate / LED POST notifications**, set:
+
+| Setting | Value |
+| --- | --- |
+| Notifier enabled / mode | `LegacyMode`, or `ExtensionMode` if your version has it |
+| NotificationURL | `http://localhost:8088/fpvtrackside/events` |
+
+Restart FPVTrackside. If something already uses NotificationURL (LED gates,
+strobes), start dd-pits with `DD_PITS_FT_FORWARD=<their url>` and it passes
+every event on to them too.
+
+**5. dd-pits speaks the race calls (optional).** At **Setup → Race calls**
+(`/setup/calls`), choose **dd-pits**. It reads your wording from FPVTrackside's
+`Sounds.xml` (found automatically; pick the profile at **Setup → FPVTrackside**
+if you have several). It also turns FPVTrackside's own speech down so you don't
+hear both. Restart FPVTrackside when the page says to.
+
+> **Tip:** [bob9's FPVTrackside fork](https://github.com/bob9/FPVTracksideCore)
+> adds a `/current` endpoint, which lets the dashboard show the next heat the
+> moment it is cued rather than when it starts. dd-pits works fine with stock
+> FPVTrackside without it.
+
+The in-app help at `/setup/help` covers the rest of race-day setup.
 
 ### Settings and flags
 
