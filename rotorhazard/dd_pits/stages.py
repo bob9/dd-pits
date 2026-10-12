@@ -100,7 +100,15 @@ def _stage_class(rhapi, data, create=True):
     return _new_class(rhapi, class_name) if create else None
 
 
-def stage_format(rhapi, data, cls=None):
+def _broadcast(rhapi, *names):
+    for fn in names:
+        try:
+            getattr(rhapi.ui, fn)()
+        except Exception:
+            pass
+
+
+def stage_format(rhapi, data, cls=None, broadcast=True):
     """Give a bracket's race class the laps and race time set in dd-pits.
 
     The class gets a race format of its own, "dd-pits · <bracket>", copied
@@ -144,33 +152,70 @@ def stage_format(rhapi, data, cls=None):
     )
     if getattr(cls, "format_id", None) != fmt.id:
         db.raceclass_alter(cls.id, raceformat=fmt.id)
-    for fn in ("broadcast_raceformats", "broadcast_raceclasses"):
-        try:
-            getattr(rhapi.ui, fn)()
-        except Exception:
-            pass
+    if broadcast:
+        _broadcast(rhapi, "broadcast_raceformats", "broadcast_raceclasses")
     return fmt.id
 
 
-def stage_heat(rhapi, data):
+def _pilot_ids(rhapi):
+    pilots = {}
+    for p in rhapi.db.pilots or []:
+        for key in (p.callsign, p.name):
+            if key and key.strip().lower() not in pilots:
+                pilots[key.strip().lower()] = p.id
+    return pilots
+
+
+def stage_heats(rhapi, data):
+    """Create (or re-seat) several of a bracket's races in one go.
+
+    Much quicker than one request per race: the class, its format and the
+    pilot list are looked up once, and RotorHazard's pages are refreshed
+    once at the end rather than after every heat. data holds the bracket's
+    class fields (class, class_id, class_heat, laps, race_time) and "races",
+    each with name, pilots, heat, current and round.
+
+    Returns {"heats": [heat id per race], "class_id"}; on a race that can't
+    be seated, the races before it plus "error".
+    """
+    races = data.get("races") or []
+    base = {k: v for k, v in data.items() if k != "races"}
+    if races and not base.get("class_heat"):
+        base["class_heat"] = next((int(r.get("heat") or 0) for r in races if r.get("heat")), 0)
+    cls = _stage_class(rhapi, base)
+    stage_format(rhapi, base, cls, broadcast=False)
+    pilots = _pilot_ids(rhapi)
+    out = {"heats": [], "class_id": cls.id}
+    try:
+        for r in races:
+            heat, _ = stage_heat(rhapi, dict(base, **r), cls=cls, pilots=pilots, batch=True)
+            out["heats"].append(heat)
+    except StageError as ex:
+        out["error"] = str(ex)
+    finally:
+        _broadcast(rhapi, "broadcast_raceformats", "broadcast_pilots", "broadcast_raceclasses",
+                   "broadcast_heats", "broadcast_current_heat")
+    return out
+
+
+def stage_heat(rhapi, data, cls=None, pilots=None, batch=False):
     """Create (or re-seat, if not yet run) the heat for one bracket race.
 
-    Returns the heat id and the bracket's race class id."""
+    Returns the heat id and the bracket's race class id. stage_heats passes
+    the class and pilots it already has, and refreshes the pages itself."""
     db = rhapi.db
     heat_name = (data.get("name") or "Race").strip()
     callsigns = [str(p).strip() for p in (data.get("pilots") or []) if str(p).strip()]
     # No pilots yet is fine: a later bracket race goes on the timer as soon
     # as the bracket exists, and is seated as the results come in.
 
-    cls = _stage_class(rhapi, data)
-    stage_format(rhapi, data, cls)
+    if cls is None:
+        cls = _stage_class(rhapi, data)
+        stage_format(rhapi, data, cls)
     bracket_round = int(data.get("round") or 0)
 
-    pilots = {}
-    for p in db.pilots or []:
-        for key in (p.callsign, p.name):
-            if key and key.strip().lower() not in pilots:
-                pilots[key.strip().lower()] = p.id
+    if pilots is None:
+        pilots = _pilot_ids(rhapi)
     ids = []
     for c in callsigns:
         pid = pilots.get(c.lower())
@@ -211,11 +256,8 @@ def stage_heat(rhapi, data):
                 rhapi.race.heat = heat.id
         except Exception:
             pass
-    for fn in ("broadcast_pilots", "broadcast_raceclasses", "broadcast_heats", "broadcast_current_heat"):
-        try:
-            getattr(rhapi.ui, fn)()
-        except Exception:
-            pass
+    if not batch:
+        _broadcast(rhapi, "broadcast_pilots", "broadcast_raceclasses", "broadcast_heats", "broadcast_current_heat")
     return heat.id, cls.id
 
 

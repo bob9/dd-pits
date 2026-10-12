@@ -211,7 +211,7 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
 	errMsg := ""
 	if r.Method == http.MethodPost {
 		kind, setup, pilots := stageForm(r)
-		st, err := s.stages.create(r.FormValue("name"), kind, pilots, setup, r.FormValue("autoSend") == "on")
+		st, err := s.stages.createInBackground(r.FormValue("name"), kind, pilots, setup, r.FormValue("autoSend") == "on")
 		if err == nil {
 			http.Redirect(w, r, "/stages/"+st.ID, http.StatusSeeOther)
 			return

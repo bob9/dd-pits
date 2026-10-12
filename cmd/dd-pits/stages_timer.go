@@ -108,6 +108,46 @@ func (t *rhStageTimer) send(st stageRecord, races []stageRace, makeCurrent bool)
 			}
 		}
 	}
+	// Every race in one request: RotorHazard looks up the class and pilots
+	// once and refreshes its pages once, not per heat. A plugin from before
+	// that falls back to one request per race.
+	if len(races) > 1 {
+		batch := make([]map[string]any, len(races))
+		for i, r := range races {
+			heat := 0
+			if l := st.Links[r.ID]; strings.HasPrefix(l, "rh-h") {
+				fmt.Sscanf(l, "rh-h%d", &heat)
+			}
+			batch[i] = map[string]any{"name": r.Title, "pilots": r.Pilots, "heat": heat,
+				"current": makeCurrent && i == 0, "round": r.Round}
+		}
+		var out struct {
+			Heats   []int  `json:"heats"`
+			ClassID int    `json:"class_id"`
+			Error   string `json:"error"`
+		}
+		err := postJSON(strings.TrimSuffix(t.base, "/")+"/dd-pits/api/stage-heats", map[string]any{
+			"class": st.Name, "class_id": classID, "class_heat": classHeat,
+			"laps": st.Setup.Laps, "race_time": st.Setup.RaceSeconds, "races": batch,
+		}, t.token, &out)
+		if !errors.Is(err, errNoStageAPI) {
+			if err != nil {
+				return links, err
+			}
+			for i, h := range out.Heats {
+				if i < len(races) && h != 0 {
+					links[races[i].ID] = fmt.Sprintf("rh-h%d", h)
+				}
+			}
+			if out.ClassID != 0 && out.ClassID != classID {
+				links[classLinkKey] = fmt.Sprintf("rh-c%d", out.ClassID)
+			}
+			if out.Error != "" {
+				return links, errors.New(out.Error)
+			}
+			return links, nil
+		}
+	}
 	for i, r := range races {
 		var out struct {
 			Heat    int `json:"heat"`

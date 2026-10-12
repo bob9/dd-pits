@@ -325,6 +325,16 @@ func (m *stageManager) snapshot() dronedash.Snapshot {
 // create builds a new stage. The engine draws it straight away, so a field the
 // format can't use is refused here rather than discovered mid-meeting.
 func (m *stageManager) create(name string, kind raceformat.FormatKind, pilots []string, setup stageSetup, autoSend bool) (*stageRecord, error) {
+	return m.createStage(name, kind, pilots, setup, autoSend, false)
+}
+
+// createInBackground is create for the web form: the bracket page opens
+// straight away and fills in its timer links as the races arrive there.
+func (m *stageManager) createInBackground(name string, kind raceformat.FormatKind, pilots []string, setup stageSetup, autoSend bool) (*stageRecord, error) {
+	return m.createStage(name, kind, pilots, setup, autoSend, true)
+}
+
+func (m *stageManager) createStage(name string, kind raceformat.FormatKind, pilots []string, setup stageSetup, autoSend, background bool) (*stageRecord, error) {
 	st, err := draftStage(name, kind, pilots, setup, autoSend)
 	if err != nil {
 		return nil, err
@@ -344,7 +354,11 @@ func (m *stageManager) create(name string, kind raceformat.FormatKind, pilots []
 		return nil, err
 	}
 	log.Printf("stages: created %q (%s, %d pilots)", st.Name, kind, len(clean))
-	m.syncAll(false)
+	if background {
+		go m.syncAll(false)
+	} else {
+		m.syncAll(false)
+	}
 	return st, nil
 }
 
