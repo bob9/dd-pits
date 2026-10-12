@@ -102,6 +102,9 @@ type Meeting struct {
 	Current       *Race
 	Recent        []Race // ended, most-recent first
 	Upcoming      []Race // next pending races (capped for display)
+	// AllUpcoming is every pending race in running order, for the venue's
+	// Upcoming page. Not part of the JSON API, which keeps its shape.
+	AllUpcoming []Race `json:"-"`
 	UpcomingTotal int
 	Board         []Standing
 	Channels      []Channel // the meeting's VTX channel set, frequency order

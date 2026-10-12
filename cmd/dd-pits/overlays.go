@@ -530,6 +530,7 @@ func (s *liveServer) overlaySpotlightPush(w http.ResponseWriter, r *http.Request
 var overlayFuncs = template.FuncMap{
 	// timer names the timing system dd-pits reads: "FPVTrackside" or "RotorHazard".
 	"timer": func() string { return timingSystem },
+	"add":   func(a, b int) int { return a + b },
 	"signed": func(v float64) string {
 		if v == 0 {
 			return ""

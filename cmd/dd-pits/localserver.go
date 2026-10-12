@@ -783,6 +783,7 @@ func buildMeeting(snap dronedash.Snapshot) *meetingView {
 		upcoming = upcoming[1:]
 	}
 	mv.UpcomingTotal = len(upcoming)
+	mv.AllUpcoming = append([]vmRace(nil), upcoming...)
 	if len(upcoming) > maxUpcomingCards {
 		upcoming = upcoming[:maxUpcomingCards]
 	}
@@ -1339,6 +1340,7 @@ func (s *liveServer) handler() http.Handler {
 		page("home")(w, r)
 	})
 	mux.HandleFunc("/dronedash/races", page("races"))
+	mux.HandleFunc("/dronedash/upcoming", page("upcoming"))
 	// One pilot's meeting — keyed by name, because the venue snapshot has no
 	// pilot id the local board could route on (see localpilot.go).
 	mux.HandleFunc("/dronedash/pilot", s.servePilot)
@@ -1622,6 +1624,10 @@ html[data-lite] .pos.p3{background:#c06a2c}
 .next-staging{color:var(--accent);font-weight:700}
 /* Next Races panel */
 .up-race{padding:.55rem 0;border-bottom:1px solid #262b33}
+.card.up-race{padding:.9rem 1.1rem;border-bottom:1px solid var(--line);margin-bottom:.6rem}
+.card.up-now{border-color:rgba(198,255,61,.45)}
+.up-when{margin-left:auto;font-size:.78rem;font-weight:700;color:var(--accent,#c6ff3d);white-space:nowrap}
+.up-all{display:inline-block;margin-top:.7rem;font-weight:600;font-size:.9rem;color:var(--accent,#c6ff3d)}
 .up-race:last-child{border-bottom:none}
 .up-head{display:flex;align-items:baseline;gap:.5rem;margin-bottom:.35rem}
 .up-head .sub{margin-left:auto}
@@ -1896,8 +1902,12 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
   // The whole point is the Pi: replacing ~5,600 nodes costs ~95ms on a laptop
   // and several times that on a Pi, and almost none of it is necessary.
   function keyOf(el){ return el.getAttribute ? (el.getAttribute('data-key')||'') : ''; }
+  // A fixed copy, never the live collection: patch() moves nodes out of the
+  // new tree (replaceWith), which would shift a live list under the loop and
+  // skip the next child — leaving a stale row behind and dropping a new one.
+  function kids(el){ return Array.prototype.slice.call(el.children); }
   function keyedChildren(el){
-    var c=el.children;
+    var c=kids(el);
     if(!c.length) return null;
     for(var i=0;i<c.length;i++){ if(!keyOf(c[i])) return null; }
     return c;
@@ -1949,7 +1959,11 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
         var cur=have[k];
         if(cur){
           changed+=patch(cur,nc);
-          if(o.children[i]!==cur) o.insertBefore(cur,o.children[i]||null); // reorder
+          // patch() may have swapped cur out for nc (replaceWith); move
+          // whichever is now in the page, never the discarded node, or the
+          // old row comes back as a duplicate.
+          var node=cur.parentNode===o?cur:nc;
+          if(o.children[i]!==node) o.insertBefore(node,o.children[i]||null); // reorder
         } else {
           o.insertBefore(nc.cloneNode(true),o.children[i]||null);
           changed+=countNodes(nc);
@@ -1965,8 +1979,8 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
     if(o.children.length===0){ o.replaceWith(n); return 1; }
     if(reorderable(o)){ o.replaceWith(n); return countNodes(n); }
     syncAttrs(o,n);
-    var ch=0;
-    for(var x=0;x<o.children.length;x++) ch+=patch(o.children[x],n.children[x]);
+    var ch=0, oc=kids(o), ncs=kids(n);
+    for(var x=0;x<oc.length;x++) ch+=patch(oc[x],ncs[x]);
     return ch;
   }
 
@@ -2193,7 +2207,7 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
   <span class="name">{{if eq .Brand.Name "dd-pits"}}<span class="dd">dd</span>-pits{{else}}{{.Brand.Name}}{{end}}</span>
   {{if .M}}<span class="meet">{{.M.Name}}</span>{{end}}
   <nav>
-    <a href="/">Home</a><a href="/live">Live</a><a href="/dronedash/races">Races</a><a href="/stages">Brackets</a><a href="/overlays">Overlays</a>
+    <a href="/">Home</a><a href="/live">Live</a><a href="/dronedash/upcoming">Upcoming</a><a href="/dronedash/races">Races</a><a href="/stages">Brackets</a><a href="/overlays">Overlays</a>
   </nav>
   <a class="bmc" href="` + supportURL + `" target="_blank" rel="noopener" title="dd-pits is free — support the developer">☕ Support</a>
   {{if .Brand.Version}}<span class="ver" title="dd-pits version — quote this when reporting a problem">{{.Brand.Version}}</span>{{end}}
@@ -2298,6 +2312,7 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
       <div class="up-head"><strong>{{.Label}}</strong><span class="sub">{{len .Pilots}} pilot{{if ne (len .Pilots) 1}}s{{end}}</span></div>
       <div class="up-pilots">{{range .Pilots}}<span class="up-chip">{{if .ChannelColor}}<span class="dot" style="background:{{.ChannelColor}}"></span>{{end}}<span class="pname"><a class="plink" href="/dronedash/pilot?name={{.Name}}">{{.Name}}</a></span> <span class="muted">{{.ChannelLabel}}</span></span>{{end}}</div>
     </div>{{end}}
+    {{if gt .M.UpcomingTotal (len .M.Upcoming)}}<a class="up-all" href="/dronedash/upcoming">See all {{.M.UpcomingTotal}} upcoming races →</a>{{end}}
   </div>
   {{if .M.Recent}}
   <div class="card"><h2>Recent races</h2>
@@ -2308,6 +2323,20 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
     {{template "leaderboard" .}}
   </div>
 </div></div>{{end}}
+
+{{define "upcoming"}}<!doctype html><html><head><meta charset="utf-8"><title>{{.Brand.Name}} — Upcoming races</title>{{template "css" .}}</head>
+<body>{{template "shell-top" .}}<div id="app">{{template "upcoming-body" .}}</div>{{template "js" (dictRefresh 3000 .)}}</body></html>{{end}}
+
+{{define "upcoming-body"}}<div class="wrap">
+  <div class="card" data-key="up-head"><h2>Upcoming races <span class="sub">{{len .M.AllUpcoming}} to run</span></h2>
+    <div class="sub">In running order. Find your name to see when you fly.</div></div>
+  {{if .M.Current}}<div class="card up-now" data-key="up-now"><div class="up-head"><strong>{{if .M.Current.StartMs}}Racing now{{else}}On deck{{end}} · {{.M.Current.Label}}</strong></div>
+    <div class="up-pilots">{{range .M.Current.Pilots}}<span class="up-chip">{{if .ChannelColor}}<span class="dot" style="background:{{.ChannelColor}}"></span>{{end}}<span class="pname"><a class="plink" href="/dronedash/pilot?name={{.Name}}">{{.Name}}</a></span> <span class="muted">{{.ChannelLabel}}</span></span>{{end}}</div></div>{{end}}
+  {{range $i, $r := .M.AllUpcoming}}<div class="card up-race" data-key="up-{{$r.ID}}">
+    <div class="up-head"><strong>{{$r.Label}}</strong><span class="up-when">{{if eq $i 0}}Next{{else}}In {{add $i 1}} races{{end}}</span></div>
+    <div class="up-pilots">{{range $r.Pilots}}<span class="up-chip">{{if .ChannelColor}}<span class="dot" style="background:{{.ChannelColor}}"></span>{{end}}<span class="pname"><a class="plink" href="/dronedash/pilot?name={{.Name}}">{{.Name}}</a></span> <span class="muted">{{.ChannelLabel}}</span></span>{{end}}</div>
+  </div>{{else}}<div class="empty" data-key="up-none">No upcoming races yet. They appear here as soon as the timer has them.</div>{{end}}
+</div>{{end}}
 
 {{define "races"}}<!doctype html><html><head><meta charset="utf-8"><title>{{.Brand.Name}} — Race history</title>{{template "css" .}}</head>
 <body>{{template "shell-top" .}}<div id="app">{{template "races-body" .}}</div>{{template "js" (dictRefresh 4000 .)}}</body></html>{{end}}

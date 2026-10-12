@@ -33,8 +33,10 @@ WIN_FIRST_TO_X = 2
 WIN_FASTEST_CONSECUTIVE = 4
 START_FIRST_LAP = 1
 
-# How many not-yet-run heats to list after the current one, for "Up next".
-PENDING_HEATS = 3
+# How many not-yet-run heats to list after the current one, for "Up next" and
+# the Upcoming page. Generous, so pilots can see when they fly all day; capped
+# so a database full of old heats can't make every poll slow.
+PENDING_HEATS = 60
 
 # Standard 5.8GHz channels, for naming a frequency the current frequency set
 # no longer uses (an old race run on a different set).
