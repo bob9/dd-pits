@@ -65,6 +65,7 @@ type fakeTimer struct{ sent []string }
 func (f *fakeTimer) name() string                                 { return "Fake" }
 func (f *fakeTimer) control(link, action string) (string, error)  { return "", nil }
 func (f *fakeTimer) applySettings(stageRecord, []stageRace) error { return nil }
+func (f *fakeTimer) removeRaces([]string) (int, error)            { return 0, nil }
 func (f *fakeTimer) send(st stageRecord, races []stageRace, _ bool) (map[string]string, error) {
 	out := map[string]string{}
 	for _, r := range races {

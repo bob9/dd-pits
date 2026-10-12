@@ -13,6 +13,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"sort"
@@ -338,7 +339,7 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 		b.WriteString(`<button class="sec" name="do" value="sync">Check results</button>`)
 		fmt.Fprintf(b, `<button class="sec" name="do" value="autosend">Auto-send: %s</button>`, onOff(st.AutoSend))
 		fmt.Fprintf(b, `<button class="sec" name="do" value="autoresults">Results from timing: %s</button>`, onOff(st.AutoResults))
-		b.WriteString(`<button class="sec" name="do" value="delete" onclick="return confirm('Delete this bracket? Races already on the timer stay there.')">Delete</button></form>`)
+		b.WriteString(`<button class="sec" name="do" value="delete" onclick="return confirm('Delete this bracket? Its races not flown yet are removed from the timer; flown races and their results stay.')">Delete</button></form>`)
 	}
 	b.WriteString(`</div>`)
 	if admin {
@@ -541,7 +542,9 @@ func (s *liveServer) stageAction(w http.ResponseWriter, r *http.Request, id stri
 	case "autoresults":
 		err = m.update(id, func(st *stageRecord) error { st.AutoResults = !st.AutoResults; return nil })
 	case "delete":
-		m.delete(id)
+		if _, derr := m.deleteWithRaces(id, s.currentMeeting()); derr != nil {
+			log.Printf("stages: deleting %s: %v", id, derr)
+		}
 		http.Redirect(w, r, "/stages", http.StatusSeeOther)
 		return
 	case "race-send":

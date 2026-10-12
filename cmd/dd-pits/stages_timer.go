@@ -36,6 +36,9 @@ type stageTimer interface {
 	// applySettings brings the laps and race time to races already on the
 	// timer and not yet flown.
 	applySettings(st stageRecord, sent []stageRace) error
+	// removeRaces takes races that were never flown off the timer, for a
+	// deleted bracket. Flown races and their results are left alone.
+	removeRaces(links []string) (int, error)
 }
 
 var stageHTTP = &http.Client{Timeout: 20 * time.Second}
@@ -153,6 +156,27 @@ func (t *rhStageTimer) applySettings(st stageRecord, _ []stageRace) error {
 	return err
 }
 
+func (t *rhStageTimer) removeRaces(links []string) (int, error) {
+	var heats []int
+	for _, l := range links {
+		var h int
+		if _, err := fmt.Sscanf(l, "rh-h%d", &h); err == nil && h > 0 {
+			heats = append(heats, h)
+		}
+	}
+	if len(heats) == 0 {
+		return 0, nil
+	}
+	var out struct {
+		Deleted []int `json:"deleted"`
+	}
+	err := postJSON(strings.TrimSuffix(t.base, "/")+"/dd-pits/api/stage-delete", map[string]any{"heats": heats}, t.token, &out)
+	if errors.Is(err, errNoStageAPI) {
+		return 0, errors.New("the dd-pits RotorHazard plugin is out of date; update it so deleting a bracket removes its heats")
+	}
+	return len(out.Deleted), err
+}
+
 // ── FPVTrackside ─────────────────────────────────────────────────────────────
 
 type ftStageTimer struct {
@@ -255,6 +279,25 @@ func (t *ftStageTimer) applySettings(st stageRecord, sent []stageRace) error {
 	}
 	_, err := t.send(st, sent, false)
 	return err
+}
+
+func (t *ftStageTimer) removeRaces(links []string) (int, error) {
+	n := 0
+	for _, l := range links {
+		req, err := newJSONRequest(http.MethodDelete, strings.TrimSuffix(t.base, "/")+"/api/v1/races/"+l, map[string]any{})
+		if err != nil {
+			return n, err
+		}
+		resp, err := stageHTTP.Do(req)
+		if err != nil {
+			return n, err
+		}
+		resp.Body.Close()
+		if resp.StatusCode < 300 {
+			n++
+		}
+	}
+	return n, nil
 }
 
 // control drives FPVTrackside's race-director screen through its REST API.

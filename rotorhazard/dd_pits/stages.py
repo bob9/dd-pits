@@ -247,3 +247,45 @@ def race_control(rhapi, data):
     except Exception:
         pass
     return {"status": race.status, "heat": race.heat}
+
+
+def delete_heats(rhapi, data):
+    """Remove a deleted bracket's heats that were never flown.
+
+    A heat with a saved race keeps its results and stays, as does a heat
+    being raced right now. A heat selected but idle is deselected first.
+    """
+    deleted, kept = [], []
+    try:
+        current = rhapi.race.heat
+    except Exception:
+        current = None
+    for hid in data.get("heats") or []:
+        try:
+            hid = int(hid)
+        except (TypeError, ValueError):
+            continue
+        heat = rhapi.db.heat_by_id(hid)
+        if heat is None:
+            continue
+        if rhapi.db.races_by_heat(hid) or []:
+            kept.append(hid)
+            continue
+        if hid == current:
+            # Selected next: fine to remove while idle, never mid-race.
+            if rhapi.race.status != READY:
+                kept.append(hid)
+                continue
+            try:
+                rhapi.race.heat = None  # back to practice until another heat is picked
+            except Exception:
+                kept.append(hid)
+                continue
+        rhapi.db.heat_delete(hid)
+        deleted.append(hid)
+    if deleted:
+        try:
+            rhapi.ui.broadcast_heats()
+        except Exception:
+            pass
+    return {"deleted": deleted, "kept": kept}

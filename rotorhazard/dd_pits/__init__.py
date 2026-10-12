@@ -30,7 +30,7 @@ from RHUI import UIField, UIFieldType
 from .runner import Runner
 from .snapshot import SnapshotBuilder, live_signature
 from .marshal import marshal
-from .stages import StageError, race_control, stage_format, stage_heat
+from .stages import StageError, delete_heats, race_control, stage_format, stage_heat
 
 logger = logging.getLogger(__name__)
 
@@ -425,6 +425,15 @@ class DDPits:
                 return jsonify({"error": str(ex)}), 409
             self.generation += 1
             return jsonify({"heat": heat})
+
+        @bp.route("/api/stage-delete", methods=["POST"])
+        def api_stage_delete():
+            auth = request.headers.get("Authorization", "")
+            if auth != "Bearer " + self.runner.api_token() and not self._admin_ok(require=True):
+                return jsonify({"error": "not allowed"}), 401
+            out = delete_heats(self.rhapi, request.get_json(force=True) or {})
+            self.generation += 1
+            return jsonify(out)
 
         @bp.route("/api/stage-format", methods=["POST"])
         def api_stage_format():

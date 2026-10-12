@@ -327,6 +327,30 @@ func (m *stageManager) create(name string, kind raceformat.FormatKind, pilots []
 	return st, nil
 }
 
+// deleteWithRaces deletes a stage and takes its races that were never flown
+// off the timer, so a deleted bracket doesn't leave heats behind.
+func (m *stageManager) deleteWithRaces(id string, mv *meetingView) (int, error) {
+	removed := 0
+	var err error
+	if st, ok := m.get(id); ok && m.timer != nil {
+		if races, _, rerr := m.races(st, mv); rerr == nil {
+			var links []string
+			for _, r := range races {
+				if r.Link != "" && r.State == "sent" {
+					links = append(links, r.Link)
+				}
+			}
+			if len(links) > 0 {
+				m.opMu.Lock()
+				removed, err = m.timer.removeRaces(links)
+				m.opMu.Unlock()
+			}
+		}
+	}
+	m.delete(id)
+	return removed, err
+}
+
 func (m *stageManager) delete(id string) {
 	m.store.mu.Lock()
 	defer m.store.mu.Unlock()
