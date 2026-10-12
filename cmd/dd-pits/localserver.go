@@ -1629,6 +1629,11 @@ html[data-lite] .pos.p3{background:#c06a2c}
 .card.up-now{border-color:rgba(198,255,61,.45)}
 .up-when{margin-left:auto;font-size:.78rem;font-weight:700;color:var(--accent,#c6ff3d);white-space:nowrap}
 .up-all{display:inline-block;margin-top:.7rem;font-weight:600;font-size:.9rem;color:var(--accent,#c6ff3d)}
+.up-search{padding-top:1rem;padding-bottom:0}
+.up-search input{width:100%;padding:.8rem 1rem;font:inherit;font-size:1.05rem;color:inherit;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:14px;outline:none}
+.up-search input:focus{border-color:var(--accent,#c6ff3d);box-shadow:0 0 0 3px rgba(198,255,61,.18)}
+.up-sum{margin:.6rem .2rem 0;font-weight:600;color:var(--accent,#c6ff3d);min-height:1.2em}
+.up-chip.hit{border-color:var(--accent,#c6ff3d);background:rgba(198,255,61,.16)}
 .up-race:last-child{border-bottom:none}
 .up-head{display:flex;align-items:baseline;gap:.5rem;margin-bottom:.35rem}
 .up-head .sub{margin-left:auto}
@@ -2326,7 +2331,47 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
 </div></div>{{end}}
 
 {{define "upcoming"}}<!doctype html><html><head><meta charset="utf-8"><title>{{.Brand.Name}} — Upcoming races</title>{{template "css" .}}</head>
-<body>{{template "shell-top" .}}<div id="app">{{template "upcoming-body" .}}</div>{{template "js" (dictRefresh 3000 .)}}</body></html>{{end}}
+<body>{{template "shell-top" .}}
+<div class="wrap up-search">
+  <input id="upq" type="search" list="up-pilots" placeholder="Find a pilot…" autocomplete="off" aria-label="Find a pilot">
+  <datalist id="up-pilots">{{range .M.Board}}<option value="{{.Name}}">{{end}}</datalist>
+  <div id="upq-sum" class="up-sum" aria-live="polite"></div>
+</div>
+<div id="app">{{template "upcoming-body" .}}</div>{{template "js" (dictRefresh 3000 .)}}
+<script>
+/* Pilot search: lives outside #app so live updates never clear it, and is
+   re-applied whenever they change the list. */
+(function(){
+  var q=document.getElementById('upq'), sum=document.getElementById('upq-sum'), app=document.getElementById('app');
+  var p=new URLSearchParams(location.search).get('pilot');
+  try{ q.value=p!==null?p:(localStorage.getItem('dd-upq')||''); }catch(e){ if(p) q.value=p; }
+  function apply(){
+    var v=q.value.trim().toLowerCase(), first=null, n=0, idx=0;
+    app.querySelectorAll('.card.up-race,.card.up-now').forEach(function(card){
+      var hit=false;
+      card.querySelectorAll('.up-chip').forEach(function(chip){
+        var name=(chip.querySelector('.pname')||chip).textContent.trim().toLowerCase();
+        var m=v!==''&&name.indexOf(v)>=0; chip.classList.toggle('hit',m); if(m) hit=true;
+      });
+      card.style.display=(v===''||hit)?'':'none';
+      if(hit){ n++; if(first===null){ first={card:card,idx:idx}; } }
+      idx++;
+    });
+    if(v===''){ sum.textContent=''; return; }
+    if(!first){ sum.textContent='No upcoming races for “'+q.value.trim()+'”.'; return; }
+    var title=(first.card.querySelector('strong')||{}).textContent||'';
+    var now=first.card.classList.contains('up-now');
+    // Races before theirs, counting the one racing or on deck, as the
+    // leaderboard's "Next race in" does.
+    var before=first.idx;
+    var when=now?(/^Racing/.test(title)?'is racing now':'is on deck now'):(before===0?'flies next':'flies after '+before+' more race'+(before===1?'':'s'));
+    sum.textContent=q.value.trim()+' '+when+' — '+title.replace(/^(Racing now|On deck) · /,'')+'. '+n+' race'+(n===1?'':'s')+' to go.';
+  }
+  q.addEventListener('input',function(){ try{localStorage.setItem('dd-upq',q.value);}catch(e){} apply(); });
+  new MutationObserver(apply).observe(app,{childList:true,subtree:true});
+  apply();
+})();
+</script></body></html>{{end}}
 
 {{define "upcoming-body"}}<div class="wrap">
   <div class="card" data-key="up-head"><h2>Upcoming races <span class="sub">{{len .M.AllUpcoming}} to run</span></h2>

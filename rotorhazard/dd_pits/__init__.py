@@ -70,7 +70,8 @@ _PERSISTENT = "persistent_section" in {f.name for f in dataclasses.fields(UIFiel
 _SETTING_DEFAULTS = {"autostart": "1", "port": "8088", "binary": "", "public_url": "", "menu": "1"}
 
 # The links added to RotorHazard's own menu, so nobody has to know the port.
-_NAV_MAIN = '<li class="dd-pits-nav"><a href="/dd-pits/">dd-pits</a></li>'
+_NAV_MAIN = ('<li class="dd-pits-nav"><a href="/dd-pits/">dd-pits</a></li>'
+             '<li class="dd-pits-nav"><a href="/dd-pits/upcoming">Upcoming</a></li>')
 _NAV_EXTRA = ('<li class="dd-pits-nav"><a href="/dd-pits/stages">dd-pits brackets</a></li>'
               '<li class="dd-pits-nav"><a href="/dd-pits/overlays">dd-pits OBS overlays</a></li>')
 
@@ -246,7 +247,8 @@ class DDPits:
             "* [Open the live dashboard](/dd-pits/) to share with pilots\n"
             "* [Set up dd-pits](/dd-pits/setup): race calls, commentary, goggles\n"
             "* [OBS overlays](/dd-pits/overlays) for your stream\n"
-            "* [Brackets](/dd-pits/stages): double elimination, qualifiers, ladders\n\n"
+            "* [Brackets](/dd-pits/stages): double elimination, qualifiers, ladders\n"
+            "* [Upcoming races](/dd-pits/upcoming): every race still to run\n\n"
             "%s\n\n"
             "Free and open source by [bob9](%s). If it helps your club, "
             "[buy me a coffee](%s) ☕"
@@ -415,6 +417,10 @@ class DDPits:
         @bp.route("/stages")
         def stages():
             return redirect(self._dd_url("/stages"))
+
+        @bp.route("/upcoming")
+        def upcoming():
+            return redirect(self._dd_url("/dronedash/upcoming"))
 
         @bp.after_app_request
         def add_menu_links(resp):
