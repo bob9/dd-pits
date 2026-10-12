@@ -266,7 +266,7 @@ Results, the dashboard and any bracket update straight after.</p></div>`, esc(la
 <div><label>Add a missed lap at (race time)</label><input type="text" name="at" placeholder="1:02.5" required></div>
 <div style="flex:0"><button class="sec" name="do" value="add">Add lap</button></div></form></div>`, esc(raceID), esc(pc.Pilot))
 	}
-	b.WriteString(`<style>button.small{padding:.3rem .75rem;font-size:.8rem}</style>`)
+	b.WriteString(`<style>button.small{padding:.3rem .75rem;font-size:.8rem}</style>` + ajaxForms)
 	writeSetup(w, "Marshal", b.String())
 }
 

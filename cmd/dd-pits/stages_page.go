@@ -325,7 +325,7 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 	if base := rhBase(r); base != "" {
 		rh = ` · <a href="` + esc(base) + `/run">RotorHazard Run page ↗</a> · <a href="` + esc(base) + `/results">Results ↗</a>`
 	}
-	fmt.Fprintf(b, `<div class="card stagehead"><div><p class="mut"><a href="/stages">Brackets</a>%s%s</p><h1>%s</h1><p class="mut">%s · %d pilots</p>`,
+	fmt.Fprintf(b, `<div class="card stagehead"><div><p class="mut"><a href="/stages">Brackets</a> · <a href="/">Dashboard</a> · <a href="/live">Live</a> · <a href="/dronedash/upcoming">Upcoming</a> · <a href="/dronedash/races">Race history</a>%s%s</p><h1>%s</h1><p class="mut">%s · %d pilots</p>`,
 		rh, logoutLink(r), esc(st.Name), esc(formatLabel(st.Format)), len(st.Pilots))
 	if c := f.Champion(); c != "" {
 		fmt.Fprintf(b, `<p class="champ">🏆 %s</p>`, esc(c))
@@ -454,6 +454,9 @@ func (s *liveServer) raceCard(b *strings.Builder, st stageRecord, rc stageRace, 
 		b.WriteString(`<li class="mut">to be decided</li>`)
 	}
 	b.WriteString(`</ol>`)
+	if u := s.dashboardLink(rc); u != "" {
+		fmt.Fprintf(b, `<a class="mlink" href="%s">Dashboard</a> `, esc(u))
+	}
 	if rc.Link != "" && rhHeatLink != nil {
 		if u := rhHeatLink(rc.Link); u != "" {
 			fmt.Fprintf(b, `<a class="mlink" href="%s">RotorHazard heat ↗</a>`, esc(u))
@@ -688,10 +691,41 @@ const stageCSS = `<style>
 const stageRefresh = `<script>
 setInterval(function(){
  if(document.querySelector('details[open]')||document.activeElement&&/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;
+ if(window.ddSaving)return;
  fetch(location.href,{headers:{'X-Fragment':'1'}}).then(r=>r.text()).then(t=>{
   const d=new DOMParser().parseFromString(t,'text/html');const m=d.querySelector('main');if(m)document.querySelector('main').innerHTML=m.innerHTML;
  }).catch(()=>{});
 },4000);
+</script>` + ajaxForms
+
+// ajaxForms makes a page's buttons save in the background and redraw the
+// page in place, so a race director keeps their place (scroll, open
+// sections) when they start, stop or save something. A reply from another
+// page (a deleted bracket's list) is followed normally.
+const ajaxForms = `<script>
+if(!window.ddAjaxBound){ window.ddAjaxBound=true;
+ document.addEventListener('submit',function(e){
+  var f=e.target; if(!f.closest('main')||f.method.toLowerCase()!=='post'||f.dataset.full!==undefined)return;
+  e.preventDefault();
+  var btn=e.submitter, fd=new FormData(f);
+  if(btn&&btn.name)fd.append(btn.name,btn.value);
+  if(btn){btn.disabled=true;btn.dataset.label=btn.innerHTML;btn.innerHTML='…';}
+  var open=[].map.call(document.querySelectorAll('main details[open] > summary'),function(s){return s.textContent.trim()});
+  window.ddSaving=true;
+  fetch(f.getAttribute('action')||location.href,{method:'POST',body:new URLSearchParams(fd),credentials:'same-origin'})
+  .then(function(r){
+    var u=new URL(r.url,location.href);
+    if(u.pathname!==location.pathname){location.href=r.url;return;}
+    return r.text().then(function(t){
+      var d=new DOMParser().parseFromString(t,'text/html'),m=d.querySelector('main'); if(!m)return;
+      var y=window.scrollY; document.querySelector('main').innerHTML=m.innerHTML; window.scrollTo(0,y);
+      document.querySelectorAll('main details > summary').forEach(function(s){if(open.indexOf(s.textContent.trim())>=0)s.parentNode.open=true;});
+    });
+  })
+  .catch(function(){ if(btn){btn.disabled=false;btn.innerHTML=btn.dataset.label;} alert('Not saved: the connection dropped. Try again.'); })
+  .finally(function(){ window.ddSaving=false; });
+ });
+}
 </script>`
 
 // parseDuration reads a race time: "2:00", "120", "90s" or "2m" as seconds.
@@ -793,4 +827,21 @@ if(!window.ddOrderBound){ window.ddOrderBound=true;
  });
 }
 </script>`)
+}
+
+// dashboardLink is where a bracket race is on the dd-pits dashboard: the Live
+// view while it races, its card in Race history once flown, Upcoming before.
+func (s *liveServer) dashboardLink(rc stageRace) string {
+	switch rc.State {
+	case "running":
+		return "/live"
+	case "flown", "finished":
+		if rc.Link == "" {
+			return ""
+		}
+		return "/dronedash/races#race-" + url.QueryEscape(s.stages.linkedRaceID(rc.Link, s.currentMeeting()))
+	case "void":
+		return ""
+	}
+	return "/dronedash/upcoming"
 }
