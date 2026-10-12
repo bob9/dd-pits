@@ -84,3 +84,34 @@ func TestProxiedRequestsNeedThePIN(t *testing.T) {
 		t.Fatal("the PIN should still work through the proxy")
 	}
 }
+
+func TestSetupPagesClosedThroughProxy(t *testing.T) {
+	old := setupPIN
+	setupPIN = "4321"
+	defer func() { setupPIN = old }()
+	h := rememberSetupPIN(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("page"))
+	}))
+	try := func(path string, proxy bool) int {
+		r := httptest.NewRequest("GET", path, nil)
+		r.RemoteAddr = "127.0.0.1:1"
+		if proxy {
+			r.Header.Set("X-Forwarded-For", "203.0.113.9")
+		}
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w.Code
+	}
+	if try("/setup/pilots", true) != http.StatusForbidden {
+		t.Fatal("setup pages must be closed through the proxy without the PIN")
+	}
+	if try("/setup/pilots?pin=4321", true) != http.StatusOK {
+		t.Fatal("the PIN opens them")
+	}
+	if try("/setup/help", true) != http.StatusOK || try("/", true) != http.StatusOK {
+		t.Fatal("help and the dashboard stay open")
+	}
+	if try("/setup/pilots", false) != http.StatusOK {
+		t.Fatal("this machine still gets in")
+	}
+}

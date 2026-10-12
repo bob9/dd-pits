@@ -95,6 +95,14 @@ func localSetupAllowed(r *http.Request) bool {
 
 const setupPINCookie = "dd_pits_pin"
 
+// setupOnly reports whether a path belongs to the race director.
+func setupOnly(path string) bool {
+	if path == "/setup/help" {
+		return false
+	}
+	return path == "/setup" || strings.HasPrefix(path, "/setup/") || path == "/goggles"
+}
+
 // proxied reports whether a request was forwarded by a reverse proxy.
 func proxied(r *http.Request) bool {
 	for _, h := range []string{"X-Forwarded-For", "X-Forwarded-Prefix", "X-Real-Ip", "Forwarded"} {
@@ -113,6 +121,14 @@ func rememberSetupPIN(next http.Handler) http.Handler {
 			http.SetCookie(w, &http.Cookie{Name: setupPINCookie, Value: setupPIN, Path: "/",
 				HttpOnly: true, SameSite: http.SameSiteLaxMode, MaxAge: 30 * 24 * 3600})
 		}
+		// Published on the internet, the setup pages are not for browsing: on
+		// the venue network they can be looked at read-only, but through a
+		// reverse proxy the whole world is "the network". Only the help page
+		// stays open.
+		if proxied(r) && !demoMode && setupOnly(r.URL.Path) && !localSetupAllowed(r) {
+			setupDenied(w)
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }
@@ -128,6 +144,13 @@ exactly as it does at a venue, but nothing here can be changed, saved or install
 <p>On your own laptop, this page does what it says. <a href="https://github.com/bob9/dd-pits/releases">Get dd-pits</a>
 — it is free — and run it next to FPVTrackside.</p>
 <p><a href="/"><button>Back to the live dashboard</button></a> <a href="/overlays"><button class="sec">See the OBS overlays</button></a></p></div>`))
+		return
+	}
+	if timingSystem == "RotorHazard" {
+		fmt.Fprint(w, setupPage("Not from here", `<div class="card"><h2>Open setup from RotorHazard</h2>
+<p>dd-pits' settings open from <strong>RotorHazard → Settings → dd-pits → Set up dd-pits</strong>,
+which asks for RotorHazard's admin login and then lets you in.</p>
+<p><a href="/"><button>Back to the dashboard</button></a></p></div>`))
 		return
 	}
 	fmt.Fprint(w, setupPage("Not from here", `
@@ -407,9 +430,14 @@ ExpressLRS firmware does, so there is nothing to look up.</p>
 			state = `<span class="ok">on</span>`
 		}
 		phrase := p.BindPhrase
-		if phrase == "" {
+		switch {
+		case phrase == "":
 			phrase = `<span class="mut">(ID set directly)</span>`
-		} else {
+		case !localSetupAllowed(r):
+			// A bind phrase is the key to a pilot's radio link: shown only to
+			// someone who may change the settings.
+			phrase = `<span class="mut">••••••••</span>`
+		default:
 			phrase = esc(phrase)
 		}
 		fmt.Fprintf(b, `<tr><td><strong>%s</strong></td><td>%s</td><td><code>%s</code></td><td>%s</td>
