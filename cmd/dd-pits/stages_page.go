@@ -339,6 +339,7 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 		b.WriteString(`<button class="sec" name="do" value="sync">Check results</button>`)
 		fmt.Fprintf(b, `<button class="sec" name="do" value="autosend">Auto-send: %s</button>`, onOff(st.AutoSend))
 		fmt.Fprintf(b, `<button class="sec" name="do" value="autoresults">Results from timing: %s</button>`, onOff(st.AutoResults))
+		b.WriteString(`<button class="sec" name="do" value="rebuild" onclick="return confirm('Re-create this bracket\'s unflown races on the timer, round by round? Flown races and results stay.')">Rebuild on timer</button>`)
 		b.WriteString(`<button class="sec" name="do" value="delete" onclick="return confirm('Delete this bracket? Its races not flown yet are removed from the timer; flown races and their results stay.')">Delete</button></form>`)
 	}
 	b.WriteString(`</div>`)
@@ -569,6 +570,8 @@ func (s *liveServer) stageAction(w http.ResponseWriter, r *http.Request, id stri
 		err = m.setResult(id, raceID, order)
 	case "reset":
 		err = m.resetResult(id, raceID)
+	case "rebuild":
+		err = m.rebuildOnTimer(id, s.currentMeeting())
 	case "settings":
 		secs, perr := parseDuration(r.FormValue("raceTime"))
 		if perr != nil {

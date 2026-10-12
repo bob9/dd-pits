@@ -640,11 +640,68 @@ func (m *stageManager) syncStage(id string, mv *meetingView, send bool) {
 		}
 	}
 	if len(toSend) > 0 {
+		sortForTimer(toSend)
 		m.sendRaces(id, toSend, false)
 	}
 	if len(unneeded) > 0 {
 		m.dropRaces(id, unneeded)
 	}
+}
+
+// sortForTimer puts races in running order — round by round, winners before
+// losers within a round — so the timer, which lists heats in the order they
+// were created, shows a bracket round by round.
+func sortForTimer(races []stageRace) {
+	idx := map[string]int{}
+	for i, r := range races {
+		idx[r.ID] = i
+	}
+	sort.SliceStable(races, func(i, j int) bool {
+		a, b := races[i], races[j]
+		if mainOf(a.ID) != mainOf(b.ID) {
+			return mainOf(a.ID) > mainOf(b.ID) // bracket progression: lowest bracket first
+		}
+		if a.Round != b.Round {
+			return a.Round < b.Round
+		}
+		return idx[a.ID] < idx[b.ID]
+	})
+}
+
+// rebuildOnTimer takes a stage's races that haven't been flown off the timer
+// and puts them back in running order. Flown races and results stay. For a
+// bracket whose heats were created out of order.
+func (m *stageManager) rebuildOnTimer(id string, mv *meetingView) error {
+	st, ok := m.get(id)
+	if !ok || m.timer == nil {
+		return errors.New("no such stage")
+	}
+	races, _, err := m.races(st, mv)
+	if err != nil {
+		return err
+	}
+	var ids, links []string
+	for _, r := range races {
+		if r.Link != "" && r.State != "running" && r.State != "flown" && !r.IsComplete {
+			ids = append(ids, r.ID)
+			links = append(links, r.Link)
+		}
+	}
+	m.opMu.Lock()
+	_, err = m.timer.removeRaces(links)
+	m.opMu.Unlock()
+	if err != nil {
+		return err
+	}
+	_ = m.update(id, func(s *stageRecord) error {
+		for _, r := range ids {
+			delete(s.Links, r)
+			delete(s.Seated, r)
+		}
+		return nil
+	})
+	m.syncAll(true)
+	return nil
 }
 
 // dropRaces takes races the stage no longer needs (the rest of a

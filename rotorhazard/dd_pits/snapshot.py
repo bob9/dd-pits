@@ -361,6 +361,13 @@ class SnapshotBuilder:
         selected = ""
         live = self._live_race(pilots, channel_for)
         cur_heat = live["heat"] if live else None
+        anchor = cur_heat  # where "up next" counts from
+        # A grouped heat is raced once: left selected after it was saved and
+        # not started again, it isn't the next race — just the last one.
+        if live and cur_heat and not live["race"]["Start"]:
+            h = heat_by_id.get(cur_heat)
+            if h is not None and h.class_id in grouped_ids and (db.races_by_heat(cur_heat) or []):
+                live, cur_heat = None, None
         if live:
             fmt = self._format()
             race = live["race"]
@@ -388,9 +395,9 @@ class SnapshotBuilder:
                 selected = race["ID"]
 
         # 3. The heats still to run after the current one, for "Up next".
-        if cur_heat in heat_by_id:
+        if anchor in heat_by_id:
             fmt = self._format()
-            after = [h for h in heats if h.id > cur_heat] + [h for h in heats if h.id < cur_heat]
+            after = [h for h in heats if h.id > anchor] + [h for h in heats if h.id < anchor]
             added = 0
             for h in after:
                 if added >= PENDING_HEATS:

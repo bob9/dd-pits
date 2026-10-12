@@ -89,19 +89,10 @@ _HEAT_STRIP = (
     'load();if(heat==="current")setInterval(load,5000)})();</script>')
 _HEAT_PAGES = re.compile(r"^/(run|current|marshal|stream/heat/(\d+))/?$")
 
-# On the Event page, #dd-heat-<n> scrolls to that heat and highlights it, so a
-# link from a dd-pits bracket lands among all the other heats. The page has no
-# heat ids, but each class group has data-class-id and lists its heats in
-# order, so the heat is found by its place in its class.
-_EVENT_FOCUS = (
-    '<script>(function(){var m=/dd-heat-(\\d+)/.exec(location.hash);if(!m)return;'
-    'fetch("/dd-pits/api/heat-info?heat="+m[1]).then(function(r){return r.json()}).then(function(d){'
-    'if(!d||d.index===undefined)return;var tries=0;(function look(){'
-    'var g=document.querySelector(\'#heat_list [data-class-id="\'+d.class_id+\'"]\');'
-    'var hs=g?g.querySelectorAll("li.heat"):[];var h=hs[d.index];'
-    'if(!h){if(tries++<40)setTimeout(look,250);return}'
-    'h.style.outline="3px solid #c6ff3d";h.style.borderRadius="8px";h.style.background="rgba(198,255,61,.12)";'
-    'h.scrollIntoView({behavior:"smooth",block:"center"})})()}).catch(function(){})})();</script>')
+# On the Event page: heat groups laid out as one section per round, and
+# #dd-heat-<n> (a link from a dd-pits bracket) picks that heat out. See event.js.
+_EVENT_SCRIPT = '<script src="/dd-pits/event.js" defer></script>'
+_EVENT_JS = os.path.join(os.path.dirname(__file__), "event.js")
 
 _NAV_EXTRA = ('<li class="dd-pits-nav"><a href="/dd-pits/stages">dd-pits brackets</a></li>'
               '<li class="dd-pits-nav"><a href="/dd-pits/overlays">dd-pits OBS overlays</a></li>')
@@ -368,7 +359,7 @@ class DDPits:
                 changed = True
             if request.path.rstrip("/") == "/event" and "</body>" in html:
                 html = html.replace("</header>", "</header>" + _HEAT_STRIP % "hash", 1)
-                html = html.replace("</body>", _EVENT_FOCUS + "</body>", 1)
+                html = html.replace("</body>", _EVENT_SCRIPT + "</body>", 1)
                 changed = True
             m = _HEAT_PAGES.match(request.path)
             if m:
@@ -484,7 +475,16 @@ class DDPits:
             cls = heat.class_id or 0
             same = sorted((h for h in (self.rhapi.db.heats or []) if (h.class_id or 0) == cls), key=lambda h: h.id)
             idx = [h.id for h in same].index(heat.id)
-            return jsonify({"class_id": cls, "index": idx, "name": heat.name})
+            out = {"class_id": cls, "index": idx, "name": heat.name}
+            group = getattr(heat, "group_id", None)
+            if group is not None:
+                out["round"] = int(group) + 1
+            return jsonify(out)
+
+        @bp.route("/event.js")
+        def event_js():
+            with open(_EVENT_JS, encoding="utf-8") as f:
+                return Response(f.read(), mimetype="application/javascript")
 
         @bp.route("/api/heat-link")
         def api_heat_link():
