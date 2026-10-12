@@ -84,3 +84,59 @@ def stage_heat(rhapi, data):
         except Exception:
             pass
     return heat.id
+
+
+READY, RACING, DONE, STAGING = 0, 1, 2, 3  # RHRace.RaceStatus
+
+
+def race_control(rhapi, data):
+    """Start, stop, restart or discard the race for a heat, from dd-pits.
+
+    The same as the buttons on RotorHazard's Run page: the heat is selected,
+    staging and the start tones run on the timer, and a stopped race is saved
+    so its result reaches the bracket.
+    """
+    import gevent
+    race = rhapi.race
+    action = (data.get("action") or "").lower()
+    heat = int(data.get("heat") or 0)
+
+    def select():
+        if heat and race.heat != heat:
+            if race.status != READY:
+                raise StageError("another race is on the timer; stop or save it first")
+            race.heat = heat
+
+    if action == "start":
+        if race.status in (RACING, STAGING):
+            raise StageError("a race is already running")
+        if race.status == DONE:
+            raise StageError("the last race hasn't been saved; save or discard it in RotorHazard first")
+        select()
+        race.stage()
+    elif action == "stop":
+        if race.status not in (RACING, STAGING):
+            raise StageError("no race is running")
+        race.stop(doSave=True)
+    elif action == "discard":
+        if race.status in (RACING, STAGING):
+            race.stop()
+        if race.status == DONE:
+            race.clear()
+    elif action == "restart":
+        # Throw away the run in progress (or the unsaved one) and go again.
+        if race.status in (RACING, STAGING):
+            race.stop()
+            gevent.sleep(0.2)
+        if race.status == DONE:
+            race.clear()
+            gevent.sleep(0.2)
+        select()
+        race.stage()
+    else:
+        raise StageError("unknown action %r" % action)
+    try:
+        rhapi.ui.broadcast_race_status()
+    except Exception:
+        pass
+    return {"status": race.status, "heat": race.heat}

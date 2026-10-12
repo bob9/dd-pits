@@ -29,6 +29,9 @@ type stageTimer interface {
 	name() string
 	// send creates races on the timer and returns stage race id -> link.
 	send(st stageRecord, races []stageRace, makeCurrent bool) (map[string]string, error)
+	// control starts, stops ("stop" saves the result), restarts or discards
+	// the race behind a link.
+	control(link, action string) error
 }
 
 var stageHTTP = &http.Client{Timeout: 20 * time.Second}
@@ -107,6 +110,19 @@ func (t *rhStageTimer) send(st stageRecord, races []stageRace, makeCurrent bool)
 		links[r.ID] = fmt.Sprintf("rh-h%d", out.Heat)
 	}
 	return links, nil
+}
+
+func (t *rhStageTimer) control(link, action string) error {
+	heat := 0
+	if _, err := fmt.Sscanf(link, "rh-h%d", &heat); err != nil || heat == 0 {
+		return errors.New("that race isn't on RotorHazard yet")
+	}
+	err := postJSON(strings.TrimSuffix(t.base, "/")+"/dd-pits/api/race-control",
+		map[string]any{"action": action, "heat": heat}, t.token, nil)
+	if errors.Is(err, errNoStageAPI) {
+		return errors.New("the dd-pits RotorHazard plugin is out of date; update it to start races")
+	}
+	return err
 }
 
 // ── FPVTrackside ─────────────────────────────────────────────────────────────
@@ -199,6 +215,45 @@ func (t *ftStageTimer) send(st stageRecord, races []stageRace, makeCurrent bool)
 		return links, errors.New(strings.Join(problems, "; "))
 	}
 	return links, nil
+}
+
+// control drives FPVTrackside's race-director screen through its REST API.
+// FPVTrackside must have "HTTP Server race controls enabled".
+func (t *ftStageTimer) control(link, action string) error {
+	api := strings.TrimSuffix(t.base, "/") + "/api/v1"
+	tok := os.Getenv("FPV_API_TOKEN")
+	call := func(path string, body any) error {
+		err := postJSON(api+path, body, tok, nil)
+		if errors.Is(err, errNoStageAPI) {
+			return errors.New("this FPVTrackside has no REST API; start races in FPVTrackside")
+		}
+		return err
+	}
+	selectRace := func() error {
+		return putJSON(api+"/race-control/current", map[string]string{"raceId": link})
+	}
+	switch action {
+	case "start":
+		if err := selectRace(); err != nil {
+			return err
+		}
+		return call("/race-control/start", map[string]any{})
+	case "stop":
+		return call("/race-control/stop", map[string]any{})
+	case "discard", "restart":
+		_ = call("/race-control/stop", map[string]any{}) // nothing running is fine
+		if err := call("/races/"+link+"/reset", map[string]any{}); err != nil {
+			return err
+		}
+		if action == "discard" {
+			return nil
+		}
+		if err := selectRace(); err != nil {
+			return err
+		}
+		return call("/race-control/start", map[string]any{})
+	}
+	return fmt.Errorf("unknown action %q", action)
 }
 
 func putJSON(url string, body any) error {

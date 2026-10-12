@@ -412,6 +412,27 @@ func (s *liveServer) raceCard(b *strings.Builder, st stageRecord, rc stageRace, 
 	if admin && !rc.IsVoid && len(rc.Pilots) > 0 {
 		act := `/stages/` + esc(st.ID) + `/action`
 		b.WriteString(`<div class="ra">`)
+		ctl := func(do, label, cls, confirm string) {
+			onclick := ""
+			if confirm != "" {
+				onclick = ` onclick="return confirm('` + confirm + `')"`
+			}
+			fmt.Fprintf(b, `<button class="%s" name="do" value="%s" form="rc-%s"%s>%s</button>`, cls, do, esc(rc.ID), onclick, label)
+		}
+		fmt.Fprintf(b, `<form method="post" action="%s" id="rc-%s"><input type="hidden" name="race" value="%s"></form><div class="rc">`, act, esc(rc.ID), esc(rc.ID))
+		switch rc.State {
+		case "ready", "sent":
+			ctl("start", "▶ Start race", "small go", "")
+		case "running":
+			ctl("stop", "■ Stop &amp; save", "small stop", "")
+			ctl("restart", "↻ Restart", "sec small", "Restart this race? The run so far is thrown away.")
+			ctl("discard", "Discard", "sec small", "Discard this run?")
+		case "flown", "finished":
+			if rc.CanEdit || !rc.IsComplete {
+				ctl("restart", "↻ Re-run", "sec small", "Fly this race again? The new result replaces this one.")
+			}
+		}
+		b.WriteString(`</div>`)
 		if rc.State == "ready" || rc.State == "sent" {
 			fmt.Fprintf(b, `<form method="post" action="%s"><input type="hidden" name="race" value="%s"><button class="sec small" name="do" value="race-send">%s</button></form>`,
 				act, esc(rc.ID), map[bool]string{true: "Send &amp; make current", false: "Make current"}[rc.State == "ready"])
@@ -494,6 +515,8 @@ func (s *liveServer) stageAction(w http.ResponseWriter, r *http.Request, id stri
 		err = m.setResult(id, raceID, order)
 	case "reset":
 		err = m.resetResult(id, raceID)
+	case "start", "stop", "restart", "discard":
+		err = m.raceControl(id, raceID, r.FormValue("do"), s.currentMeeting())
 	}
 	if err != nil {
 		_ = m.update(id, func(st *stageRecord) error { st.LastError = err.Error(); return nil })
@@ -555,6 +578,9 @@ const stageCSS = `<style>
  .ra details summary{cursor:pointer;color:var(--acc);font-size:.84rem}
  .ra label{margin:.35rem 0 .1rem}
  button.small{padding:.3rem .75rem;font-size:.8rem}
+ .rc{display:flex;gap:.35rem;flex-wrap:wrap}
+ button.go{background:var(--acc);color:#07080a}
+ button.stop{background:#ff453a;color:#fff}
  p.small{font-size:.78rem;margin:.35rem 0 0}
 </style>`
 

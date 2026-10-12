@@ -26,7 +26,7 @@ from RHUI import UIField, UIFieldType
 
 from .runner import Runner
 from .snapshot import SnapshotBuilder, live_signature
-from .stages import StageError, stage_heat
+from .stages import StageError, race_control, stage_heat
 
 logger = logging.getLogger(__name__)
 
@@ -374,6 +374,17 @@ class DDPits:
                 return jsonify({"error": str(ex)}), 409
             self.generation += 1
             return jsonify({"heat": heat})
+
+        @bp.route("/api/race-control", methods=["POST"])
+        def api_race_control():
+            auth = request.headers.get("Authorization", "")
+            if auth != "Bearer " + self.runner.api_token() and not self._admin_ok(require=True):
+                return jsonify({"error": "not allowed"}), 401
+            try:
+                out = race_control(self.rhapi, request.get_json(force=True) or {})
+            except StageError as ex:
+                return jsonify({"error": str(ex)}), 409
+            return jsonify(out)
 
         @bp.route("/api/snapshot")
         def api_snapshot():

@@ -75,6 +75,9 @@ type stageRecord struct {
 	// Applied is the finishing order last taken from timing for each race, so
 	// an unchanged result is not applied twice.
 	Applied map[string]string `json:"applied,omitempty"`
+	// RerunAfter holds, per race being flown again, when the re-run was asked
+	// for (epoch ms): runs that started before it no longer count.
+	RerunAfter map[string]int64 `json:"rerunAfter,omitempty"`
 
 	AutoSend    bool `json:"autoSend"`
 	AutoResults bool `json:"autoResults"`
@@ -477,9 +480,13 @@ func (m *stageManager) races(st stageRecord, mv *meetingView) ([]stageRace, race
 	out := make([]stageRace, 0, len(all))
 	for _, rv := range all {
 		sr := stageRace{RaceView: rv, Link: st.Links[rv.ID], Locked: st.Locked[rv.ID], Seeds: seeds}
+		after := st.RerunAfter[rv.ID]
 		sr.Title = stageTerms(rv.Title)
 		sr.GroupLabel = stageTerms(rv.GroupLabel)
 		tr, flown := m.timerRace(sr.Link, byID)
+		if flown && after > 0 && tr.StartMs < after {
+			flown = false // the run being replaced
+		}
 		switch {
 		case rv.IsVoid:
 			sr.State = "void"
@@ -701,7 +708,7 @@ func (m *stageManager) applyResults(id string, mv *meetingView) {
 				continue
 			}
 			tr, ok := m.timerRace(link, byID)
-			if !ok || tr.State != "ended" {
+			if !ok || tr.State != "ended" || tr.StartMs < st.RerunAfter[rv.ID] {
 				continue
 			}
 			order := finishOrder(tr, rv.Pilots, st.seeds())
@@ -741,6 +748,86 @@ func (m *stageManager) applyResults(id string, mv *meetingView) {
 		}
 		return changed || touched, nil
 	})
+}
+
+// raceControl starts, stops, restarts or discards a stage race on the timer.
+// Starting a race that isn't on the timer yet sends it first. Restarting or
+// discarding a race whose result has already been taken from timing clears
+// that result, so the bracket waits for the new run.
+func (m *stageManager) raceControl(id, raceID, action string, mv *meetingView) error {
+	m.opMu.Lock()
+	defer m.opMu.Unlock()
+	if m.timer == nil {
+		return errors.New("no timer")
+	}
+	st, ok := m.get(id)
+	if !ok {
+		return errors.New("no such stage")
+	}
+	races, f, err := m.races(st, mv)
+	if err != nil {
+		return err
+	}
+	var rc *stageRace
+	for i := range races {
+		if races[i].ID == raceID {
+			rc = &races[i]
+		}
+	}
+	if rc == nil {
+		return errors.New("no such race")
+	}
+	if rc.State == "waiting" || rc.State == "void" {
+		return errors.New("that race can't be flown yet")
+	}
+	if rc.IsComplete && (action == "restart" || action == "discard") {
+		if ok, why := f.CanEditRace(raceID); !ok {
+			return errors.New("can't re-run it: " + why)
+		}
+	}
+	link := rc.Link
+	if link == "" {
+		if action != "start" {
+			return errors.New("that race isn't on the timer yet")
+		}
+		if err := m.sendRaces(id, []stageRace{*rc}, true); err != nil {
+			return err
+		}
+		st, _ = m.get(id)
+		link = st.Links[raceID]
+		if link == "" {
+			return errors.New("the timer didn't take the race")
+		}
+	}
+	rerunAt := time.Now().UnixMilli()
+	if err := m.timer.control(link, action); err != nil {
+		return err
+	}
+	if (action == "restart" || action == "discard") && rc.IsComplete {
+		// The new run decides it now: hand the race back to timing.
+		return m.update(id, func(s *stageRecord) error {
+			f, err := s.engine()
+			if err != nil {
+				return err
+			}
+			if err := f.ResetRace(raceID); err != nil {
+				return err
+			}
+			raw, err := json.Marshal(f.State())
+			if err != nil {
+				return err
+			}
+			s.State = raw
+			delete(s.Locked, raceID)
+			delete(s.Applied, raceID)
+			if s.RerunAfter == nil {
+				s.RerunAfter = map[string]int64{}
+			}
+			s.RerunAfter[raceID] = rerunAt
+			return nil
+		})
+	}
+	return nil
 }
 
 // setResult records a finishing order entered by hand and locks it.
