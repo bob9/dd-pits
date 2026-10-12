@@ -24,6 +24,36 @@ class StageError(Exception):
 FIRST_TO_LAP_X, MOST_PROGRESS = 2, 1  # RHRace.WinCondition
 
 
+def _round_types():
+    """Database.RoundType, or None before RotorHazard 4.2 (no heat groups)."""
+    try:
+        from Database import RoundType
+        return RoundType
+    except Exception:
+        return None
+
+
+def _use_groups(rhapi, cls):
+    """Put a bracket's class into heat groups, one group per bracket round.
+
+    rounds=1 stops RotorHazard copying each saved heat into the next group:
+    the bracket decides who flies next, not a repeat of the same line-up.
+    """
+    rt = _round_types()
+    if rt is None:
+        return False
+    if getattr(cls, "round_type", None) != rt.GROUPED or getattr(cls, "rounds", None) != 1:
+        rhapi.db.raceclass_alter(cls.id, rounds=1, round_type=rt.GROUPED)
+    return True
+
+
+def _set_group(rhapi, heat_id, group):
+    try:
+        rhapi._racecontext.rhdata.alter_heat({"heat": heat_id, "group_id": group})
+    except Exception:
+        pass
+
+
 def _find_class(rhapi, class_name, create=True):
     for c in rhapi.db.raceclasses or []:
         if (c.name or "").strip().lower() == class_name.lower():
@@ -95,6 +125,7 @@ def stage_heat(rhapi, data):
 
     cls = _find_class(rhapi, class_name)
     stage_format(rhapi, data, cls)
+    bracket_round = int(data.get("round") or 0)
 
     pilots = {}
     for p in db.pilots or []:
@@ -119,6 +150,11 @@ def stage_heat(rhapi, data):
         heat = db.heat_add(name=heat_name, raceclass=cls.id)
     elif heat.name != heat_name:
         db.heat_alter(heat.id, name=heat_name)
+    # Grouped only once the class has a heat: RotorHazard's own group
+    # priming fails on a class with none.
+    grouped = _use_groups(rhapi, db.raceclass_by_id(cls.id) or cls)
+    if grouped and bracket_round > 0 and getattr(heat, "group_id", 0) != bracket_round - 1:
+        _set_group(rhapi, heat.id, bracket_round - 1)
 
     slots = sorted(db.slots_by_heat(heat.id) or [], key=lambda s: s.node_index if s.node_index is not None else 99)
     if len(ids) > len(slots):
@@ -189,6 +225,19 @@ def race_control(rhapi, data):
         if race.status == DONE:
             race.clear()
             gevent.sleep(0.2)
+        # A grouped heat that has been saved can't be raced again, so a
+        # re-run flies a fresh copy of it, in the same group.
+        h = rhapi.db.heat_by_id(heat) if heat else None
+        if h is not None and (rhapi.db.races_by_heat(h.id) or []):
+            cls = rhapi.db.raceclass_by_id(h.class_id) if h.class_id else None
+            rt = _round_types()
+            if cls is not None and rt is not None and getattr(cls, "round_type", None) == rt.GROUPED:
+                copy = rhapi._racecontext.rhdata.duplicate_heat(h, new_heat_name=h.name, group_id=h.group_id)
+                heat = copy.id
+                try:
+                    rhapi.ui.broadcast_heats()
+                except Exception:
+                    pass
         select()
         race.stage()
     else:

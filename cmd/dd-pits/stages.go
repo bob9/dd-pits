@@ -821,8 +821,17 @@ func (m *stageManager) raceControl(id, raceID, action string, mv *meetingView) e
 		}
 	}
 	rerunAt := time.Now().UnixMilli()
-	if err := m.timer.control(link, action); err != nil {
+	newLink, err := m.timer.control(link, action)
+	if err != nil {
 		return err
+	}
+	if newLink != "" && newLink != link {
+		// The re-run is a new race on the timer: follow it.
+		_ = m.update(id, func(s *stageRecord) error {
+			s.Links[raceID] = newLink
+			delete(s.Applied, raceID)
+			return nil
+		})
 	}
 	if (action == "restart" || action == "discard") && rc.IsComplete {
 		// The new run decides it now: hand the race back to timing.

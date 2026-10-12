@@ -242,14 +242,33 @@ class SnapshotBuilder:
         heats = sorted(db.heats or [], key=lambda h: h.id)
         heat_by_id = {h.id: h for h in heats}
 
-        # A heat's number within its class ("Race 3" of the Open class), the
-        # way FPVTrackside numbers races within a round.
+        # Classes run in heat groups (RotorHazard 4.2+): each group is a
+        # round, and a heat in one is raced once.
+        grouped_ids = set()
+        try:
+            from Database import RoundType
+            grouped_ids = {c.id for c in classes.values() if getattr(c, "round_type", None) == RoundType.GROUPED}
+        except Exception:
+            pass
+
+        def group_of(h):
+            return int(getattr(h, "group_id", 0) or 0) if h.class_id in grouped_ids else None
+
+        # A heat's number within its class ("Race 3" of the Open class) — or
+        # within its group, for grouped classes — the way FPVTrackside numbers
+        # races within a round.
         heat_number = {}
         per_class = {}
         for h in heats:
-            per_class.setdefault(h.class_id, 0)
-            per_class[h.class_id] += 1
-            heat_number[h.id] = per_class[h.class_id]
+            key = (h.class_id, group_of(h))
+            per_class.setdefault(key, 0)
+            per_class[key] += 1
+            heat_number[h.id] = per_class[key]
+
+        def round_num(heat_id, saved_round):
+            h = heat_by_id.get(heat_id)
+            g = group_of(h) if h is not None else None
+            return g + 1 if g is not None else saved_round
 
         colors = self._seat_colors()
         freqs = self._frequencies()
@@ -331,7 +350,7 @@ class SnapshotBuilder:
             race = dict(race)
             res = [dict(r) for r in res]
             race["RaceNumber"] = heat_number.get(sr.heat_id, 0)
-            race["Round"] = round_for(sr.class_id, sr.round_id, fmt_etype)
+            race["Round"] = round_for(sr.class_id, round_num(sr.heat_id, sr.round_id), fmt_etype)
             for r in res:
                 r["Round"] = race["Round"]
             races.append(race)
@@ -348,7 +367,7 @@ class SnapshotBuilder:
             if cur_heat:
                 race["RaceNumber"] = heat_number.get(cur_heat, 0)
                 cls_id = heat_by_id[cur_heat].class_id if cur_heat in heat_by_id else None
-                race["Round"] = round_for(cls_id, live["round"], etype_for(fmt))
+                race["Round"] = round_for(cls_id, round_num(cur_heat, live["round"]), etype_for(fmt))
             else:
                 race["RaceNumber"] = 1
                 key = ("practice", 0)
@@ -376,6 +395,10 @@ class SnapshotBuilder:
             for h in after:
                 if added >= PENDING_HEATS:
                     break
+                if getattr(h, "active", True) is False:
+                    continue  # retired by RotorHazard
+                if h.class_id in grouped_ids and (db.races_by_heat(h.id) or []):
+                    continue  # a grouped heat is raced once, and this one has been
                 lineup = self._heat_lineup(h.id, pilots, freqs, channel_for)
                 if not lineup:
                     continue  # a planned heat with nobody in it yet
@@ -395,7 +418,7 @@ class SnapshotBuilder:
                     "ID": rid, "Laps": [], "Detections": [], "Start": "", "End": "",
                     "TotalPausedTime": "", "PilotChannels": lineup,
                     "RaceNumber": heat_number.get(h.id, 0),
-                    "Round": round_for(h.class_id, rnd, etype_for(f)),
+                    "Round": round_for(h.class_id, round_num(h.id, rnd), etype_for(f)),
                     "TargetLaps": target_laps(f), "Valid": True, "Event": "", "Bracket": "",
                 })
                 seen.add(rid)

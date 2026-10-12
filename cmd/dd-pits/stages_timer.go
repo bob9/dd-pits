@@ -30,8 +30,9 @@ type stageTimer interface {
 	// send creates races on the timer and returns stage race id -> link.
 	send(st stageRecord, races []stageRace, makeCurrent bool) (map[string]string, error)
 	// control starts, stops ("stop" saves the result), restarts or discards
-	// the race behind a link.
-	control(link, action string) error
+	// the race behind a link. A timer that re-runs a race as a new one (a
+	// RotorHazard heat group) returns its new link; otherwise "".
+	control(link, action string) (string, error)
 	// applySettings brings the laps and race time to races already on the
 	// timer and not yet flown.
 	applySettings(st stageRecord, sent []stageRace) error
@@ -68,7 +69,7 @@ func postJSON(url string, body any, token string, out any) error {
 		if json.Unmarshal(data, &e) == nil && e.Error != "" {
 			return errors.New(e.Error)
 		}
-		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(data)))
+		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, shortBody(data))
 	}
 	if out != nil {
 		return json.Unmarshal(data, out)
@@ -105,6 +106,7 @@ func (t *rhStageTimer) send(st stageRecord, races []stageRace, makeCurrent bool)
 			"current":   makeCurrent && i == 0,
 			"laps":      st.Setup.Laps,
 			"race_time": st.Setup.RaceSeconds,
+			"round":     r.Round, // its heat group, on RotorHazard 4.2+
 		}, t.token, &out)
 		if errors.Is(err, errNoStageAPI) {
 			return links, errors.New("the dd-pits RotorHazard plugin is out of date; update it to send races")
@@ -117,17 +119,26 @@ func (t *rhStageTimer) send(st stageRecord, races []stageRace, makeCurrent bool)
 	return links, nil
 }
 
-func (t *rhStageTimer) control(link, action string) error {
+func (t *rhStageTimer) control(link, action string) (string, error) {
 	heat := 0
 	if _, err := fmt.Sscanf(link, "rh-h%d", &heat); err != nil || heat == 0 {
-		return errors.New("that race isn't on RotorHazard yet")
+		return "", errors.New("that race isn't on RotorHazard yet")
+	}
+	var out struct {
+		Heat int `json:"heat"`
 	}
 	err := postJSON(strings.TrimSuffix(t.base, "/")+"/dd-pits/api/race-control",
-		map[string]any{"action": action, "heat": heat}, t.token, nil)
+		map[string]any{"action": action, "heat": heat}, t.token, &out)
 	if errors.Is(err, errNoStageAPI) {
-		return errors.New("the dd-pits RotorHazard plugin is out of date; update it to start races")
+		return "", errors.New("the dd-pits RotorHazard plugin is out of date; update it to start races")
 	}
-	return err
+	if err != nil {
+		return "", err
+	}
+	if out.Heat != 0 && out.Heat != heat {
+		return fmt.Sprintf("rh-h%d", out.Heat), nil
+	}
+	return "", nil
 }
 
 // applySettings sets the bracket's race class format on RotorHazard; every
@@ -248,7 +259,11 @@ func (t *ftStageTimer) applySettings(st stageRecord, sent []stageRace) error {
 
 // control drives FPVTrackside's race-director screen through its REST API.
 // FPVTrackside must have "HTTP Server race controls enabled".
-func (t *ftStageTimer) control(link, action string) error {
+func (t *ftStageTimer) control(link, action string) (string, error) {
+	return "", t.drive(link, action)
+}
+
+func (t *ftStageTimer) drive(link, action string) error {
 	api := strings.TrimSuffix(t.base, "/") + "/api/v1"
 	tok := os.Getenv("FPV_API_TOKEN")
 	call := func(path string, body any) error {
@@ -329,7 +344,25 @@ func readAPIError(resp *http.Response) error {
 	if json.Unmarshal(data, &e) == nil && e.Error != "" {
 		return errors.New(e.Error)
 	}
-	return fmt.Errorf("HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(data)))
+	return fmt.Errorf("HTTP %d: %s", resp.StatusCode, shortBody(data))
+}
+
+// shortBody keeps an error reply readable: a crash page from the timer
+// becomes a short note, not a screen of HTML.
+func shortBody(data []byte) string {
+	t := strings.TrimSpace(string(data))
+	if strings.HasPrefix(strings.ToLower(t), "<!doctype") || strings.HasPrefix(t, "<html") {
+		if i := strings.Index(t, "<title>"); i >= 0 {
+			if j := strings.Index(t[i:], "</title>"); j > 0 {
+				return "the timer failed: " + strings.TrimSpace(t[i+7:i+j])
+			}
+		}
+		return "the timer failed"
+	}
+	if len(t) > 200 {
+		t = t[:200] + "…"
+	}
+	return t
 }
 
 // stageRoundName names a round from what is in it, the way FPVTrackside's own
