@@ -485,10 +485,16 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 			return fmt.Sprintf("%s/dd-pits/heat/%d", base, heat)
 		}
 	}
-	ready := 0
+	ready, done, total := 0, 0, 0
 	for _, rc := range races {
 		if rc.State == "ready" {
 			ready++
+		}
+		if !rc.IsVoid {
+			total++
+			if rc.IsComplete {
+				done++
+			}
 		}
 	}
 
@@ -501,7 +507,10 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 	if c := f.Champion(); c != "" {
 		fmt.Fprintf(b, `<p class="champ">🏆 %s</p>`, esc(c))
 	}
+	fmt.Fprintf(b, `<p class="mut">%d of %d races run · <a href="#standings">%s</a></p>`, done, total,
+		map[bool]string{true: "Final standings", false: "Standings"}[f.IsComplete()])
 	b.WriteString(`</div>`)
+
 	if admin {
 		b.WriteString(`<form method="post" action="/stages/` + esc(st.ID) + `/action" class="acts">`)
 		if ready > 0 {
@@ -514,6 +523,9 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 		b.WriteString(`<button class="sec" name="do" value="delete" onclick="return confirm('Delete this bracket? Its races not flown yet are removed from the timer; flown races and their results stay.')">Delete</button></form>`)
 	}
 	b.WriteString(`</div>`)
+	if f.IsComplete() {
+		standingsCard(b, f, st, "Final standings") // the result, first thing on the page
+	}
 	if admin {
 		fmt.Fprintf(b, `<div class="card"><form method="post" action="/stages/%s/action" class="row" style="align-items:flex-end">
 <div><label>Laps per race (0 = the timer's format)</label><input type="number" name="laps" value="%d" min="0" max="99"></div>
@@ -532,16 +544,12 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 
 	s.bracketGrid(b, st, races, admin, heatLink, true)
 
-	if rows := standings(f, st.seeds()); len(rows) > 0 && (f.IsComplete() || st.Format == raceformat.KindMains || st.Format == raceformat.KindLadder) {
-		b.WriteString(`<div class="card"><h2>Standings</h2><table><tr><th>#</th><th>Pilot</th><th></th></tr>`)
-		for _, row := range rows {
-			tied := ""
-			if row.Tied {
-				tied = ` <span class="badge">not decided on track</span>`
-			}
-			fmt.Fprintf(b, `<tr><td>%d</td><td>%s%s</td><td class="mut">%s</td></tr>`, row.Rank, esc(row.Pilot), tied, esc(row.Detail))
+	if !f.IsComplete() {
+		if st.Format == raceformat.KindMains || st.Format == raceformat.KindLadder {
+			standingsCard(b, f, st, "Standings so far")
+		} else {
+			fmt.Fprintf(b, `<div class="card" id="standings"><h2>Final standings</h2><p class="mut">They appear here, and at the top of the page, once the final is flown. %d of %d races run so far.</p></div>`, done, total)
 		}
-		b.WriteString(`</table></div>`)
 	}
 	b.WriteString(stageCSS + stageRefresh)
 	writeSetup(w, st.Name, b.String())
@@ -601,6 +609,32 @@ func (s *liveServer) bracketGrid(b *strings.Builder, st stageRecord, races []sta
 		b.WriteString(`</div></div>`)
 	}
 
+}
+
+// standingsCard is a bracket's standings table, medals for the podium.
+func standingsCard(b *strings.Builder, f raceformat.Format, st stageRecord, title string) {
+	rows := standings(f, st.seeds())
+	if len(rows) == 0 {
+		return
+	}
+	medal := map[int]string{1: "🥇", 2: "🥈", 3: "🥉"}
+	fmt.Fprintf(b, `<div class="card" id="standings"><h2>%s</h2><table class="standings"><tr><th>Place</th><th>Pilot</th><th></th></tr>`, esc(title))
+	for _, row := range rows {
+		tied := ""
+		if row.Tied {
+			tied = ` <span class="badge">not decided on track</span>`
+		}
+		place := ordinalPlace(row.Rank)
+		if m := medal[row.Rank]; m != "" && !row.Tied {
+			place = m + " " + place
+		}
+		cls := ""
+		if row.Rank <= 3 {
+			cls = ` class="pod"`
+		}
+		fmt.Fprintf(b, `<tr%s><td>%s</td><td>%s%s</td><td class="mut">%s</td></tr>`, cls, place, esc(row.Pilot), tied, esc(row.Detail))
+	}
+	b.WriteString(`</table></div>`)
 }
 
 func onOff(b bool) string {
@@ -707,13 +741,16 @@ func (s *liveServer) raceCard(b *strings.Builder, st stageRecord, rc stageRace, 
 }
 
 func ordinalPlace(n int) string {
-	switch n {
+	if n%100 >= 11 && n%100 <= 13 {
+		return fmt.Sprintf("%dth", n)
+	}
+	switch n % 10 {
 	case 1:
-		return "1st"
+		return fmt.Sprintf("%dst", n)
 	case 2:
-		return "2nd"
+		return fmt.Sprintf("%dnd", n)
 	case 3:
-		return "3rd"
+		return fmt.Sprintf("%drd", n)
 	}
 	return fmt.Sprintf("%dth", n)
 }
@@ -865,6 +902,8 @@ func (s *liveServer) stageJSON(w http.ResponseWriter, r *http.Request, id string
 }
 
 const stageCSS = `<style>
+ table.standings tr.pod td{font-weight:700;font-size:1.05rem}
+ table.standings tr.pod:first-of-type td,table.standings tr.pod td:first-child{white-space:nowrap}
  main{max-width:96rem}
  .loginbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-color:rgba(198,255,61,.35)}
  .stagehead{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:center}
