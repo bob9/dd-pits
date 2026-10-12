@@ -73,7 +73,10 @@ func localSetupAllowed(r *http.Request) bool {
 	if err != nil {
 		host = r.RemoteAddr
 	}
-	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+	// This machine itself — unless the request came through a reverse proxy,
+	// where every visitor arrives from loopback. Behind nginx (dd-pits on a
+	// public website) the PIN is required like from any other device.
+	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() && !proxied(r) {
 		return true
 	}
 	if setupPIN == "" {
@@ -91,6 +94,16 @@ func localSetupAllowed(r *http.Request) bool {
 }
 
 const setupPINCookie = "dd_pits_pin"
+
+// proxied reports whether a request was forwarded by a reverse proxy.
+func proxied(r *http.Request) bool {
+	for _, h := range []string{"X-Forwarded-For", "X-Forwarded-Prefix", "X-Real-Ip", "Forwarded"} {
+		if r.Header.Get(h) != "" {
+			return true
+		}
+	}
+	return false
+}
 
 // rememberSetupPIN wraps the server so that arriving with the right ?pin=
 // keeps working for the rest of the visit, without the PIN on every link.

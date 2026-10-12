@@ -1433,7 +1433,7 @@ const (
 // start runs the local server until ctx is cancelled, retrying a busy address
 // for listenRetry so a self-update handover can't lose the port.
 func (s *liveServer) start(ctx context.Context, addr string) {
-	srv := &http.Server{Addr: addr, Handler: rememberSetupPIN(s.handler())}
+	srv := &http.Server{Addr: addr, Handler: withBasePath(rememberSetupPIN(s.handler()))}
 	s.srvMu.Lock()
 	s.srv, s.addr = srv, addr
 	s.srvMu.Unlock()
@@ -2069,8 +2069,14 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
   // (lap recorded, race started/stopped). Reconnects automatically if dropped.
   var es=null, reconnectT=null, lastActivity=Date.now();
   function markAlive(){ lastActivity=Date.now(); }
+  var pollT=null;
   function connect(){
     if(es) return; // already connected (e.g. pageshow after explicit connect)
+    // Inside a frame — the overlay gallery's previews — poll instead. Each live
+    // stream holds a connection open, and a browser allows only six per site
+    // over plain HTTP: twenty previews streaming would stall the gallery and
+    // every other page on this host.
+    if(window.self!==window.top){ if(!pollT) pollT=setInterval(refresh,2500); return; }
     try{
       es=new EventSource('/events');
       es.onopen=markAlive;

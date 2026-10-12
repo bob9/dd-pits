@@ -319,6 +319,32 @@ has no equivalent, so on RotorHazard dd-pits uses FPVTrackside's standard calls
 own voice callouts so they aren't spoken twice. For goggle OSD, use either
 dd-pits or RotorHazard's own ELRS plugin, not both.
 
+The plugin also adds **dd-pits** to RotorHazard's own menu at the top of every
+page, and brackets and OBS overlays to its ⋮ menu. You can turn this off with
+**Show dd-pits in RotorHazard's menu**.
+
+**A timer on the internet.** If RotorHazard is published through a reverse
+proxy, serve dd-pits under a path on the same site and tell the plugin that path
+(**Public dashboard address** `/pits`):
+
+```nginx
+location = /pits { return 301 /pits/; }
+location /pits/ {
+    proxy_pass http://127.0.0.1:8088;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Prefix /pits;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_buffering off;          # live updates and commentary audio
+    proxy_read_timeout 1h;
+}
+```
+
+dd-pits rewrites its links for requests that arrive with
+`X-Forwarded-Prefix`, so the same dd-pits still works directly on its port at
+a venue. Through a proxy, changing dd-pits' settings always needs the setup
+PIN. The plugin's **Set up dd-pits** link supplies it to RotorHazard admins.
+
 Without the plugin, any dd-pits can still read a RotorHazard timer that has the
 plugin installed: `dd-pits -rotorhazard http://<timer>:5000`.
 

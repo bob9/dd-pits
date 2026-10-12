@@ -66,7 +66,12 @@ _APPEND_EVENTS = _events("LAPS_SAVE")
 _PERSISTENT = "persistent_section" in {f.name for f in dataclasses.fields(UIField)} \
     if dataclasses.is_dataclass(UIField) else False
 
-_SETTING_DEFAULTS = {"autostart": "1", "port": "8088", "binary": "", "public_url": ""}
+_SETTING_DEFAULTS = {"autostart": "1", "port": "8088", "binary": "", "public_url": "", "menu": "1"}
+
+# The links added to RotorHazard's own menu, so nobody has to know the port.
+_NAV_MAIN = '<li class="dd-pits-nav"><a href="/dd-pits/">dd-pits</a></li>'
+_NAV_EXTRA = ('<li class="dd-pits-nav"><a href="/dd-pits/stages">dd-pits brackets</a></li>'
+              '<li class="dd-pits-nav"><a href="/dd-pits/overlays">dd-pits OBS overlays</a></li>')
 
 
 def server_config(rhapi, section, name, default=None):
@@ -239,7 +244,8 @@ class DDPits:
             "Status: %s\n\n"
             "* [Open the live dashboard](/dd-pits/) to share with pilots\n"
             "* [Set up dd-pits](/dd-pits/setup): race calls, commentary, goggles\n"
-            "* [OBS overlays](/dd-pits/overlays) for your stream\n\n"
+            "* [OBS overlays](/dd-pits/overlays) for your stream\n"
+            "* [Brackets](/dd-pits/stages): double elimination, qualifiers, ladders\n\n"
             "%s\n\n"
             "Free and open source by [bob9](%s). If it helps your club, "
             "[buy me a coffee](%s) ☕"
@@ -275,8 +281,13 @@ class DDPits:
         fields.register_option(self._field(
             "public_url", "Public dashboard address", UIFieldType.TEXT,
             placeholder="leave empty at a venue",
-            desc="Only for a timer published on the internet behind a proxy: the address that "
-                 "reaches dd-pits, e.g. https://pits.example.com. The links on this panel then use it."), PANEL)
+            desc="Only for a timer published on the internet behind a proxy: where dd-pits is reached, "
+                 "either a path on this site (/pits) or its own address (https://pits.example.com). "
+                 "The links in RotorHazard then use it."), PANEL)
+        fields.register_option(self._field(
+            "menu", "Show dd-pits in RotorHazard's menu", UIFieldType.CHECKBOX,
+            desc="Adds dd-pits to the menu at the top of every RotorHazard page, and its brackets and "
+                 "OBS overlays to the ⋮ menu."), PANEL)
         fields.register_option(self._field(
             "binary", "Use my own dd-pits program", UIFieldType.TEXT,
             placeholder="leave empty to download it automatically",
@@ -301,10 +312,34 @@ class DDPits:
         auth = request.authorization
         return auth is not None and auth.username == user and auth.password == pw
 
+    def _add_menu_links(self, resp):
+        """Put dd-pits in RotorHazard's own menu, on every page that has it.
+
+        RotorHazard has no way for a plugin to add a menu item, so the links
+        go into the page as it is sent. Only whole HTML pages with RotorHazard's
+        menu are touched, and only once.
+        """
+        try:
+            if (resp.status_code != 200 or resp.direct_passthrough or resp.is_streamed
+                    or not (resp.mimetype or "").startswith("text/html")
+                    or not _truthy(self.setting("menu", "1"))):
+                return resp
+            html = resp.get_data(as_text=True)
+            if 'id="nav-main"' not in html or "dd-pits-nav" in html:
+                return resp
+            html = html.replace('<li class="extra">', _NAV_MAIN + '<li class="extra">', 1)
+            html = html.replace('<li><a href="/streams">', _NAV_EXTRA + '<li><a href="/streams">', 1)
+            resp.set_data(html)
+        except Exception as ex:  # never break a RotorHazard page over a link
+            logger.debug("dd-pits: menu link not added: %s", ex)
+        return resp
+
     def _dd_url(self, path):
         # A timer published on the internet behind a proxy gives dd-pits its own
         # address; at a venue, it is this timer on dd-pits' port.
         public = str(self.setting("public_url", "")).strip().rstrip("/")
+        if public.startswith("/"):
+            return public + path  # a path on this same site, e.g. /pits
         if public:
             if "://" not in public:
                 public = "https://" + public
@@ -351,6 +386,14 @@ class DDPits:
         @bp.route("/overlays")
         def overlays():
             return redirect(self._dd_url("/overlays"))
+
+        @bp.route("/stages")
+        def stages():
+            return redirect(self._dd_url("/stages"))
+
+        @bp.after_app_request
+        def add_menu_links(resp):
+            return self._add_menu_links(resp)
 
         @bp.route("/setup")
         def setup():

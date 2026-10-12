@@ -499,7 +499,7 @@ func overlayBase(r *http.Request) string {
 			}
 		}
 	}
-	return scheme + "://" + host
+	return scheme + "://" + host + forwardedPrefix(r)
 }
 
 func (s *liveServer) overlaySpotlightPush(w http.ResponseWriter, r *http.Request) {
