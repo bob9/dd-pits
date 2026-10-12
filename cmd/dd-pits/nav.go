@@ -51,6 +51,7 @@ func siteNav(admin bool) string {
 		navItem{"/marshal", "Marshal", "Fix a race's laps"},
 		navItem{"/calls", "Race calls", "Say a call now"},
 		navItem{"/goggles", "Goggle control", "Channels and messages to goggles"},
+		navItem{"/logout", "Log out", "View as a spectator: no race controls"},
 	)
 	settings := []navItem{
 		{"/setup", "Overview", "What this venue is running"},
@@ -123,6 +124,10 @@ const siteNavJS = `<script>(function(){
  if(best){ best.classList.add('on'); var g=best.closest('.ng'); if(g) g.classList.add('on'); }
  document.addEventListener('click',function(e){ nav.querySelectorAll('.ng[open]').forEach(function(d){ if(!d.contains(e.target)) d.open=false; }); });
  nav.querySelectorAll('.ng').forEach(function(d){ d.addEventListener('toggle',function(){ if(d.open) nav.querySelectorAll('.ng[open]').forEach(function(o){ if(o!==d) o.open=false; }); }); });
+ // Log in or out and come back to this same page.
+ nav.querySelectorAll('a[href$="/logout"],a[href$="/login"]').forEach(function(a){
+  a.href=a.getAttribute('href')+'?next='+encodeURIComponent(location.pathname+location.search+location.hash);
+ });
  var rh=nav.querySelector('.rhlink');
  if(rh){
   // Home's link carries the sub-path dd-pits is served under (e.g. /pits/):

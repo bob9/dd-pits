@@ -579,7 +579,7 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 			fmt.Fprintf(b, `<div class="card" id="standings"><h2>Final standings</h2><p class="mut">They appear here, and at the top of the page, once the final is flown. %d of %d races run so far.</p></div>`, done, total)
 		}
 	}
-	b.WriteString(stageCSS + stageRefresh)
+	b.WriteString(stageCSS + flowLines + stageRefresh)
 	writeSetup(w, r, st.Name, b.String())
 }
 
@@ -587,6 +587,11 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 // progression) or points bracket, a column per round within it. card is
 // false for a section without its own card (the create page's preview).
 func (s *liveServer) bracketGrid(b *strings.Builder, st stageRecord, races []stageRace, admin bool, heatLink func(string) string, card bool) {
+	flow := stageFlow(st)
+	titles := map[string]string{}
+	for _, rc := range races {
+		titles[rc.ID] = rc.Title
+	}
 	// One section per bracket (bracket progression) or per points bracket;
 	// within it, a column per round.
 	type section struct {
@@ -626,11 +631,25 @@ func (s *liveServer) bracketGrid(b *strings.Builder, st stageRecord, races []sta
 			nums = append(nums, n)
 		}
 		sort.Ints(nums)
-		b.WriteString(`<div class="grid">`)
+		// The lines between races, drawn by flowLines once laid out.
+		inSec := map[string]bool{}
+		for _, rs := range sec.rounds {
+			for _, rc := range rs {
+				inSec[rc.ID] = true
+			}
+		}
+		var edges []flowEdge
+		for _, e := range flowEdges(flow, titles) {
+			if inSec[e.From] && inSec[e.To] {
+				edges = append(edges, e)
+			}
+		}
+		ej, _ := json.Marshal(edges)
+		fmt.Fprintf(b, `<div class="grid" data-flow="%s">`, esc(string(ej)))
 		for _, n := range nums {
 			fmt.Fprintf(b, `<div class="col"><div class="colh">Round %d</div>`, n)
 			for _, rc := range sec.rounds[n] {
-				s.raceCard(b, st, rc, admin, heatLink)
+				s.raceCard(b, st, rc, admin, heatLink, flow, titles)
 			}
 			b.WriteString(`</div>`)
 		}
@@ -672,45 +691,66 @@ func onOff(b bool) string {
 	return "off"
 }
 
-func (s *liveServer) raceCard(b *strings.Builder, st stageRecord, rc stageRace, admin bool, rhHeatLink func(string) string) {
+func (s *liveServer) raceCard(b *strings.Builder, st stageRecord, rc stageRace, admin bool, rhHeatLink func(string) string, flow raceFlow, titles map[string]string) {
 	label := stateLabel[rc.State]
 	if rc.State == "waiting" && rc.Link != "" {
 		label = "On the timer · pilots to come"
 	}
-	fmt.Fprintf(b, `<div class="race st-%s" id="r-%s"><div class="rh"><b>%s</b><span class="badge">%s</span></div><ol>`,
+	fmt.Fprintf(b, `<div class="race st-%s" id="r-%s"><div class="rh"><b class="rt">%s</b><span class="badge"><i></i>%s</span></div><ol>`,
 		esc(rc.State), esc(rc.ID), esc(rc.Title), esc(label))
+	place := map[string]int{}
+	for i, p := range resultOrder(rc.RaceView) {
+		place[p] = i + 1
+	}
 	won := map[string]bool{}
 	for _, p := range rc.Winners {
 		won[p] = true
 	}
-	order := rc.Pilots
-	for _, p := range order {
-		cls := ""
+	from := func(src seatSource) string {
+		return fmt.Sprintf(`<span class="from"><b>%s</b> %s</span>`, ordinalPlace(src.Rank), esc(shortRaceTitle(titles[src.From])))
+	}
+	for _, p := range rc.Pilots {
+		cls, mark := "", ""
 		if rc.IsComplete {
+			cls = " out"
 			if won[p] {
-				cls = ` class="win"`
-			} else {
-				cls = ` class="out"`
+				cls = " win"
+			}
+			if n := place[p]; n > 0 {
+				mark = fmt.Sprintf(`<span class="pl p%d">%d</span>`, n, n)
 			}
 		}
-		fmt.Fprintf(b, `<li%s><span class="sd">%d</span>%s</li>`, cls, rc.Seeds[p], esc(p))
+		seed := ""
+		if n := rc.Seeds[p]; n > 0 {
+			seed = fmt.Sprintf(`<span class="sd" title="Seed %d">%d</span>`, n, n)
+		}
+		via := ""
+		if src, ok := flow.Known[rc.ID][p]; ok && !rc.IsComplete {
+			via = from(src)
+		}
+		fmt.Fprintf(b, `<li class="seat%s">%s<span class="nm">%s</span>%s%s</li>`, cls, seed, esc(p), via, mark)
 	}
-	if len(order) == 0 {
-		b.WriteString(`<li class="mut">to be decided</li>`)
+	for _, src := range flow.Open[rc.ID] {
+		fmt.Fprintf(b, `<li class="seat tbd"><span class="sd">·</span>%s</li>`, from(src))
+	}
+	if len(rc.Pilots) == 0 && len(flow.Open[rc.ID]) == 0 {
+		b.WriteString(`<li class="seat tbd"><span class="sd">·</span><span class="from">to be decided</span></li>`)
 	}
 	b.WriteString(`</ol>`)
 	if strings.HasPrefix(rc.State, "pv-") {
 		b.WriteString(`</div>`)
 		return // a preview: nothing to link to or run yet
 	}
+	b.WriteString(`<div class="links">`)
 	if u := s.dashboardLink(rc); u != "" {
-		fmt.Fprintf(b, `<a class="mlink" href="%s">Dashboard</a> `, esc(u))
+		fmt.Fprintf(b, `<a class="mlink" href="%s">Dashboard</a>`, esc(u))
 	}
 	if rc.Link != "" && rhHeatLink != nil {
 		if u := rhHeatLink(rc.Link); u != "" {
-			fmt.Fprintf(b, `<a class="mlink" href="%s">RotorHazard heat ↗</a>`, esc(u))
+			fmt.Fprintf(b, `<a class="mlink" href="%s">RotorHazard ↗</a>`, esc(u))
 		}
 	}
+	b.WriteString(`</div>`)
 	if admin && rc.Locked && rc.IsComplete {
 		b.WriteString(`<p class="mut small">Result entered by hand</p>`)
 	}
@@ -938,32 +978,102 @@ const stageCSS = `<style>
  .stagehead h1{margin:.1rem 0;font-size:clamp(1.6rem,3.5vw,2.3rem);letter-spacing:-.03em}
  .stagehead .champ{font-size:1.4rem;font-weight:800;color:var(--acc);margin:.2rem 0}
  .acts{display:flex;gap:.5rem;flex-wrap:wrap}
- .grid{display:flex;gap:.9rem;overflow-x:auto;padding-bottom:.4rem}
- .col{min-width:14.5rem;flex:0 0 14.5rem;display:flex;flex-direction:column;gap:.7rem}
- .colh{color:var(--mut);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
- .race{border:1px solid var(--line);border-radius:16px;padding:.7rem .8rem;background:rgba(0,0,0,.3)}
- .race .rh{display:flex;justify-content:space-between;gap:.4rem;align-items:flex-start;font-size:.86rem}
- .race ol{list-style:none;margin:.5rem 0 0;padding:0;display:grid;gap:.2rem}
- .race li{display:flex;gap:.5rem;font-size:.92rem}
- .race li .sd{color:var(--mut);font-size:.75rem;min-width:1.3rem;text-align:right;padding-top:.12rem}
- .race li.win{color:var(--acc);font-weight:700}.race li.out{color:var(--mut)}
- .badge{font-size:.68rem;font-weight:700;padding:.12rem .45rem;border-radius:999px;background:rgba(255,255,255,.08);color:#c3c9d2;white-space:nowrap}
- .st-pv-seeded{border-color:rgba(198,255,61,.5)}.st-pv-seeded .badge{background:rgba(198,255,61,.16);color:var(--acc)}
- .st-ready{border-color:rgba(198,255,61,.5)}.st-ready .badge{background:rgba(198,255,61,.16);color:var(--acc)}
- .st-running{border-color:#ff453a}.st-running .badge{background:rgba(255,69,58,.2);color:#ff6b61}
- .st-sent .badge,.st-flown .badge{background:rgba(61,224,255,.14);color:var(--cyan)}
- .st-void{opacity:.45}
+ .grid{display:flex;gap:2.4rem;overflow-x:auto;padding:.2rem .2rem .6rem;position:relative}
+ .grid>svg.flow{position:absolute;left:0;top:0;pointer-events:none;overflow:visible;z-index:0}
+ .col{min-width:15.5rem;flex:0 0 15.5rem;display:flex;flex-direction:column;justify-content:space-around;gap:.9rem;position:relative;z-index:1}
+ .colh{color:var(--mut);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:0 .2rem .35rem;border-bottom:1px solid var(--line);margin-bottom:.1rem;align-self:stretch}
+ .race{border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(30,33,40,.96),rgba(18,20,25,.96));box-shadow:0 10px 30px -18px rgba(0,0,0,.9);overflow:hidden}
+ .race .rh{display:flex;flex-direction:column;align-items:flex-start;gap:.3rem;padding:.6rem .75rem .5rem;border-bottom:1px solid var(--line);background:rgba(255,255,255,.025)}
+ .race .rt{font-size:.88rem;line-height:1.25;letter-spacing:-.01em}
+ .race ol{list-style:none;margin:0;padding:.3rem 0;display:grid}
+ .race li.seat{display:flex;align-items:center;gap:.55rem;padding:.3rem .75rem;font-size:.9rem;min-height:2rem}
+ .race li.seat+li.seat{border-top:1px solid rgba(255,255,255,.04)}
+ .race li .sd{flex:0 0 1.35rem;height:1.35rem;display:inline-grid;place-items:center;border-radius:6px;background:rgba(255,255,255,.06);color:var(--mut);font-size:.7rem;font-weight:700;font-variant-numeric:tabular-nums}
+ .race li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+ .race li .from{flex:1;min-width:0;color:var(--mut);font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .race li .nm+.from{flex:0 1 auto;max-width:55%;opacity:.8}
+ .race li .from b{color:#c3c9d2;font-weight:700;margin-right:.15rem}
+ .race li.tbd{background:repeating-linear-gradient(135deg,transparent 0 6px,rgba(255,255,255,.018) 6px 12px)}
+ .race li.tbd .sd{background:transparent;border:1px dashed rgba(255,255,255,.18)}
+ .race li.win .nm{color:var(--acc)}.race li.win .sd{background:rgba(198,255,61,.16);color:var(--acc)}
+ .race li.out .nm{color:var(--mut);font-weight:500}
+ .race li .pl{flex:0 0 auto;font-size:.7rem;font-weight:800;padding:.08rem .42rem;border-radius:999px;background:rgba(255,255,255,.08);color:#c3c9d2}
+ .race li .pl.p1{background:#f5c542;color:#1b1400}.race li .pl.p2{background:#c9d1dc;color:#14181d}.race li .pl.p3{background:#d08a4e;color:#1d0f04}
+ .race .links{display:flex;gap:.8rem;padding:0 .75rem .45rem}
+ .race .links:empty{display:none}
+ .race .ra{padding:0 .75rem .65rem}
+ .badge{display:inline-flex;align-items:center;gap:.35rem;font-size:.66rem;font-weight:700;letter-spacing:.02em;padding:.14rem .5rem;border-radius:999px;background:rgba(255,255,255,.07);color:#c3c9d2;white-space:nowrap}
+ .badge i{width:.42rem;height:.42rem;border-radius:50%;background:currentColor;opacity:.85}
+ .st-pv-seeded,.st-ready{border-color:rgba(198,255,61,.45)}.st-pv-seeded .badge,.st-ready .badge{background:rgba(198,255,61,.14);color:var(--acc)}
+ .st-running{border-color:#ff453a;box-shadow:0 0 0 1px #ff453a,0 12px 34px -14px rgba(255,69,58,.6)}.st-running .badge{background:rgba(255,69,58,.2);color:#ff6b61}
+ .st-running .badge i{animation:ddpulse 1.2s ease-in-out infinite}
+ @keyframes ddpulse{50%{opacity:.25}}
+ .st-sent .badge,.st-flown .badge{background:rgba(61,224,255,.13);color:var(--cyan)}
+ .st-finished .badge{background:rgba(255,255,255,.06);color:var(--mut)}
+ .st-waiting .badge,.st-pv-later .badge{background:transparent;border:1px dashed rgba(255,255,255,.16);color:var(--mut)}
+ .st-void{opacity:.4}
  .race:target{box-shadow:0 0 0 3px var(--acc);border-color:var(--acc)}
- .ra{margin-top:.5rem;display:grid;gap:.35rem}
+ .ra{display:grid;gap:.35rem}
  .ra details summary{cursor:pointer;color:var(--acc);font-size:.84rem}
  .ra label{margin:.35rem 0 .1rem}
  button.small{padding:.3rem .75rem;font-size:.8rem}
  .rc{display:flex;gap:.35rem;flex-wrap:wrap}
  button.go{background:var(--acc);color:#07080a}
- .mlink{font-size:.8rem;align-self:center}
+ .mlink{font-size:.76rem;align-self:center;color:var(--mut)}.mlink:hover{color:var(--acc)}
  button.stop{background:#ff453a;color:#fff}
  p.small{font-size:.78rem;margin:.35rem 0 0}
 </style>`
+
+// flowLines draws the progression between races: from the right of a race
+// to the left of the race its pilots go on to, winners' paths in the accent
+// colour, drops into the losers' bracket dashed. Redrawn whenever the page
+// redraws itself or changes size; nothing where races are stacked.
+const flowLines = `<script>
+(function(){
+ if(window.ddFlowBound) return; window.ddFlowBound=true;
+ var NS='http://www.w3.org/2000/svg';
+ function draw(){
+  document.querySelectorAll('.grid[data-flow]').forEach(function(g){
+   var old=g.querySelector(':scope > svg.flow'); if(old) old.remove();
+   var edges; try{ edges=JSON.parse(g.dataset.flow||'[]'); }catch(e){ return; }
+   if(!edges||!edges.length) return;
+   var gr=g.getBoundingClientRect(), svg=document.createElementNS(NS,'svg');
+   svg.setAttribute('class','flow'); svg.setAttribute('width',g.scrollWidth); svg.setAttribute('height',g.scrollHeight);
+   var drawn=0;
+   edges.forEach(function(e){
+    var a=document.getElementById('r-'+e.from), b=document.getElementById('r-'+e.to);
+    if(!a||!b||!g.contains(a)||!g.contains(b)) return;
+    var ra=a.getBoundingClientRect(), rb=b.getBoundingClientRect();
+    if(rb.left<ra.right-2) return; // stacked, not side by side
+    var x1=ra.right-gr.left+g.scrollLeft, y1=ra.top+ra.height/2-gr.top+g.scrollTop;
+    var x2=rb.left-gr.left+g.scrollLeft, y2=rb.top+Math.min(rb.height/2,44)-gr.top+g.scrollTop;
+    var mx=(x1+x2)/2, p=document.createElementNS(NS,'path');
+    p.setAttribute('d','M'+x1+' '+y1+' C'+mx+' '+y1+' '+mx+' '+y2+' '+x2+' '+y2);
+    p.setAttribute('fill','none'); p.setAttribute('stroke-width', e.drop?'1.5':'2');
+    p.setAttribute('stroke', e.drop?'rgba(255,170,90,.55)':'rgba(198,255,61,.55)');
+    if(e.drop) p.setAttribute('stroke-dasharray','5 5');
+    var t=document.createElementNS(NS,'title');
+    t.textContent=(e.ranks||[]).map(function(n){return n===1?'1st':n===2?'2nd':n===3?'3rd':n+'th'}).join(', ');
+    p.appendChild(t); svg.appendChild(p);
+    var dot=document.createElementNS(NS,'circle'); dot.setAttribute('cx',x2); dot.setAttribute('cy',y2); dot.setAttribute('r','3');
+    dot.setAttribute('fill', e.drop?'rgba(255,170,90,.8)':'rgba(198,255,61,.85)'); svg.appendChild(dot);
+    drawn++;
+   });
+   if(drawn) g.insertBefore(svg,g.firstChild);
+  });
+ }
+ var t=null; function soon(){ clearTimeout(t); t=setTimeout(draw,30); }
+ window.addEventListener('resize',soon);
+ var main=document.querySelector('main');
+ // Ignore the lines' own coming and going, or drawing would redraw forever.
+ function ours(n){ return n.nodeType===1&&(n.matches('svg.flow')||n.closest&&n.closest('svg.flow')); }
+ if(main) new MutationObserver(function(ms){
+  if(ms.some(function(m){ return [].some.call(m.addedNodes,function(n){return !ours(n)})||[].some.call(m.removedNodes,function(n){return !ours(n)}); })) soon();
+ }).observe(main,{childList:true,subtree:true});
+ if(document.readyState!=='loading') draw(); else document.addEventListener('DOMContentLoaded',draw);
+ if(document.fonts&&document.fonts.ready) document.fonts.ready.then(draw);
+})();
+</script>`
 
 // stageRefresh reloads the bracket while racing, unless someone is in the
 // middle of entering a result.

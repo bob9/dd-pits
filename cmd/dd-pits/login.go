@@ -45,8 +45,12 @@ func safeNext(r *http.Request, v string) string {
 
 func (s *liveServer) registerLogin(mux *http.ServeMux) {
 	mux.HandleFunc("/login", s.loginPage)
+	// Logging out leaves this browser a viewer: brackets and the dashboard
+	// as everyone sees them, no race controls — on the timing laptop too.
 	mux.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{Name: setupPINCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
+		http.SetCookie(w, &http.Cookie{Name: viewerCookie, Value: "1", Path: "/", HttpOnly: true,
+			SameSite: http.SameSiteLaxMode, MaxAge: 365 * 24 * 3600})
 		http.Redirect(w, r, safeNext(r, r.FormValue("next")), http.StatusSeeOther)
 	})
 }
@@ -58,11 +62,21 @@ func (s *liveServer) loginPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	msg := ""
+	resume := func() {
+		http.SetCookie(w, &http.Cookie{Name: viewerCookie, Value: "", Path: "/", MaxAge: -1})
+		http.Redirect(w, r, next, http.StatusSeeOther)
+	}
 	if r.Method == http.MethodPost {
 		if setupPIN != "" && strings.TrimSpace(r.FormValue("pin")) == setupPIN {
 			http.SetCookie(w, &http.Cookie{Name: setupPINCookie, Value: setupPIN, Path: "/",
 				HttpOnly: true, SameSite: http.SameSiteLaxMode, MaxAge: 30 * 24 * 3600})
-			http.Redirect(w, r, next, http.StatusSeeOther)
+			resume()
+			return
+		}
+		// Logged out on a browser that needs nothing more to be the race
+		// director (the timing laptop, or one still holding the PIN).
+		if r.FormValue("do") == "resume" && setupAccess(r) {
+			resume()
 			return
 		}
 		msg = `<p class="warn">That PIN isn't right.</p>`
@@ -75,6 +89,12 @@ func (s *liveServer) loginPage(w http.ResponseWriter, r *http.Request) {
 	b := &strings.Builder{}
 	b.WriteString(`<div class="card"><h2>Race director</h2>
 <p class="mut">Anyone can watch. Starting and stopping races, entering results and marshalling laps need the race director's login.</p>`)
+	if setupAccess(r) {
+		fmt.Fprintf(b, `<form method="post" data-full><input type="hidden" name="next" value="%s">
+<p>You're viewing as a spectator on this device.</p><p><button name="do" value="resume">Back to race director</button></p></form></div>`, esc(next))
+		writeSetup(w, r, "Log in", b.String())
+		return
+	}
 	if timingSystem == "RotorHazard" {
 		// Built in the browser: behind a proxy RotorHazard is this same site;
 		// at a venue it is this host on RotorHazard's own port. Written as a
@@ -117,15 +137,13 @@ func loginBar(r *http.Request) string {
 <a href="/login?next=` + url.QueryEscape(r.URL.RequestURI()) + `"><button>Log in</button></a></div>`
 }
 
-// logoutLink is shown to a logged-in race director on another device.
+// logoutLink is shown to the race director: logging out turns this browser
+// into a viewer's, to see the page as everyone else does.
 func logoutLink(r *http.Request) string {
-	if !localSetupAllowed(r) || setupPIN == "" {
+	if !localSetupAllowed(r) {
 		return ""
 	}
-	if c, err := r.Cookie(setupPINCookie); err != nil || c.Value == "" {
-		return ""
-	}
-	return ` · <a href="/logout?next=` + url.QueryEscape(r.URL.RequestURI()) + `">Log out</a>`
+	return ` · <a href="/logout?next=` + url.QueryEscape(r.URL.RequestURI()) + `">Log out (view as a spectator)</a>`
 }
 
 // rhBase is where RotorHazard's own pages are, seen from this request, for

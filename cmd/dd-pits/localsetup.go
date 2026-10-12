@@ -66,6 +66,16 @@ func setSetupBase(addr string) {
 // the machine that is already running the meeting. Anything else needs the PIN,
 // which the operator has to set deliberately.
 func localSetupAllowed(r *http.Request) bool {
+	// Logged out: a viewer, even on the timing laptop, until they log in.
+	if c, err := r.Cookie(viewerCookie); err == nil && c.Value == "1" {
+		return false
+	}
+	return setupAccess(r)
+}
+
+// setupAccess is localSetupAllowed regardless of having logged out: whether
+// logging back in needs nothing more than asking.
+func setupAccess(r *http.Request) bool {
 	if demoMode {
 		return false
 	}
@@ -95,6 +105,9 @@ func localSetupAllowed(r *http.Request) bool {
 
 const setupPINCookie = "dd_pits_pin"
 
+// viewerCookie marks a browser that logged out: it sees what everyone sees.
+const viewerCookie = "dd_pits_viewer"
+
 // setupOnly reports whether a path belongs to the race director.
 func setupOnly(path string) bool {
 	if path == "/setup/help" {
@@ -120,6 +133,7 @@ func rememberSetupPIN(next http.Handler) http.Handler {
 		if setupPIN != "" && !demoMode && r.URL.Query().Get("pin") == setupPIN {
 			http.SetCookie(w, &http.Cookie{Name: setupPINCookie, Value: setupPIN, Path: "/",
 				HttpOnly: true, SameSite: http.SameSiteLaxMode, MaxAge: 30 * 24 * 3600})
+			http.SetCookie(w, &http.Cookie{Name: viewerCookie, Value: "", Path: "/", MaxAge: -1})
 			// Then the same page without the PIN in the address, so it isn't
 			// left in the address bar, the history or a shared link.
 			if r.Method == http.MethodGet {
