@@ -449,7 +449,7 @@ func (s *liveServer) overlayPage(w http.ResponseWriter, r *http.Request) {
 		s.fragmentExtra(w, r, view, mv, extra)
 		return
 	}
-	s.render(w, view, mv, extra)
+	s.render(w, r, view, mv, extra)
 }
 
 func abs(f float64) float64 {

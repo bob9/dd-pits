@@ -481,6 +481,31 @@ class DDPits:
                 out["round"] = int(group) + 1
             return jsonify(out)
 
+        def use_webapp():
+            # The RotorHazard Web App plugin is installed and this browser
+            # hasn't chosen the classic interface.
+            installed = any(r.rule == "/app/heats" or r.rule == "/app/<path:asset_path>"
+                            for r in current_app.url_map.iter_rules())
+            return installed and request.cookies.get("rh_interface") != "classic"
+
+        @bp.route("/open")
+        def open_page():
+            # One of RotorHazard's pages, for links from dd-pits: in the web
+            # app when it's in use, else the classic interface.
+            #   ?page=home|run|results|event   ?class=<id>   ?heat_class=<heat id>
+            app = use_webapp()
+            cls = request.args.get("class", type=int)
+            hc = request.args.get("heat_class", type=int)
+            if not cls and hc:
+                heat = self.rhapi.db.heat_by_id(hc)
+                cls = heat.class_id if heat is not None and heat.class_id else None
+            if cls:
+                return redirect("/app/heats?class=%d" % cls if app else "/event")
+            pages = {"home": ("/app/", "/"), "run": ("/app/", "/run"),
+                     "results": ("/app/results", "/results"), "event": ("/app/event", "/event")}
+            web, classic = pages.get(request.args.get("page", "home"), pages["home"])
+            return redirect(web if app else classic)
+
         @bp.route("/heat/<int:heat_id>")
         def heat_page(heat_id):
             # A heat on RotorHazard's own pages, for links from dd-pits: the
@@ -489,9 +514,7 @@ class DDPits:
             # chosen the classic interface; otherwise the classic Event page
             # with the heat picked out.
             heat = self.rhapi.db.heat_by_id(heat_id)
-            webapp = any(r.rule == "/app/heats" or r.rule == "/app/<path:asset_path>"
-                         for r in current_app.url_map.iter_rules())
-            if heat is not None and webapp and request.cookies.get("rh_interface") != "classic":
+            if heat is not None and use_webapp():
                 cls = heat.class_id if heat.class_id else "none"
                 return redirect("/app/heats?class=%s&heat=%d" % (cls, heat_id))
             return redirect("/event#dd-heat-%d" % heat_id)

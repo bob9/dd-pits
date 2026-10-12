@@ -67,7 +67,7 @@ func (s *liveServer) watchPlayer(w http.ResponseWriter, r *http.Request) {
  <span class="mut">instead of the stream's own sound</span></label>`
 	}
 
-	writeSetup(w, "Watch", fmt.Sprintf(`
+	writeSetup(w, r, "Watch", fmt.Sprintf(`
 <div class="card">
  <h2>%s</h2>
  <p class="mut">Opening the stream at <code>%s</code>.</p>

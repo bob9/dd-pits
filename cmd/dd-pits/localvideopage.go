@@ -168,7 +168,7 @@ func (s *liveServer) setupVideo(w http.ResponseWriter, r *http.Request) {
 	if !haveMeeting {
 		b.WriteString(`<div class="card"><h2>No meeting yet</h2>
 <p class="mut">Open your event in FPVTrackside and this page will fill in.</p></div>`)
-		writeSetup(w, "Video", b.String())
+		writeSetup(w, r, "Video", b.String())
 		return
 	}
 
@@ -242,7 +242,7 @@ The <code>00:00:00</code> line is required — without it YouTube ignores the wh
 	}
 
 	b.WriteString(videoPageScript)
-	writeSetup(w, "Video", b.String())
+	writeSetup(w, r, "Video", b.String())
 }
 
 // commentaryState is the per-heat status cell.

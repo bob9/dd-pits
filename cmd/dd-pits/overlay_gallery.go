@@ -137,7 +137,7 @@ In OBS, turn on Tools → WebSocket Server Settings → Enable WebSocket server.
 <div class="card"><h2>Not in dd-pits yet</h2><p class="mut">The platform's bracket overlays (bracket diagram, mains and division standings)
 need race brackets, and the 3D track needs a 3D course. Neither exists in dd-pits yet.</p></div>
 <script>var DD_BASE=` + jsString(base) + `;</script>` + galleryJS)
-	writeSetup(w, "OBS overlays", b.String())
+	writeSetup(w, r, "OBS overlays", b.String())
 }
 
 func jsString(s string) string {

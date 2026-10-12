@@ -720,7 +720,7 @@ func (s *liveServer) setupModels(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	m := probeMachine()
-	writeSetup(w, "AI models", modelsPageHTML(s, m, r.URL.Query().Get("saved") != ""))
+	writeSetup(w, r, "AI models", modelsPageHTML(s, m, r.URL.Query().Get("saved") != ""))
 }
 
 // saveModelChoice writes the cloud/local decision for each half.

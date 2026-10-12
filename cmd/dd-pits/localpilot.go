@@ -43,7 +43,7 @@ func (s *liveServer) servePilot(w http.ResponseWriter, r *http.Request) {
 			s.fragment(w, r, "waiting", nil)
 			return
 		}
-		s.render(w, "waiting", nil, nil)
+		s.render(w, r, "waiting", nil, nil)
 		return
 	}
 	pg, found := buildPilotPage(mv, r.URL.Query().Get("name"))
@@ -60,7 +60,7 @@ func (s *liveServer) servePilot(w http.ResponseWriter, r *http.Request) {
 		s.fragmentExtra(w, r, "pilot", mv, extra)
 		return
 	}
-	s.render(w, "pilot", mv, extra)
+	s.render(w, r, "pilot", mv, extra)
 }
 
 // ── Meeting-wide scoring (shared with the leaderboard) ──────────────────────

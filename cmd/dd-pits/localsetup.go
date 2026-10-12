@@ -148,7 +148,7 @@ func setupDenied(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusForbidden)
 	if demoMode {
-		fmt.Fprint(w, setupPage("Live demo", `<div class="card"><h2>This is a read-only demo</h2>
+		fmt.Fprint(w, setupPage(false, "Live demo", `<div class="card"><h2>This is a read-only demo</h2>
 <p>You are looking at a real dd-pits, fed by a simulated race meeting. Everything you can see works
 exactly as it does at a venue, but nothing here can be changed, saved or installed.</p>
 <p>On your own laptop, this page does what it says. <a href="https://github.com/bob9/dd-pits/releases">Get dd-pits</a>
@@ -157,13 +157,13 @@ exactly as it does at a venue, but nothing here can be changed, saved or install
 		return
 	}
 	if timingSystem == "RotorHazard" {
-		fmt.Fprint(w, setupPage("Not from here", `<div class="card"><h2>Open setup from RotorHazard</h2>
+		fmt.Fprint(w, setupPage(false, "Not from here", `<div class="card"><h2>Open setup from RotorHazard</h2>
 <p>Log in as the race director with RotorHazard's admin login, or open
 <strong>RotorHazard → Settings → dd-pits → Set up dd-pits</strong>.</p>
 <p><a href="/login?next=/setup"><button>Log in</button></a> <a href="/"><button class="sec">Back to the dashboard</button></a></p></div>`))
 		return
 	}
-	fmt.Fprint(w, setupPage("Not from here", `
+	fmt.Fprint(w, setupPage(false, "Not from here", `
 <p>Setup can only be changed <strong>from the timing laptop itself</strong>
 (<code>`+esc(setupBaseURL)+`/setup</code>).</p>
 <p>This page is open to everyone on the venue network so pilots can watch the
@@ -178,7 +178,7 @@ func esc(s string) string { return htmlesc.EscapeString(s) }
 // setupPage wraps content in the shared shell. Deliberately plain: this is a
 // tool used once at the start of a meeting, on a laptop, by someone who wants
 // it to be obvious rather than pretty.
-func setupPage(title, body string) string {
+func setupPage(admin bool, title, body string) string {
 	banner := ""
 	if b, ok := setupBanners[title]; ok {
 		banner = `<section class="banner" style="background-image:linear-gradient(90deg,rgba(7,8,10,.92) 15%,rgba(7,8,10,.35) 70%,rgba(7,8,10,.15)),url(/assets/` + b.img + `)">
@@ -203,24 +203,7 @@ func setupPage(title, body string) string {
  nav a{color:#c3c9d2;text-decoration:none;font-size:.86rem;font-weight:600;padding:.34rem .72rem;border-radius:999px;transition:background .15s,color .15s}
  nav a:hover{background:rgba(255,255,255,.07);color:#fff}
  nav a.on{background:rgba(198,255,61,.14);color:var(--acc)}
- nav a.bmc{color:#ffdd00;background:rgba(255,221,0,.08);border:1px solid rgba(255,221,0,.22)}
- nav.groups{align-items:center;gap:.25rem;flex:1}
- nav.groups a.bmc{margin-left:auto}
- .ng{position:relative}
- .ng>summary{list-style:none;cursor:pointer;color:#c3c9d2;font-size:.86rem;font-weight:600;padding:.34rem .72rem;border-radius:999px;user-select:none}
- .ng>summary::-webkit-details-marker{display:none}
- .ng>summary::after{content:"▾";margin-left:.35rem;font-size:.7rem;opacity:.7}
- .ng>summary:hover,.ng[open]>summary{background:rgba(255,255,255,.07);color:#fff}
- .ng.on>summary{background:rgba(198,255,61,.14);color:var(--acc)}
- .ng .menu{position:absolute;top:calc(100% + .35rem);left:0;z-index:20;min-width:13rem;padding:.4rem;display:grid;gap:.1rem;
-  background:rgba(14,16,20,.97);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 50px -20px rgba(0,0,0,.9);backdrop-filter:blur(18px)}
- .ng .menu a{display:block;padding:.5rem .7rem;border-radius:10px;white-space:nowrap}
- .ng .menu a small{display:block;color:var(--mut);font-weight:500;font-size:.75rem;margin-top:.05rem}
- @media(max-width:640px){
-  nav.groups{flex-basis:100%;gap:.1rem}
-  nav.groups>a,.ng>summary{padding:.3rem .55rem;font-size:.82rem}
-  nav.groups a.bmc{margin-left:0}
-  .ng .menu{position:fixed;left:.8rem;right:.8rem;top:auto}}
+ header a.bmc{color:#ffdd00;background:rgba(255,221,0,.08);border:1px solid rgba(255,221,0,.22);text-decoration:none;font-size:.84rem;font-weight:600;padding:.34rem .75rem;border-radius:999px;white-space:nowrap}
  main{max-width:60rem;margin:0 auto;padding:1.4rem 1.2rem 1rem}
  .banner{border-radius:26px;min-height:190px;background-size:cover;background-position:center;display:flex;align-items:flex-end;padding:1.6rem 1.8rem;margin-bottom:1.3rem;
   border:1px solid var(--line);box-shadow:0 30px 60px -30px rgba(0,0,0,.9)}
@@ -252,19 +235,14 @@ func setupPage(title, body string) string {
  footer a{color:#ffdd00}
  @media(max-width:640px){header{padding:.6rem .8rem}.banner{min-height:150px;padding:1.2rem;border-radius:20px}main{padding:1rem .8rem}}
 </style></head><body>
-<header><a class="brand" href="/"><img src="/assets/icon-256.webp" alt=""><span><span class="dd">dd</span>-pits</span><small>setup</small></a>
-<nav class="groups">` + setupNav() + `
- <a class="bmc" href="` + supportURL + `" target="_blank" rel="noopener">☕ Support dd-pits</a>
-</nav></header>
+` + siteNavCSS + `
+<header><a class="brand" href="/"><img src="/assets/icon-256.webp" alt=""><span><span class="dd">dd</span>-pits</span></a>
+<nav class="site">` + siteNav(admin) + `</nav>
+<a class="bmc" href="` + supportURL + `" target="_blank" rel="noopener">☕ Support</a></header>
 <main>` + demoBanner() + banner + body + `</main>
 <footer>dd-pits is free and open source, made by <a href="https://github.com/bob9" target="_blank" rel="noopener">bob9</a>. If it makes your race days easier,
 <a href="` + supportURL + `" target="_blank" rel="noopener">buy the developer a coffee ☕</a>.</footer>
-<script>
-for(const a of document.querySelectorAll('nav a'))if(a.getAttribute('href')===location.pathname){a.classList.add('on');const g=a.closest('.ng');if(g)g.classList.add('on')}
-// one menu open at a time; a click elsewhere closes it
-document.addEventListener('click',e=>{for(const d of document.querySelectorAll('.ng[open]'))if(!d.contains(e.target))d.open=false});
-for(const d of document.querySelectorAll('.ng'))d.addEventListener('toggle',()=>{if(d.open)for(const o of document.querySelectorAll('.ng[open]'))if(o!==d)o.open=false});
-</script>
+` + siteNavJS + `
 </body></html>`
 }
 
@@ -388,12 +366,12 @@ their lap OSD, DVR file naming and goggle clock sync — the phrase is all that 
 the goggle ID is worked out from it.</p>
 <p><a href="/setup/pilots"><button>Add a pilot</button></a></p></div>`)
 	}
-	writeSetup(w, "Overview", b.String())
+	writeSetup(w, r, "Overview", b.String())
 }
 
-func writeSetup(w http.ResponseWriter, title, body string) {
+func writeSetup(w http.ResponseWriter, r *http.Request, title, body string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprint(w, setupPage(title, body))
+	fmt.Fprint(w, setupPage(localSetupAllowed(r), title, body))
 }
 
 // ── goggle pilots ────────────────────────────────────────────────────────────
@@ -483,7 +461,7 @@ ExpressLRS firmware does, so there is nothing to look up.</p>
 <label><input type="checkbox" name="osd_enabled" value="1" checked style="width:auto"> Send OSD messages to this pilot</label>
 <p style="margin-top:.8rem"><button>Save pilot</button></p>
 </form></div>`)
-	writeSetup(w, "Goggle pilots", b.String())
+	writeSetup(w, r, "Goggle pilots", b.String())
 }
 
 // ── OSD screen ───────────────────────────────────────────────────────────────
@@ -672,7 +650,7 @@ Centred elements only move up and down, because the goggles centre them horizont
 	// back into those inputs — so the form is still the single source of truth
 	// and a save works identically whether the operator dragged or typed.
 	b.WriteString(osdEditorScript(cur))
-	writeSetup(w, "OSD screen", b.String())
+	writeSetup(w, r, "OSD screen", b.String())
 }
 
 // osdEditorScript renders the goggle screen the operator drags elements around
@@ -1060,7 +1038,7 @@ an error.</p><form method="post">`)
 })();
 </script>`)
 
-	writeSetup(w, "FPVTrackside", b.String())
+	writeSetup(w, r, "FPVTrackside", b.String())
 }
 
 // setupPickFolder opens the machine's own folder chooser.
@@ -1242,7 +1220,7 @@ DVR file naming, the clock, channel changes — goes through it.</p>
 })();
 </script>`)
 
-	writeSetup(w, "Backpack", b.String())
+	writeSetup(w, r, "Backpack", b.String())
 }
 
 // serialOptions renders the port picker.
@@ -1419,7 +1397,7 @@ func (s *liveServer) setupBooth(w http.ResponseWriter, r *http.Request) {
 
 	audioReady, audioWhy := speakerOutputReady(bc.VoicePython)
 
-	s.renderBooth(w, boothPageData{
+	s.renderBooth(w, r, boothPageData{
 		Message:       msg,
 		Engine:        bc.Engine,
 		Mode:          bc.Mode,
@@ -1577,14 +1555,14 @@ individual moments. A moment only happens when its phase is on as well.</p>
 `))
 
 // renderBooth writes the commentary page.
-func (s *liveServer) renderBooth(w http.ResponseWriter, d boothPageData) {
+func (s *liveServer) renderBooth(w http.ResponseWriter, r *http.Request, d boothPageData) {
 	var body strings.Builder
 	if err := boothTmpl.Execute(&body, d); err != nil {
 		http.Error(w, "commentary page: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	body.WriteString(boothPageScript)
-	writeSetup(w, "Commentary", body.String())
+	writeSetup(w, r, "Commentary", body.String())
 }
 
 // boothPageScript shows only the fields the chosen engine uses, and plays a
@@ -1798,7 +1776,7 @@ timing calls stay exactly as your pilots are used to and the colour is added aro
 the <a href="/setup/booth">local model</a> (Apple Silicon) or add a Qwen key — both are on the
 commentary page.</p></div>`)
 	}
-	writeSetup(w, "Race calls", b.String())
+	writeSetup(w, r, "Race calls", b.String())
 }
 
 // ── goggle control (the cloud command queue's local replacement) ──────────────
@@ -1861,7 +1839,7 @@ func (s *liveServer) setupGoggles(w http.ResponseWriter, r *http.Request) {
 <form method="post"><input type="hidden" name="action" value="enable">
 <p><button>Start the backpack</button></p></form>
 <p class="mut">Set which backpack on the <a href="/setup/backpack">Backpack</a> page first.</p></div>`)
-		writeSetup(w, "Goggle control", b.String())
+		writeSetup(w, r, "Goggle control", b.String())
 		return
 	}
 
@@ -1990,7 +1968,7 @@ the PA or see you waving — this is how you reach them.</p>
 })();
 </script>`)
 
-	writeSetup(w, "Goggle control", b.String())
+	writeSetup(w, r, "Goggle control", b.String())
 }
 
 // channelOptions renders the channel picker, marking the pilot's current one.
@@ -2047,7 +2025,7 @@ func localChannelChoices() []string {
 
 func (s *liveServer) setupHelp(w http.ResponseWriter, r *http.Request) {
 	base := esc(setupBaseURL)
-	writeSetup(w, "Help", `
+	writeSetup(w, r, "Help", `
 
 `+helpIntro(base)+`
 
@@ -2737,49 +2715,4 @@ apply on the next heat.</p>
 </div>
 
 `
-}
-
-// setupNav is the setup pages' menu, grouped the way a race director works:
-// race day, the stream, pilots' goggles, then settings.
-func setupNav() string {
-	type item struct{ href, label, hint string }
-	group := func(name string, items ...item) string {
-		b := &strings.Builder{}
-		fmt.Fprintf(b, `<details class="ng"><summary>%s</summary><div class="menu">`, esc(name))
-		for _, it := range items {
-			fmt.Fprintf(b, `<a href="%s">%s<small>%s</small></a>`, it.href, esc(it.label), esc(it.hint))
-		}
-		b.WriteString(`</div></details>`)
-		return b.String()
-	}
-	settings := []item{
-		{"/setup", "Overview", "What this venue is running"},
-		{"/setup/calls", "Race calls", "Who speaks the lap times"},
-	}
-	if timingSystem == "FPVTrackside" {
-		settings = append(settings, item{"/setup/trackside", "FPVTrackside", "Where it is, what dd-pits reads"})
-	}
-	settings = append(settings,
-		item{"/setup/models", "AI models", "Local voice and writing models"},
-		item{"/setup/debug", "Debug", "The log, for when something goes wrong"},
-	)
-	return `<a href="/">Dashboard</a>` +
-		group("Race day",
-			item{"/stages", "Brackets", "Create and run brackets"},
-			item{"/marshal", "Marshal", "Fix a race's laps"},
-			item{"/calls", "Race calls", "Say a call now"},
-			item{"/goggles", "Goggle control", "Channels and messages to goggles"},
-		) +
-		group("Stream",
-			item{"/overlays", "OBS overlays", "Graphics for your stream"},
-			item{"/setup/booth", "Commentary", "AI play-by-play and colour"},
-			item{"/setup/video", "Video", "Watch links and chapters"},
-		) +
-		group("Goggles",
-			item{"/setup/pilots", "Goggle pilots", "Bind phrases, OSD on or off"},
-			item{"/setup/osd", "OSD screen", "What pilots see"},
-			item{"/setup/backpack", "Backpack", "ELRS netpack or USB backpack"},
-		) +
-		group("Settings", settings...) +
-		`<a href="/setup/help">Help</a>`
 }

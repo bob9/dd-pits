@@ -186,7 +186,7 @@ func (s *liveServer) marshalPage(w http.ResponseWriter, r *http.Request) {
 	}
 	if raceID == "" {
 		s.marshalList(b, snap)
-		writeSetup(w, "Marshal", b.String())
+		writeSetup(w, r, "Marshal", b.String())
 		return
 	}
 	mv := buildMeeting(snap)
@@ -204,7 +204,7 @@ func (s *liveServer) marshalPage(w http.ResponseWriter, r *http.Request) {
 	}
 	if idx < 0 {
 		fmt.Fprintf(b, `<div class="card"><p class="warn">That race isn't in the meeting any more.</p><p><a href="/marshal">Choose another race</a></p></div>`)
-		writeSetup(w, "Marshal", b.String())
+		writeSetup(w, r, "Marshal", b.String())
 		return
 	}
 	rr := snap.Races[idx]
@@ -267,7 +267,7 @@ Results, the dashboard and any bracket update straight after.</p></div>`, esc(la
 <div style="flex:0"><button class="sec" name="do" value="add">Add lap</button></div></form></div>`, esc(raceID), esc(pc.Pilot))
 	}
 	b.WriteString(`<style>button.small{padding:.3rem .75rem;font-size:.8rem}</style>` + ajaxForms)
-	writeSetup(w, "Marshal", b.String())
+	writeSetup(w, r, "Marshal", b.String())
 }
 
 // marshalList offers the races that have been flown, most recent first.

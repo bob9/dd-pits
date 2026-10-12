@@ -1088,6 +1088,8 @@ func newLiveServer(b brand) *liveServer {
 		s.brand.Name = "dd-pits"
 	}
 	s.tmpl = template.Must(template.New("dd").Funcs(template.FuncMap{
+		"bracketLink":   func(raceID string) *bracketLink { return s.stages.bracketFor(raceID) },
+		"siteNavAssets": func() template.HTML { return template.HTML(siteNavCSS + siteNavJS) },
 		// watchLink is empty unless the meeting's stream has been anchored, so
 		// the ▶ Watch link simply is not there until there is something to
 		// link to — better than a link that goes nowhere.
@@ -1215,9 +1217,10 @@ func (s *liveServer) meeting() (*meetingView, brand, bool) {
 	return buildMeeting(s.snap), s.brand, true
 }
 
-func (s *liveServer) render(w http.ResponseWriter, name string, mv *meetingView, extra map[string]any) {
+func (s *liveServer) render(w http.ResponseWriter, r *http.Request, name string, mv *meetingView, extra map[string]any) {
 	_, b, _ := s.meeting()
-	data := map[string]any{"M": mv, "Brand": b, "Accent": template.CSS(b.Accent)}
+	data := map[string]any{"M": mv, "Brand": b, "Accent": template.CSS(b.Accent),
+		"Nav": template.HTML(siteNav(r != nil && localSetupAllowed(r)))}
 	for k, v := range extra {
 		data[k] = v
 	}
@@ -1329,7 +1332,7 @@ func (s *liveServer) handler() http.Handler {
 				s.fragmentExtra(w, r, view, mv, map[string]any{"RH": rhBase(r)})
 				return
 			}
-			s.render(w, view, mv, map[string]any{"RH": rhBase(r)})
+			s.render(w, r, view, mv, map[string]any{"RH": rhBase(r)})
 		}
 	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -1629,6 +1632,8 @@ html[data-lite] .pos.p3{background:#c06a2c}
 .card.up-race{padding:.9rem 1.1rem;border-bottom:1px solid var(--line);margin-bottom:.6rem}
 .card.up-now{border-color:rgba(198,255,61,.45)}
 .up-when{margin-left:auto;font-size:.78rem;font-weight:700;color:var(--accent,#c6ff3d);white-space:nowrap}
+a.bracket{margin-left:.7rem;font-size:.8rem;font-weight:600;padding:.2rem .65rem;border-radius:999px;border:1px solid color-mix(in srgb,var(--accent,#c6ff3d) 45%,transparent);
+ background:color-mix(in srgb,var(--accent,#c6ff3d) 12%,transparent);color:var(--accent,#c6ff3d);white-space:nowrap;text-decoration:none;vertical-align:middle}
 .rh-run{margin-left:auto;font-size:.8rem;font-weight:600;color:var(--accent,#c6ff3d);white-space:nowrap}
 .up-all{display:inline-block;margin-top:.7rem;font-weight:600;font-size:.9rem;color:var(--accent,#c6ff3d)}
 .up-search{padding-top:1rem;padding-bottom:0}
@@ -2214,12 +2219,11 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
   {{if .Brand.LogoB64}}<img src="{{.Brand.LogoB64}}" alt="">{{else}}<a href="/"><img class="logo" src="/assets/icon-256.webp" alt="dd-pits"></a>{{end}}
   <span class="name">{{if eq .Brand.Name "dd-pits"}}<span class="dd">dd</span>-pits{{else}}{{.Brand.Name}}{{end}}</span>
   {{if .M}}<span class="meet">{{.M.Name}}</span>{{end}}
-  <nav>
-    <a href="/">Home</a><a href="/live">Live</a><a href="/dronedash/upcoming">Upcoming</a><a href="/dronedash/races">Races</a><a href="/stages">Brackets</a><a href="/overlays">Overlays</a>{{if .RH}}<a href="{{.RH}}/event">RotorHazard ↗</a>{{end}}
-  </nav>
+  <nav class="site">{{.Nav}}</nav>
   <a class="bmc" href="` + supportURL + `" target="_blank" rel="noopener" title="dd-pits is free — support the developer">☕ Support</a>
   {{if .Brand.Version}}<span class="ver" title="dd-pits version — quote this when reporting a problem">{{.Brand.Version}}</span>{{end}}
 </div>
+{{siteNavAssets}}
 {{end}}
 
 {{define "race-rows"}}
@@ -2307,7 +2311,7 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
   {{with .M.Current}}
   <div class="card">
     <div style="display:flex;align-items:center;gap:.5rem">
-      <h2>Current Race <span class="sub">{{.Label}}</span>{{if eq .State "running"}}<span class="badge run">LIVE</span>{{end}}{{if $.RH}}<a class="rh-run" href="{{$.RH}}/run">Run in RotorHazard ↗</a>{{end}}</h2>
+      <h2>Current Race <span class="sub">{{.Label}}</span>{{if eq .State "running"}}<span class="badge run">LIVE</span>{{end}}{{with bracketLink .ID}}<a href="{{.URL}}" class="bracket">&#127937; {{.Name}} bracket</a>{{end}}{{if $.RH}}<a class="rh-run" href="{{$.RH}}/dd-pits/open?page=run">Run in RotorHazard ↗</a>{{end}}</h2>
       {{if eq .State "running"}}<span class="clock" data-clock-start="{{.StartMs}}">0.0</span>{{end}}
     </div>
     {{template "race-rows" .}}
@@ -2335,42 +2339,96 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
 {{define "upcoming"}}<!doctype html><html><head><meta charset="utf-8"><title>{{.Brand.Name}} — Upcoming races</title>{{template "css" .}}</head>
 <body>{{template "shell-top" .}}
 <div class="wrap up-search">
-  <input id="upq" type="search" list="up-pilots" placeholder="Find a pilot…" autocomplete="off" aria-label="Find a pilot">
+  <div class="up-bar">
+    <input id="upq" type="search" list="up-pilots" placeholder="Find a pilot…" autocomplete="off" aria-label="Find a pilot">
+    <button id="upfav" type="button" class="up-favbtn" aria-pressed="false" title="Show only races with your favourite pilots">&#9733; Favourites</button>
+  </div>
   <datalist id="up-pilots">{{range .M.Board}}<option value="{{.Name}}">{{end}}</datalist>
+  <div id="upfav-sum" class="up-sum" aria-live="polite"></div>
   <div id="upq-sum" class="up-sum" aria-live="polite"></div>
 </div>
 <div id="app">{{template "upcoming-body" .}}</div>{{template "js" (dictRefresh 3000 .)}}
+<style>
+.up-bar{display:flex;gap:.5rem;align-items:center}.up-bar input{flex:1}
+.up-favbtn{white-space:nowrap;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--txt,#e6e9ee);border-radius:999px;padding:.5rem .9rem;font:inherit;font-weight:600;cursor:pointer}
+.up-favbtn[aria-pressed="true"]{background:rgba(255,200,40,.16);border-color:rgba(255,200,40,.6);color:#ffd23f}
+.up-chip .star{border:0;background:none;padding:0 .15rem 0 0;margin:0;font-size:1rem;line-height:1;cursor:pointer;color:var(--muted,#8e96a3);opacity:.55}
+.up-chip .star:hover{opacity:1}
+.up-chip.fav{border-color:rgba(255,200,40,.6);background:rgba(255,200,40,.1)}
+.up-chip.fav .star{color:#ffd23f;opacity:1}
+.card.has-fav{border-color:rgba(255,200,40,.45)}
+.up-sum .favline{display:block}
+</style>
 <script>
-/* Pilot search: lives outside #app so live updates never clear it, and is
-   re-applied whenever they change the list. */
+/* Pilot search and favourites: they live outside #app so live updates never
+   clear them, and are re-applied whenever those updates change the list.
+   Favourites are kept in this browser only. */
 (function(){
   var q=document.getElementById('upq'), sum=document.getElementById('upq-sum'), app=document.getElementById('app');
+  var favBtn=document.getElementById('upfav'), favSum=document.getElementById('upfav-sum');
   var p=new URLSearchParams(location.search).get('pilot');
   try{ q.value=p!==null?p:(localStorage.getItem('dd-upq')||''); }catch(e){ if(p) q.value=p; }
-  function apply(){
-    var v=q.value.trim().toLowerCase(), first=null, n=0, idx=0;
-    app.querySelectorAll('.card.up-race,.card.up-now').forEach(function(card){
-      var hit=false;
-      card.querySelectorAll('.up-chip').forEach(function(chip){
-        var name=(chip.querySelector('.pname')||chip).textContent.trim().toLowerCase();
-        var m=v!==''&&name.indexOf(v)>=0; chip.classList.toggle('hit',m); if(m) hit=true;
-      });
-      card.style.display=(v===''||hit)?'':'none';
-      if(hit){ n++; if(first===null){ first={card:card,idx:idx}; } }
-      idx++;
-    });
-    if(v===''){ sum.textContent=''; return; }
-    if(!first){ sum.textContent='No upcoming races for “'+q.value.trim()+'”.'; return; }
-    var title=(first.card.querySelector('strong')||{}).textContent||'';
-    var now=first.card.classList.contains('up-now');
+  var favs={}, favOnly=false;
+  try{ (JSON.parse(localStorage.getItem('dd-favs')||'[]')||[]).forEach(function(n){ if(n) favs[String(n).toLowerCase()]=String(n); }); favOnly=localStorage.getItem('dd-favonly')==='1'; }catch(e){}
+  function save(){ try{ localStorage.setItem('dd-favs',JSON.stringify(Object.keys(favs).map(function(k){ return favs[k]; }))); localStorage.setItem('dd-favonly',favOnly?'1':''); }catch(e){} }
+  function nameOf(chip){ return ((chip.querySelector('.pname')||chip).textContent||'').trim(); }
+  function whenText(card, idx){
+    var title=(card.querySelector('strong')||{}).textContent||'';
+    if(card.classList.contains('up-now')) return (/^Racing/.test(title)?'racing now':'on deck now')+' — '+title.replace(/^(Racing now|On deck) · /,'');
     // Races before theirs, counting the one racing or on deck, as the
     // leaderboard's "Next race in" does.
-    var before=first.idx;
-    var when=now?(/^Racing/.test(title)?'is racing now':'is on deck now'):(before===0?'flies next':'flies after '+before+' more race'+(before===1?'':'s'));
-    sum.textContent=q.value.trim()+' '+when+' — '+title.replace(/^(Racing now|On deck) · /,'')+'. '+n+' race'+(n===1?'':'s')+' to go.';
+    return (idx===0?'flies next':'flies after '+idx+' more race'+(idx===1?'':'s'))+' — '+title;
   }
+  var busy=false;
+  function apply(){
+    if(busy) return; busy=true;
+    try{
+      var v=q.value.trim().toLowerCase(), first=null, n=0, idx=0, next={};
+      favBtn.setAttribute('aria-pressed', favOnly?'true':'false');
+      app.querySelectorAll('.card.up-race,.card.up-now').forEach(function(card){
+        var hit=false, fav=false;
+        card.querySelectorAll('.up-chip').forEach(function(chip){
+          var name=nameOf(chip), key=name.toLowerCase();
+          if(!chip.querySelector('.star')){
+            var b=document.createElement('button'); b.type='button'; b.className='star'; b.textContent='\u2605';
+            b.setAttribute('aria-label','Favourite'); chip.insertBefore(b, chip.firstChild);
+          }
+          var isFav=!!favs[key]; chip.classList.toggle('fav',isFav);
+          var st=chip.querySelector('.star'); st.title=isFav?'Remove from favourites':'Add to favourites'; st.setAttribute('aria-pressed',isFav?'true':'false');
+          if(isFav){ fav=true; if(!(key in next)) next[key]={name:name, text:whenText(card, idx)}; }
+          var m=v!==''&&key.indexOf(v)>=0; chip.classList.toggle('hit',m); if(m) hit=true;
+        });
+        card.classList.toggle('has-fav',fav);
+        var show = v!=='' ? hit : (!favOnly || fav);
+        card.style.display=show?'':'none';
+        if(hit){ n++; if(first===null){ first={card:card,idx:idx}; } }
+        idx++;
+      });
+      // Each favourite's next race, in the order they fly.
+      var names=Object.keys(favs);
+      favSum.innerHTML='';
+      if(names.length){
+        names.forEach(function(k){
+          var line=document.createElement('span'); line.className='favline';
+          line.textContent='\u2605 '+(next[k]?next[k].name+' '+next[k].text:favs[k]+' has no races coming up');
+          favSum.appendChild(line);
+        });
+      } else if(favOnly){ favSum.textContent='Tap \u2605 next to a pilot to make them a favourite.'; }
+      if(v===''){ sum.textContent=''; return; }
+      if(!first){ sum.textContent='No upcoming races for “'+q.value.trim()+'”.'; return; }
+      sum.textContent=q.value.trim()+' '+whenText(first.card, first.idx)+'. '+n+' race'+(n===1?'':'s')+' to go.';
+    } finally { busy=false; }
+  }
+  app.addEventListener('click',function(e){
+    var b=e.target.closest('.up-chip .star'); if(!b) return;
+    e.preventDefault();
+    var name=nameOf(b.closest('.up-chip')), key=name.toLowerCase();
+    if(favs[key]) delete favs[key]; else favs[key]=name;
+    save(); apply();
+  });
+  favBtn.addEventListener('click',function(){ favOnly=!favOnly; save(); apply(); });
   q.addEventListener('input',function(){ try{localStorage.setItem('dd-upq',q.value);}catch(e){} apply(); });
-  new MutationObserver(apply).observe(app,{childList:true,subtree:true});
+  new MutationObserver(function(){ setTimeout(apply,0); }).observe(app,{childList:true,subtree:true});
   apply();
 })();
 </script></body></html>{{end}}
@@ -2392,7 +2450,7 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
 {{define "races-body"}}<div class="wrap">
   <div class="card"><h2>Race history <span class="sub">{{len .M.Recent}} completed</span></h2></div>
   {{/* id= is the anchor the pilot page's stat cards and lap bars jump to. */}}
-  {{range .M.Recent}}<div class="card" id="race-{{.ID}}"><h2 style="font-size:1.02rem">{{.Label}}{{if .IsTT}}<span class="badge">Time Trial</span>{{end}}{{with watchLink .ID .StartMs}}<a href="{{.}}" class="watch">&#9654; Watch</a>{{end}}</h2>{{template "race-rows" .}}</div>{{else}}<div class="empty">No completed races yet.</div>{{end}}
+  {{range .M.Recent}}<div class="card" id="race-{{.ID}}"><h2 style="font-size:1.02rem">{{.Label}}{{if .IsTT}}<span class="badge">Time Trial</span>{{end}}{{with bracketLink .ID}}<a href="{{.URL}}" class="bracket">&#127937; {{.Name}} bracket</a>{{end}}{{with watchLink .ID .StartMs}}<a href="{{.}}" class="watch">&#9654; Watch</a>{{end}}</h2>{{template "race-rows" .}}</div>{{else}}<div class="empty">No completed races yet.</div>{{end}}
 </div>{{end}}
 
 {{define "live"}}<!doctype html><html><head><meta charset="utf-8"><title>{{.Brand.Name}} — Live</title>{{template "css" .}}</head>
@@ -2400,7 +2458,7 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
 
 {{define "live-body"}}<div class="wrap">
   {{with .M.Current}}{{$race := .}}
-  <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.6rem"><h2 style="margin:0">{{.Label}}</h2>{{if eq .State "running"}}<span class="badge run">LIVE</span><span class="clock" data-clock-start="{{.StartMs}}">0.0</span>{{end}}</div>
+  <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.6rem"><h2 style="margin:0">{{.Label}}</h2>{{with bracketLink .ID}}<a href="{{.URL}}" class="bracket">&#127937; {{.Name}} bracket</a>{{end}}{{if eq .State "running"}}<span class="badge run">LIVE</span><span class="clock" data-clock-start="{{.StartMs}}">0.0</span>{{end}}</div>
   <div class="grid">
     {{range .Pilots}}
     <div class="tile" style="{{if .ChannelColor}}border-left-color:{{.ChannelColor}}{{end}}">

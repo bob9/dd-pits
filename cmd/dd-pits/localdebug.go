@@ -163,7 +163,7 @@ func (s *liveServer) setupDebug(w http.ResponseWriter, r *http.Request) {
 		body = "(nothing logged yet — leave dd-pits running for a minute and reload)"
 	}
 
-	writeSetup(w, "Debug", fmt.Sprintf(`
+	writeSetup(w, r, "Debug", fmt.Sprintf(`
 <div class="card">
  <h2>Debug log</h2>
  <p class="mut">The same lines dd-pits prints to its Terminal window, kept here so

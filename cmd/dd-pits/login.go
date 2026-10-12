@@ -104,7 +104,7 @@ func (s *liveServer) loginPage(w http.ResponseWriter, r *http.Request) {
 Start dd-pits with <code>-setup-pin 1234</code> to allow them from a phone or another computer.</p>`)
 	}
 	b.WriteString(`</div>`)
-	writeSetup(w, "Log in", b.String())
+	writeSetup(w, r, "Log in", b.String())
 }
 
 // loginBar invites a viewer who can't change things to log in, from a page

@@ -88,7 +88,7 @@ and the results come back from the timing, so the next races fill in on their ow
 		fmt.Fprintf(b, `<div class="card"><h2><a href="/stages/%s">%s</a></h2><p class="mut">%s · %d pilots · %s</p></div>`,
 			esc(st.ID), esc(st.Name), esc(formatLabel(st.Format)), len(st.Pilots), status)
 	}
-	writeSetup(w, "Brackets", b.String())
+	writeSetup(w, r, "Brackets", b.String())
 }
 
 func formatLabel(k raceformat.FormatKind) string {
@@ -383,7 +383,7 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
  if(sf && sf.value) seedFrom(sf.value); else draw();
 })();
 </script>`)
-	writeSetup(w, "Create bracket", b.String())
+	writeSetup(w, r, "Create bracket", b.String())
 }
 
 // seedClass is a RotorHazard race class with its pilots in RotorHazard's
@@ -469,7 +469,7 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 	b.WriteString(loginBar(r))
 	if err != nil {
 		fmt.Fprintf(b, `<div class="card"><p class="warn">%s</p></div>`, esc(err.Error()))
-		writeSetup(w, st.Name, b.String())
+		writeSetup(w, r, st.Name, b.String())
 		return
 	}
 	// RotorHazard's page for a heat this bracket sent there.
@@ -500,9 +500,25 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 
 	rh := ""
 	if base := rhBase(r); base != "" {
-		rh = ` · <a href="` + esc(base) + `/run">RotorHazard Run page ↗</a> · <a href="` + esc(base) + `/results">Results ↗</a>`
+		cls := ""
+		if st.ClassID != 0 {
+			cls = fmt.Sprintf("class=%d", st.ClassID)
+		} else {
+			for _, l := range st.Links {
+				var h int
+				if _, err := fmt.Sscanf(l, "rh-h%d", &h); err == nil && h > 0 {
+					cls = fmt.Sprintf("heat_class=%d", h)
+					break
+				}
+			}
+		}
+		open := esc(base) + "/dd-pits/open?"
+		if cls != "" {
+			rh += ` · <a href="` + open + cls + `">RotorHazard heats ↗</a>`
+		}
+		rh += ` · <a href="` + open + `page=run">RotorHazard Run page ↗</a> · <a href="` + open + `page=results">Results ↗</a>`
 	}
-	fmt.Fprintf(b, `<div class="card stagehead"><div><p class="mut"><a href="/stages">Brackets</a> · <a href="/">Dashboard</a> · <a href="/live">Live</a> · <a href="/dronedash/upcoming">Upcoming</a> · <a href="/dronedash/races">Race history</a>%s%s</p><h1>%s</h1><p class="mut">%s · %d pilots</p>`,
+	fmt.Fprintf(b, `<div class="card stagehead"><div><p class="mut"><a href="/stages">← All brackets</a>%s%s</p><h1>%s</h1><p class="mut">%s · %d pilots</p>`,
 		rh, logoutLink(r), esc(st.Name), esc(formatLabel(st.Format)), len(st.Pilots))
 	if c := f.Champion(); c != "" {
 		fmt.Fprintf(b, `<p class="champ">🏆 %s</p>`, esc(c))
@@ -552,7 +568,7 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 		}
 	}
 	b.WriteString(stageCSS + stageRefresh)
-	writeSetup(w, st.Name, b.String())
+	writeSetup(w, r, st.Name, b.String())
 }
 
 // bracketGrid lays out a bracket's races: one section per bracket (bracket

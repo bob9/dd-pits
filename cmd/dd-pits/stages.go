@@ -583,6 +583,27 @@ func (m *stageManager) timerRace(link string, byID map[string]vmRace) (vmRace, b
 	return vmRace{}, false
 }
 
+// bracketLink is a timer race's place in a bracket, for linking race
+// history back to it.
+type bracketLink struct{ URL, Name string }
+
+// bracketFor finds the bracket race a timer race was flown for: the race
+// itself on FPVTrackside, a run of the heat ("rh-h12-r2") on RotorHazard.
+func (m *stageManager) bracketFor(raceID string) *bracketLink {
+	if m == nil || raceID == "" {
+		return nil
+	}
+	for _, st := range m.list() {
+		for stageRace, l := range st.Links {
+			if l == "" || !(l == raceID || strings.HasPrefix(raceID, l+"-r")) {
+				continue
+			}
+			return &bracketLink{URL: "/stages/" + st.ID + "#r-" + stageRace, Name: st.Name}
+		}
+	}
+	return nil
+}
+
 // linkedRaceID is the meeting race a link points at now: the race itself
 // for FPVTrackside, the latest run of the heat for RotorHazard.
 func (m *stageManager) linkedRaceID(link string, mv *meetingView) string {
