@@ -66,7 +66,7 @@ _APPEND_EVENTS = _events("LAPS_SAVE")
 _PERSISTENT = "persistent_section" in {f.name for f in dataclasses.fields(UIField)} \
     if dataclasses.is_dataclass(UIField) else False
 
-_SETTING_DEFAULTS = {"autostart": "1", "port": "8088", "binary": ""}
+_SETTING_DEFAULTS = {"autostart": "1", "port": "8088", "binary": "", "public_url": ""}
 
 
 def server_config(rhapi, section, name, default=None):
@@ -227,6 +227,11 @@ class DDPits:
         }.get(r.status, r.status)
         if r.last_error:
             state += " %s" % r.last_error
+        public = str(self.setting("public_url", "")).strip()
+        if public:
+            where = "Pilots and spectators open **%s**." % public
+        else:
+            where = "Pilots and spectators open **http://&lt;this timer&gt;:%d** on the venue wifi." % r.port
         md = (
             "dd-pits turns this timer's race data into a live dashboard for every phone, "
             "a TV view, OBS overlays, spoken race calls, AI commentary and lap times in "
@@ -235,10 +240,10 @@ class DDPits:
             "* [Open the live dashboard](/dd-pits/) to share with pilots\n"
             "* [Set up dd-pits](/dd-pits/setup): race calls, commentary, goggles\n"
             "* [OBS overlays](/dd-pits/overlays) for your stream\n\n"
-            "Pilots and spectators open **http://&lt;this timer&gt;:%d** on the venue wifi.\n\n"
+            "%s\n\n"
             "Free and open source by [bob9](%s). If it helps your club, "
             "[buy me a coffee](%s) ☕"
-        ) % (state, r.port, PROJECT_URL, SUPPORT_URL)
+        ) % (state, where, PROJECT_URL, SUPPORT_URL)
         self.rhapi.ui.register_markdown(PANEL, "dd_pits_status", md)
 
     def _field(self, name, label, ftype, **kw):
@@ -268,6 +273,11 @@ class DDPits:
             "port", "dd-pits port", getattr(UIFieldType, "BASIC_INT", UIFieldType.TEXT),
             desc="Pilots open http://<this timer>:<port>. Press Start / restart after changing it."), PANEL)
         fields.register_option(self._field(
+            "public_url", "Public dashboard address", UIFieldType.TEXT,
+            placeholder="leave empty at a venue",
+            desc="Only for a timer published on the internet behind a proxy: the address that "
+                 "reaches dd-pits, e.g. https://pits.example.com. The links on this panel then use it."), PANEL)
+        fields.register_option(self._field(
             "binary", "Use my own dd-pits program", UIFieldType.TEXT,
             placeholder="leave empty to download it automatically",
             desc="Full path to a dd-pits binary, for a timer with no internet or a custom build."), PANEL)
@@ -292,6 +302,13 @@ class DDPits:
         return auth is not None and auth.username == user and auth.password == pw
 
     def _dd_url(self, path):
+        # A timer published on the internet behind a proxy gives dd-pits its own
+        # address; at a venue, it is this timer on dd-pits' port.
+        public = str(self.setting("public_url", "")).strip().rstrip("/")
+        if public:
+            if "://" not in public:
+                public = "https://" + public
+            return public + path
         host = request.host.rsplit(":", 1)[0] if not request.host.endswith("]") else request.host
         return "%s://%s:%d%s" % (request.scheme, host, self.port(), path)
 
