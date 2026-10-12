@@ -30,7 +30,7 @@ from RHUI import UIField, UIFieldType
 from .runner import Runner
 from .snapshot import SnapshotBuilder, live_signature
 from .marshal import marshal
-from .stages import StageError, delete_heats, race_control, stage_format, stage_heat
+from .stages import StageError, delete_heats, race_control, seed_classes, stage_format, stage_heat
 
 logger = logging.getLogger(__name__)
 
@@ -522,6 +522,12 @@ class DDPits:
                 return jsonify({})
             return jsonify({"stage": found.get("stage", ""), "title": found.get("title", ""),
                             "url": self._dd_url(found["path"])})
+
+        @bp.route("/api/seed-classes")
+        def api_seed_classes():
+            # Race classes with their pilots in RotorHazard's ranking order,
+            # for seeding a new dd-pits bracket.
+            return jsonify(seed_classes(self.rhapi))
 
         @bp.route("/api/class-links")
         def api_class_links():

@@ -328,3 +328,60 @@ def delete_heats(rhapi, data):
         except Exception:
             pass
     return {"deleted": deleted, "kept": kept}
+
+
+_LEADERBOARD_LABELS = {
+    "by_consecutives": "fastest consecutive laps",
+    "by_avg_consecutives": "average consecutive laps",
+    "by_race_time": "most laps in the fastest time",
+    "by_fastest_lap": "fastest lap",
+}
+
+
+def seed_classes(rhapi):
+    """Each race class's pilots in RotorHazard's own order, for seeding a
+    bracket: the class ranking when the class has a ranking method, else the
+    results by the format's win condition — what RotorHazard itself uses to
+    seed a heat from a class. Pilots in the class who have no result yet come
+    after, in heat order."""
+    db = rhapi.db
+    callsign = {p.id: (p.callsign or p.name or "") for p in db.pilots or []}
+    out = []
+    for cls in db.raceclasses or []:
+        heats = db.heats_by_class(cls.id) or []
+        if not heats:
+            continue
+        positions, by = None, ""
+        try:
+            ranking = db.raceclass_ranking(cls.id) if hasattr(db, "raceclass_ranking") else None
+        except Exception:
+            ranking = None
+        if ranking and ranking.get("ranking"):
+            positions = ranking["ranking"]
+            meta = ranking.get("meta") or {}
+            by = "the class ranking" + (" (%s)" % meta["method_label"] if meta.get("method_label") else "")
+        else:
+            try:
+                results = db.raceclass_results(cls.id)
+            except Exception:
+                results = None
+            if results and results.get("meta"):
+                lb = results["meta"].get("primary_leaderboard", "")
+                positions = results.get(lb)
+                by = _LEADERBOARD_LABELS.get(lb, "the class results")
+        names, seen = [], set()
+        for p in positions or []:
+            pid = p.get("pilot_id")
+            n = callsign.get(pid) or p.get("callsign") or ""
+            if n and pid not in seen:
+                seen.add(pid)
+                names.append(n)
+        ranked = len(names)
+        for h in heats:
+            for s in sorted(db.slots_by_heat(h.id) or [], key=lambda s: s.node_index if s.node_index is not None else 99):
+                if s.pilot_id and s.pilot_id not in seen and callsign.get(s.pilot_id):
+                    seen.add(s.pilot_id)
+                    names.append(callsign[s.pilot_id])
+        out.append({"id": cls.id, "name": (cls.name or "").strip() or "Class %d" % cls.id,
+                    "pilots": names, "ranked": ranked, "by": by})
+    return out

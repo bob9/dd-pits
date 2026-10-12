@@ -161,6 +161,8 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
 
 	seeded := seedingFromMeeting(s.currentMeeting())
 	seedJSON, _ := json.Marshal(seeded)
+	classes := s.seedClasses()
+	classJSON, _ := json.Marshal(classes)
 
 	b := &strings.Builder{}
 	if errMsg != "" {
@@ -178,8 +180,16 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
 	}
 	b.WriteString(`</div></div>
 
-<div class="card"><h2>2 · Pilots, top seed first</h2>
-<p class="mut">Seeded from this meeting's results so far: best consecutive laps, then laps flown. Drag to reorder, untick to leave a pilot out, or add pilots below.</p>
+<div class="card"><h2>2 · Pilots, top seed first</h2>`)
+	if len(classes) > 0 {
+		b.WriteString(`<div class="row"><div><label>Seed from</label><select id="seedfrom">`)
+		for _, c := range classes {
+			fmt.Fprintf(b, `<option value="%d">%s · %d pilots</option>`, c.ID, esc(c.Name), len(c.Pilots))
+		}
+		b.WriteString(`<option value="">The whole meeting (dd-pits leaderboard)</option></select></div></div>`)
+	}
+	b.WriteString(`<p class="mut" id="seednote">Seeded from this meeting's results so far: best consecutive laps, then laps flown.</p>
+<p class="mut">Drag to reorder, untick to leave a pilot out, or add pilots below.</p>
 <ol id="seedlist" class="seedlist"></ol>
 <div class="row"><div><label>Add pilots (one per line)</label><textarea id="addp" rows="2" placeholder="Callsign"></textarea></div></div>
 <p><button type="button" class="sec" id="addbtn">Add</button> <span class="mut" id="count"></span></p>
@@ -238,8 +248,27 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
 <script>
 (function(){
  const seeded = ` + string(seedJSON) + `;
+ const classes = ` + string(classJSON) + `;
  const list = document.getElementById('seedlist');
  let items = seeded.map(n => ({name:n, on:true}));
+ // Seeding from a RotorHazard class: its pilots in RotorHazard's ranking,
+ // everyone else in the meeting listed after them, left out.
+ const meetingNote = document.getElementById('seednote').textContent;
+ function seedFrom(id){
+  const c = classes.find(x => String(x.id) === String(id));
+  const note = document.getElementById('seednote');
+  if(!c){ items = seeded.map(n => ({name:n, on:true})); note.textContent = meetingNote; draw(); return; }
+  const inClass = new Set(c.pilots.map(n => n.toLowerCase()));
+  items = c.pilots.map(n => ({name:n, on:true})).concat(seeded.filter(n => !inClass.has(n.toLowerCase())).map(n => ({name:n, on:false})));
+  note.textContent = c.ranked
+    ? 'Seeded from RotorHazard\'s ' + c.name + ' results, ranked by ' + c.by + '.' + (c.pilots.length > c.ranked ? ' Pilots without a result yet come after.' : '')
+    : c.name + ' has no results yet, so its pilots are in heat order.';
+  const name = document.querySelector('input[name=name]');
+  if(name && (name.value === 'Finals' || name.dataset.auto)){ name.value = c.name + ' Bracket'; name.dataset.auto = '1'; }
+  draw();
+ }
+ const sf = document.getElementById('seedfrom');
+ if(sf){ sf.onchange = () => seedFrom(sf.value); }
  function draw(){
   list.innerHTML='';
   let n=0;
@@ -271,10 +300,67 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
   document.querySelectorAll('[data-for]').forEach(el=>{el.style.display=el.dataset.for.split(' ').includes(k)?'':'none'});
  }
  document.querySelectorAll('input[name=format]').forEach(r=>r.onchange=showOpts);
- showOpts(); draw();
+ showOpts();
+ if(sf && sf.value) seedFrom(sf.value); else draw();
 })();
 </script>`)
 	writeSetup(w, "Create bracket", b.String())
+}
+
+// seedClass is a RotorHazard race class with its pilots in RotorHazard's
+// ranking order, from the dd-pits plugin.
+type seedClass struct {
+	ID     int      `json:"id"`
+	Name   string   `json:"name"`
+	Pilots []string `json:"pilots"`
+	Ranked int      `json:"ranked"`
+	By     string   `json:"by"`
+}
+
+// seedClasses lists the timer's race classes to seed a bracket from, best
+// first: classes with results, then by most pilots. Nil on FPVTrackside or
+// a plugin too old to say.
+func (s *liveServer) seedClasses() []seedClass {
+	if s.stages == nil {
+		return nil
+	}
+	t, ok := s.stages.timer.(*rhStageTimer)
+	if !ok {
+		return nil
+	}
+	req, err := http.NewRequest(http.MethodGet, strings.TrimSuffix(t.base, "/")+"/dd-pits/api/seed-classes", nil)
+	if err != nil {
+		return nil
+	}
+	resp, err := stageHTTP.Do(req)
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+	var out []seedClass
+	if resp.StatusCode != http.StatusOK || json.NewDecoder(resp.Body).Decode(&out) != nil {
+		return nil
+	}
+	// Brackets' own classes aren't where a bracket's pilots come from.
+	own := map[int]bool{}
+	for _, st := range s.stages.list() {
+		if st.ClassID != 0 {
+			own[st.ClassID] = true
+		}
+	}
+	kept := out[:0]
+	for _, c := range out {
+		if !own[c.ID] && len(c.Pilots) > 0 {
+			kept = append(kept, c)
+		}
+	}
+	sort.SliceStable(kept, func(i, j int) bool {
+		if (kept[i].Ranked > 0) != (kept[j].Ranked > 0) {
+			return kept[i].Ranked > 0
+		}
+		return len(kept[i].Pilots) > len(kept[j].Pilots)
+	})
+	return kept
 }
 
 // ── one stage ────────────────────────────────────────────────────────────────
