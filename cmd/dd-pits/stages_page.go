@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -432,6 +433,9 @@ func (s *liveServer) raceCard(b *strings.Builder, st stageRecord, rc stageRace, 
 				ctl("restart", "↻ Re-run", "sec small", "Fly this race again? The new result replaces this one.")
 			}
 		}
+		if rc.Link != "" && (rc.State == "flown" || rc.State == "finished" || rc.State == "running") {
+			fmt.Fprintf(b, `<a class="mlink" href="/marshal?race=%s">Marshal laps</a>`, url.QueryEscape(s.stages.linkedRaceID(rc.Link, s.currentMeeting())))
+		}
 		b.WriteString(`</div>`)
 		if rc.State == "ready" || rc.State == "sent" {
 			fmt.Fprintf(b, `<form method="post" action="%s"><input type="hidden" name="race" value="%s"><button class="sec small" name="do" value="race-send">%s</button></form>`,
@@ -580,6 +584,7 @@ const stageCSS = `<style>
  button.small{padding:.3rem .75rem;font-size:.8rem}
  .rc{display:flex;gap:.35rem;flex-wrap:wrap}
  button.go{background:var(--acc);color:#07080a}
+ .mlink{font-size:.8rem;align-self:center}
  button.stop{background:#ff453a;color:#fff}
  p.small{font-size:.78rem;margin:.35rem 0 0}
 </style>`

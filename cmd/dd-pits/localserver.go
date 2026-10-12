@@ -1412,6 +1412,7 @@ func (s *liveServer) handler() http.Handler {
 	// still SHOW its configuration (read-only) rather than 404ing.
 	s.registerLocalSetup(mux)
 	s.registerStages(mux)
+	s.registerMarshal(mux)
 
 	// JSON read-API + SSE streams + Swagger UI / OpenAPI — the shared surface
 	// (internal/platform/ddapi), served identically by the cloud server. There is

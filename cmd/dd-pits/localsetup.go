@@ -236,6 +236,7 @@ func setupPage(title, body string) string {
  <a href="/setup/booth">Commentary</a>
  <a href="/setup/calls">Race calls</a>
  <a href="/stages">Brackets</a>
+ <a href="/marshal">Marshal</a>
  <a href="/goggles">Goggle control</a>
  <a href="/overlays">OBS overlays</a>
  <a href="/setup/models">AI models</a>
@@ -266,6 +267,7 @@ var setupBanners = map[string]struct{ img, eyebrow, line string }{
 	"Debug":          {"desk.webp", "Debug", "The log, in the browser — send it when something goes wrong."},
 	"Help":           {"hero.webp", "Getting started", "Everything a race director needs, in five minutes."},
 	"OBS overlays":   {"stream.webp", "On stream", "Broadcast graphics that follow the meeting on their own. Paste a URL into OBS."},
+	"Marshal":        {"director.webp", "Race director", "Fix a race's laps: remove a false lap, add a missed one."},
 	"Brackets":       {"director.webp", "Brackets", "Double elimination, MultiGP qualifiers, bracket progression, ladders and points brackets."},
 	"Create bracket": {"director.webp", "Brackets", "Pick a format and seed the pilots; dd-pits draws the races and runs them on the timer."},
 }

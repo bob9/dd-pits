@@ -457,12 +457,22 @@ class SnapshotBuilder:
             cid = channel_id(run.frequency) if run.frequency else ""
             used.append((run.frequency, run.node_index))
             pcs.append({"ID": "%s-pc%s" % (rid, run.node_index), "Pilot": pid, "Channel": cid})
-            crossings = [l for l in (db.laps_by_pilotrun(run.id) or []) if not l.deleted]
-            crossings.sort(key=lambda l: l.lap_time_stamp or 0)
-            for i, lap in enumerate(crossings):
+            # Deleted laps travel as crossings that don't count, so dd-pits'
+            # marshalling page can show them and put them back.
+            every = sorted(db.laps_by_pilotrun(run.id) or [], key=lambda l: l.lap_time_stamp or 0)
+            i = 0
+            for lap in every:
+                if lap.deleted:
+                    dets.append({"ID": "rh-lap%s" % lap.id, "Channel": cid,
+                                 "Time": utc(start_ms + int(lap.lap_time_stamp or 0)), "Pilot": pid,
+                                 "LapNumber": -1, "Valid": False, "ValidityType": "Marshall",
+                                 "IsLapEnd": True, "IsHoleshot": False,
+                                 "TimingSystemIndex": 0, "RaceSector": 0})
+                    continue
                 last_ms = max(last_ms, int(lap.lap_time_stamp or 0))
                 self._add_lap(laps, dets, rid, run.node_index, pid, cid, i, behaviour,
-                              start_ms, lap.lap_time_stamp, lap.lap_time)
+                              start_ms, lap.lap_time_stamp, lap.lap_time, det_id="rh-lap%s" % lap.id)
+                i += 1
         race_ms = 0
         if fmt is not None and not _attr(fmt, "unlimited_time", 0):
             race_ms = int(_attr(fmt, "race_time_sec", 0) or 0) * 1000
@@ -594,7 +604,7 @@ class SnapshotBuilder:
         return out
 
     @staticmethod
-    def _add_lap(laps, dets, rid, seat, pid, cid, i, behaviour, start_ms, stamp, length):
+    def _add_lap(laps, dets, rid, seat, pid, cid, i, behaviour, start_ms, stamp, length, det_id=None):
         """One crossing as an FPVTrackside detection and lap.
 
         In a hole-shot race the first crossing starts the pilot's race and is
@@ -605,7 +615,7 @@ class SnapshotBuilder:
         length = int(length or 0)
         num = i + 1 if behaviour == START_FIRST_LAP else i
         end = start_ms + stamp
-        did = "%s-d%s-%s" % (rid, seat, i)
+        did = det_id or "%s-d%s-%s" % (rid, seat, i)
         dets.append({"ID": did, "Channel": cid, "Time": utc(end), "Pilot": pid,
                      "LapNumber": num, "Valid": True, "ValidityType": "Auto",
                      "IsLapEnd": True, "IsHoleshot": num == 0,

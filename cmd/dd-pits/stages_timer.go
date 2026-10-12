@@ -257,21 +257,50 @@ func (t *ftStageTimer) control(link, action string) error {
 }
 
 func putJSON(url string, body any) error {
-	raw, _ := json.Marshal(body)
-	req, err := http.NewRequest(http.MethodPut, url, bytes.NewReader(raw))
+	req, err := newJSONRequest(http.MethodPut, url, body)
 	if err != nil {
 		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if tok := os.Getenv("FPV_API_TOKEN"); tok != "" {
-		req.Header.Set("Authorization", "Bearer "+tok)
 	}
 	resp, err := stageHTTP.Do(req)
 	if err != nil {
 		return err
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		return readAPIError(resp)
+	}
 	return nil
+}
+
+// ftToken is FPVTrackside's API token, needed only from another machine.
+func ftToken() string { return os.Getenv("FPV_API_TOKEN") }
+
+func newJSONRequest(method, url string, body any) (*http.Request, error) {
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest(method, url, bytes.NewReader(raw))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if tok := ftToken(); tok != "" {
+		req.Header.Set("Authorization", "Bearer "+tok)
+	}
+	return req, nil
+}
+
+// readAPIError turns an error reply into the message it carries.
+func readAPIError(resp *http.Response) error {
+	data, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<16))
+	var e struct {
+		Error string `json:"error"`
+	}
+	if json.Unmarshal(data, &e) == nil && e.Error != "" {
+		return errors.New(e.Error)
+	}
+	return fmt.Errorf("HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(data)))
 }
 
 // stageRoundName names a round from what is in it, the way FPVTrackside's own

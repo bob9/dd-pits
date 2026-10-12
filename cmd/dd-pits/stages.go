@@ -533,6 +533,22 @@ func (m *stageManager) timerRace(link string, byID map[string]vmRace) (vmRace, b
 	return vmRace{}, false
 }
 
+// linkedRaceID is the meeting race a link points at now: the race itself
+// for FPVTrackside, the latest run of the heat for RotorHazard.
+func (m *stageManager) linkedRaceID(link string, mv *meetingView) string {
+	if mv == nil {
+		return link
+	}
+	byID := map[string]vmRace{}
+	for _, r := range mv.Races {
+		byID[r.ID] = r
+	}
+	if r, ok := m.timerRace(link, byID); ok {
+		return r.ID
+	}
+	return link
+}
+
 // ── syncing with the timer ───────────────────────────────────────────────────
 
 // syncAll applies finished results and sends ready races, for every stage.
