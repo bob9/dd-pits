@@ -371,7 +371,8 @@ func (m *stageManager) deleteWithRaces(id string, mv *meetingView) (int, error) 
 		if races, _, rerr := m.races(st, mv); rerr == nil {
 			var links []string
 			for _, r := range races {
-				if r.Link != "" && r.State == "sent" {
+				// "waiting" races are on the timer too, with part of their line-up.
+				if r.Link != "" && (r.State == "sent" || r.State == "waiting") {
 					links = append(links, r.Link)
 				}
 			}
@@ -1032,6 +1033,11 @@ func (m *stageManager) raceControl(id, raceID, action string, mv *meetingView) e
 		link = st.Links[raceID]
 		if link == "" {
 			return errors.New("the timer didn't take the race")
+		}
+	}
+	if er, ok := m.timer.(eventRules); ok && (action == "start" || action == "restart") {
+		if err := er.setEventRules(st.Setup.Laps, st.Setup.RaceSeconds); err != nil {
+			return err
 		}
 	}
 	rerunAt := time.Now().UnixMilli()

@@ -41,6 +41,12 @@ type stageTimer interface {
 	removeRaces(links []string) (int, error)
 }
 
+// eventRules is a timer whose laps and race time belong to the event rather
+// than each race (FPVTrackside): they are set before a stage race starts.
+type eventRules interface {
+	setEventRules(laps, secs int) error
+}
+
 var stageHTTP = &http.Client{Timeout: 20 * time.Second}
 
 func postJSON(url string, body any, token string, out any) error {
@@ -63,7 +69,7 @@ func postJSON(url string, body any, token string, out any) error {
 	defer resp.Body.Close()
 	data, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
 	if resp.StatusCode == http.StatusNotFound {
-		return errNoStageAPI
+		return notFound(data)
 	}
 	if resp.StatusCode >= 300 {
 		var e struct {
@@ -81,6 +87,19 @@ func postJSON(url string, body any, token string, out any) error {
 }
 
 var errNoStageAPI = errors.New("this timer can't take races from dd-pits")
+
+// notFound tells a timer without the endpoint (errNoStageAPI) from
+// FPVTrackside's API answering that a race, pilot or crossing isn't there:
+// both are a 404, but only the API says what is missing.
+func notFound(data []byte) error {
+	var e struct {
+		Error string `json:"error"`
+	}
+	if json.Unmarshal(data, &e) == nil && e.Error != "" && !strings.HasPrefix(e.Error, "no such endpoint") {
+		return errors.New(e.Error)
+	}
+	return errNoStageAPI
+}
 
 // ── RotorHazard ──────────────────────────────────────────────────────────────
 
@@ -333,8 +352,10 @@ func (t *ftStageTimer) send(st stageRecord, races []stageRace, makeCurrent bool)
 }
 
 // applySettings re-sends the races not yet flown: meeting sync updates a
-// pending race's target laps and leaves flown ones alone. FPVTrackside's race
-// time belongs to the whole event, so it isn't set per bracket.
+// pending race's target laps and leaves flown ones alone. FPVTrackside resets
+// a race's laps to the event's when it starts, and its race time is the
+// event's too, so both are also set on the event as dd-pits starts a race
+// (setEventRules).
 func (t *ftStageTimer) applySettings(st stageRecord, sent []stageRace) error {
 	if len(sent) == 0 {
 		return nil
@@ -343,6 +364,9 @@ func (t *ftStageTimer) applySettings(st stageRecord, sent []stageRace) error {
 	return err
 }
 
+// removeRaces deletes each race; one already gone is skipped. A refusal (a
+// race running, no permission) stops it, so the caller keeps its links rather
+// than sending the races again beside the ones still there.
 func (t *ftStageTimer) removeRaces(links []string) (int, error) {
 	n := 0
 	for _, l := range links {
@@ -354,12 +378,62 @@ func (t *ftStageTimer) removeRaces(links []string) (int, error) {
 		if err != nil {
 			return n, err
 		}
-		resp.Body.Close()
-		if resp.StatusCode < 300 {
+		switch {
+		case resp.StatusCode < 300:
 			n++
+		case resp.StatusCode != http.StatusNotFound:
+			err = readAPIError(resp)
+		}
+		resp.Body.Close()
+		if err != nil {
+			return n, err
 		}
 	}
 	return n, nil
+}
+
+// setEventRules gives FPVTrackside's event the bracket's laps and race time
+// (0 leaves one as it is) before dd-pits starts a race: FPVTrackside takes
+// both from the event when a race starts. Nothing is sent when they already
+// match, so an event with its rules locked still runs at its own settings.
+func (t *ftStageTimer) setEventRules(laps, secs int) error {
+	if laps == 0 && secs == 0 {
+		return nil
+	}
+	api := strings.TrimSuffix(t.base, "/") + "/api/v1/event"
+	req, err := http.NewRequest(http.MethodGet, api, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := stageHTTP.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		return readAPIError(resp)
+	}
+	var ev struct {
+		Laps              int     `json:"laps"`
+		RaceLengthSeconds float64 `json:"raceLengthSeconds"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&ev); err != nil {
+		return err
+	}
+	change := map[string]int{}
+	if laps > 0 && laps != ev.Laps {
+		change["laps"] = laps
+	}
+	if secs > 0 && float64(secs) != ev.RaceLengthSeconds {
+		change["raceLengthSeconds"] = secs
+	}
+	if len(change) == 0 {
+		return nil
+	}
+	if err := sendJSON(http.MethodPatch, api, change); err != nil {
+		return fmt.Errorf("setting FPVTrackside's laps and race time: %w", err)
+	}
+	return nil
 }
 
 // control drives FPVTrackside's race-director screen through its REST API.

@@ -15,6 +15,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"sort"
@@ -76,7 +77,8 @@ func sendJSON(method, u string, body any) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusNotFound {
-		return errNoStageAPI
+		data, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<16))
+		return notFound(data)
 	}
 	if resp.StatusCode >= 300 {
 		return readAPIError(resp)

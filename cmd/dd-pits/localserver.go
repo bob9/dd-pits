@@ -1376,7 +1376,18 @@ func (s *liveServer) handler() http.Handler {
 	mux.HandleFunc("/calls", func(w http.ResponseWriter, r *http.Request) {
 		ann := s.raceAnnouncer()
 		if ann == nil {
-			http.Error(w, "race audio is not running (start the agent with -race-audio)", http.StatusServiceUnavailable)
+			if r.Method != http.MethodGet {
+				http.Error(w, "race audio is not running (start the agent with -race-audio)", http.StatusServiceUnavailable)
+				return
+			}
+			// Reached from the menu: say why, rather than a bare error.
+			why := `dd-pits isn't speaking race calls here, so there are none to make by hand. Start dd-pits with <code>-race-audio</code> to have it call the races.`
+			if timingSystem == "RotorHazard" {
+				why = `RotorHazard speaks its own race calls, so dd-pits leaves the audio alone and has none to make by hand here.`
+			}
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			writeSetup(w, r, "Race calls", `<div class="card"><h2>Race calls are off</h2><p>`+why+`</p><p><a href="/setup/calls">Race call voice settings</a></p></div>`)
 			return
 		}
 		ann.serveRaceControl(w, r)
