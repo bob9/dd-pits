@@ -21,6 +21,69 @@ class StageError(Exception):
     pass
 
 
+FIRST_TO_LAP_X, MOST_PROGRESS = 2, 1  # RHRace.WinCondition
+
+
+def _find_class(rhapi, class_name, create=True):
+    for c in rhapi.db.raceclasses or []:
+        if (c.name or "").strip().lower() == class_name.lower():
+            return c
+    if not create:
+        return None
+    return rhapi.db.raceclass_add(name=class_name, description="Created by dd-pits for a bracket.")
+
+
+def stage_format(rhapi, data, cls=None):
+    """Give a bracket's race class the laps and race time set in dd-pits.
+
+    The class gets a race format of its own, "dd-pits · <bracket>", copied
+    from the timer's current format so staging tones, start behaviour and
+    the rest stay as the club has them; only the laps and time are set.
+    RotorHazard then runs every heat of the class with it. Nothing is
+    changed when neither is set.
+    """
+    db = rhapi.db
+    laps = int(data.get("laps") or 0)
+    secs = int(data.get("race_time") or 0)
+    class_name = (data.get("class") or "dd-pits stage").strip()
+    if laps <= 0 and secs <= 0:
+        return None
+    if cls is None:
+        cls = _find_class(rhapi, class_name)
+    name = "dd-pits \u00b7 " + class_name
+    fmt = None
+    for f in db.raceformats or []:
+        if (getattr(f, "name", "") or "") == name:
+            fmt = f
+    if fmt is None:
+        base = None
+        try:
+            base = rhapi.race.raceformat
+        except Exception:
+            base = None
+        try:
+            fmt = db.raceformat_duplicate(base) if base is not None else None
+        except Exception:
+            fmt = None
+        if fmt is None:
+            fmt = db.raceformat_add(name=name)
+    db.raceformat_alter(
+        fmt.id, name=name,
+        win_condition=FIRST_TO_LAP_X if laps > 0 else MOST_PROGRESS,
+        number_laps_win=laps if laps > 0 else 0,
+        unlimited_time=0 if secs > 0 else 1,
+        race_time_sec=secs if secs > 0 else 0,
+    )
+    if getattr(cls, "format_id", None) != fmt.id:
+        db.raceclass_alter(cls.id, raceformat=fmt.id)
+    for fn in ("broadcast_raceformats", "broadcast_raceclasses"):
+        try:
+            getattr(rhapi.ui, fn)()
+        except Exception:
+            pass
+    return fmt.id
+
+
 def stage_heat(rhapi, data):
     """Create (or re-seat, if not yet run) the heat for one bracket race."""
     db = rhapi.db
@@ -30,13 +93,8 @@ def stage_heat(rhapi, data):
     if not callsigns:
         raise StageError("the race has no pilots")
 
-    cls = None
-    for c in db.raceclasses or []:
-        if (c.name or "").strip().lower() == class_name.lower():
-            cls = c
-            break
-    if cls is None:
-        cls = db.raceclass_add(name=class_name, description="Created by dd-pits for a bracket.")
+    cls = _find_class(rhapi, class_name)
+    stage_format(rhapi, data, cls)
 
     pilots = {}
     for p in db.pilots or []:

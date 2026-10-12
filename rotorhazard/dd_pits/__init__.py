@@ -30,7 +30,7 @@ from RHUI import UIField, UIFieldType
 from .runner import Runner
 from .snapshot import SnapshotBuilder, live_signature
 from .marshal import marshal
-from .stages import StageError, race_control, stage_heat
+from .stages import StageError, race_control, stage_format, stage_heat
 
 logger = logging.getLogger(__name__)
 
@@ -81,12 +81,27 @@ _HEAT_STRIP = (
     '<div id="ddp-heat" data-heat="%s" style="display:none;margin:0 auto;max-width:1200px;padding:.55rem 1rem;'
     'background:rgba(198,255,61,.12);border:1px solid rgba(198,255,61,.45);border-radius:10px;font-weight:600"></div>'
     '<script>(function(){var el=document.getElementById("ddp-heat"),heat=el.dataset.heat;'
+    'if(heat==="hash"){var m=/dd-heat-(\\d+)/.exec(location.hash);if(!m)return;heat=m[1]}'
     'function load(){fetch("/dd-pits/api/heat-link?heat="+heat).then(function(r){return r.json()}).then(function(d){'
     'if(!d||!d.url){el.style.display="none";return}el.innerHTML="";var a=document.createElement("a");a.href=d.url;'
     'a.textContent="\U0001F3C1 "+d.stage+" \u00b7 "+d.title+" \u2014 open the bracket in dd-pits \u2192";'
     'el.appendChild(a);el.style.display="block"}).catch(function(){})}'
     'load();if(heat==="current")setInterval(load,5000)})();</script>')
 _HEAT_PAGES = re.compile(r"^/(run|current|marshal|stream/heat/(\d+))/?$")
+
+# On the Event page, #dd-heat-<n> scrolls to that heat and highlights it, so a
+# link from a dd-pits bracket lands among all the other heats. The page has no
+# heat ids, but each class group has data-class-id and lists its heats in
+# order, so the heat is found by its place in its class.
+_EVENT_FOCUS = (
+    '<script>(function(){var m=/dd-heat-(\\d+)/.exec(location.hash);if(!m)return;'
+    'fetch("/dd-pits/api/heat-info?heat="+m[1]).then(function(r){return r.json()}).then(function(d){'
+    'if(!d||d.index===undefined)return;var tries=0;(function look(){'
+    'var g=document.querySelector(\'#heat_list [data-class-id="\'+d.class_id+\'"]\');'
+    'var hs=g?g.querySelectorAll("li.heat"):[];var h=hs[d.index];'
+    'if(!h){if(tries++<40)setTimeout(look,250);return}'
+    'h.style.outline="3px solid #c6ff3d";h.style.borderRadius="8px";h.style.background="rgba(198,255,61,.12)";'
+    'h.scrollIntoView({behavior:"smooth",block:"center"})})()}).catch(function(){})})();</script>')
 
 _NAV_EXTRA = ('<li class="dd-pits-nav"><a href="/dd-pits/stages">dd-pits brackets</a></li>'
               '<li class="dd-pits-nav"><a href="/dd-pits/overlays">dd-pits OBS overlays</a></li>')
@@ -351,6 +366,10 @@ class DDPits:
                 html = html.replace('<li class="extra">', _NAV_MAIN + '<li class="extra">', 1)
                 html = html.replace('<li><a href="/streams">', _NAV_EXTRA + '<li><a href="/streams">', 1)
                 changed = True
+            if request.path.rstrip("/") == "/event" and "</body>" in html:
+                html = html.replace("</header>", "</header>" + _HEAT_STRIP % "hash", 1)
+                html = html.replace("</body>", _EVENT_FOCUS + "</body>", 1)
+                changed = True
             m = _HEAT_PAGES.match(request.path)
             if m:
                 strip = _HEAT_STRIP % (m.group(2) or "current")
@@ -407,6 +426,18 @@ class DDPits:
             self.generation += 1
             return jsonify({"heat": heat})
 
+        @bp.route("/api/stage-format", methods=["POST"])
+        def api_stage_format():
+            auth = request.headers.get("Authorization", "")
+            if auth != "Bearer " + self.runner.api_token() and not self._admin_ok(require=True):
+                return jsonify({"error": "not allowed"}), 401
+            try:
+                fmt = stage_format(self.rhapi, request.get_json(force=True) or {})
+            except StageError as ex:
+                return jsonify({"error": str(ex)}), 409
+            self.generation += 1
+            return jsonify({"format": fmt})
+
         @bp.route("/api/race-control", methods=["POST"])
         def api_race_control():
             auth = request.headers.get("Authorization", "")
@@ -430,6 +461,21 @@ class DDPits:
             self.generation += 1
             self.builder.invalidate()
             return jsonify(out)
+
+        @bp.route("/api/heat-info")
+        def api_heat_info():
+            # Where a heat sits on the Event page: its class and its place
+            # among that class's heats.
+            try:
+                heat = self.rhapi.db.heat_by_id(int(request.args.get("heat", "0")))
+            except (TypeError, ValueError):
+                heat = None
+            if heat is None:
+                return jsonify({})
+            cls = heat.class_id or 0
+            same = sorted((h for h in (self.rhapi.db.heats or []) if (h.class_id or 0) == cls), key=lambda h: h.id)
+            idx = [h.id for h in same].index(heat.id)
+            return jsonify({"class_id": cls, "index": idx, "name": heat.name})
 
         @bp.route("/api/heat-link")
         def api_heat_link():

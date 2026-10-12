@@ -53,6 +53,11 @@ type stageSetup struct {
 	PointsTable     []int               `json:"pointsTable,omitempty"`
 	DropWorst       int                 `json:"dropWorst,omitempty"`
 	MainsRosters    map[string][]string `json:"mainsRosters,omitempty"`
+
+	// The race itself, for the timer: laps to win (0 = the timer's own
+	// format) and the race clock in seconds (0 = no limit / the timer's).
+	Laps        int `json:"laps,omitempty"`
+	RaceSeconds int `json:"raceSeconds,omitempty"`
 }
 
 // stageRecord is one stage as stored.
@@ -844,6 +849,37 @@ func (m *stageManager) raceControl(id, raceID, action string, mv *meetingView) e
 		})
 	}
 	return nil
+}
+
+// setRaceSettings changes a stage's laps and race time and applies them to
+// the races still to fly.
+func (m *stageManager) setRaceSettings(id string, laps, secs int, mv *meetingView) error {
+	if laps < 0 || secs < 0 {
+		return errors.New("laps and race time can't be negative")
+	}
+	if err := m.update(id, func(st *stageRecord) error {
+		st.Setup.Laps, st.Setup.RaceSeconds = laps, secs
+		return nil
+	}); err != nil {
+		return err
+	}
+	if m.timer == nil {
+		return nil
+	}
+	m.opMu.Lock()
+	defer m.opMu.Unlock()
+	st, _ := m.get(id)
+	races, _, err := m.races(st, mv)
+	if err != nil {
+		return err
+	}
+	var sent []stageRace
+	for _, r := range races {
+		if r.State == "sent" {
+			sent = append(sent, r)
+		}
+	}
+	return m.timer.applySettings(st, sent)
 }
 
 // setResult records a finishing order entered by hand and locks it.

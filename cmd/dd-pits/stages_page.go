@@ -134,6 +134,10 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
 			Rounds:          atoiOr(r.FormValue("rounds"), 3),
 			Direction:       r.FormValue("direction"),
 			DropWorst:       atoiOr(r.FormValue("dropWorst"), 0),
+			Laps:            atoiOr(r.FormValue("laps"), 0),
+		}
+		if secs, err := parseDuration(r.FormValue("raceTime")); err == nil {
+			setup.RaceSeconds = secs
 		}
 		if r.FormValue("ctaAllMains") == "on" {
 			setup.CTAMains = []string{"*"}
@@ -208,6 +212,11 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
  <div><label>Points table (1st, 2nd, …)</label><input type="text" name="pointsTable" value="25,18,15,12,10,8,6,4"></div>
  <div><label>Drop each pilot's worst rounds</label><input type="number" name="dropWorst" value="0" min="0"></div>
 </div>
+<div class="row">
+ <div><label>Laps per race (first to finish them wins; 0 = the timer's format)</label><input type="number" name="laps" value="3" min="0" max="99"></div>
+ <div><label>Race time, e.g. 2:00 (0 = no time limit)</label><input type="text" name="raceTime" value="0" inputmode="numeric"></div>
+</div>
+<p class="mut">` + raceSettingsNote() + `</p>
 <p><label><input type="checkbox" name="autoSend" checked> Send each race to ` + esc(timingSystem) + ` as soon as its line-up is known</label></p>
 </div>
 <p><button type="submit">Create bracket</button> <a href="/stages" class="mut">Cancel</a></p>
@@ -300,7 +309,8 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 			if _, err := fmt.Sscanf(link, "rh-h%d", &heat); err != nil || heat == 0 {
 				return ""
 			}
-			return fmt.Sprintf("%s/stream/heat/%d", base, heat)
+			// The Event page, with this heat picked out among all the others.
+			return fmt.Sprintf("%s/event#dd-heat-%d", base, heat)
 		}
 	}
 	ready := 0
@@ -331,6 +341,15 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 		b.WriteString(`<button class="sec" name="do" value="delete" onclick="return confirm('Delete this bracket? Races already on the timer stay there.')">Delete</button></form>`)
 	}
 	b.WriteString(`</div>`)
+	if admin {
+		fmt.Fprintf(b, `<div class="card"><form method="post" action="/stages/%s/action" class="row" style="align-items:flex-end">
+<div><label>Laps per race (0 = the timer's format)</label><input type="number" name="laps" value="%d" min="0" max="99"></div>
+<div><label>Race time (0 = no limit)</label><input type="text" name="raceTime" value="%s"></div>
+<div style="flex:0"><button class="sec" name="do" value="settings">Save race settings</button></div></form>
+<p class="mut">Applies to the races not flown yet. %s</p></div>`, esc(st.ID), st.Setup.Laps, esc(fmtDuration(st.Setup.RaceSeconds)), raceSettingsNote())
+	} else if st.Setup.Laps > 0 || st.Setup.RaceSeconds > 0 {
+		fmt.Fprintf(b, `<div class="card"><p class="mut">%s</p></div>`, esc(describeRaceSettings(st.Setup)))
+	}
 	if st.LastError != "" && admin {
 		fmt.Fprintf(b, `<div class="card"><p class="warn">%s</p></div>`, esc(st.LastError))
 	}
@@ -543,6 +562,13 @@ func (s *liveServer) stageAction(w http.ResponseWriter, r *http.Request, id stri
 		err = m.setResult(id, raceID, order)
 	case "reset":
 		err = m.resetResult(id, raceID)
+	case "settings":
+		secs, perr := parseDuration(r.FormValue("raceTime"))
+		if perr != nil {
+			err = perr
+			break
+		}
+		err = m.setRaceSettings(id, atoiOr(r.FormValue("laps"), 0), secs, s.currentMeeting())
 	case "start", "stop", "restart", "discard":
 		err = m.raceControl(id, raceID, r.FormValue("do"), s.currentMeeting())
 	}
@@ -652,3 +678,55 @@ setInterval(function(){
  }).catch(()=>{});
 },4000);
 </script>`
+
+// parseDuration reads a race time: "2:00", "120", "90s" or "2m" as seconds.
+func parseDuration(v string) (int, error) {
+	v = strings.TrimSpace(strings.ToLower(v))
+	if v == "" || v == "0" {
+		return 0, nil
+	}
+	if strings.HasSuffix(v, "m") {
+		n, err := strconv.ParseFloat(strings.TrimSuffix(v, "m"), 64)
+		return int(n * 60), err
+	}
+	v = strings.TrimSuffix(v, "s")
+	if i := strings.Index(v, ":"); i >= 0 {
+		m, err1 := strconv.Atoi(v[:i])
+		sec, err2 := strconv.Atoi(v[i+1:])
+		if err1 != nil || err2 != nil || sec >= 60 {
+			return 0, fmt.Errorf("give the race time like 2:00")
+		}
+		return m*60 + sec, nil
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 0 {
+		return 0, fmt.Errorf("give the race time like 2:00")
+	}
+	return n, nil
+}
+
+func fmtDuration(secs int) string {
+	if secs <= 0 {
+		return "0"
+	}
+	return fmt.Sprintf("%d:%02d", secs/60, secs%60)
+}
+
+func describeRaceSettings(s stageSetup) string {
+	var parts []string
+	if s.Laps > 0 {
+		parts = append(parts, fmt.Sprintf("first to %d laps", s.Laps))
+	}
+	if s.RaceSeconds > 0 {
+		parts = append(parts, fmtDuration(s.RaceSeconds)+" race time")
+	}
+	return "Races: " + strings.Join(parts, ", ") + "."
+}
+
+// raceSettingsNote says where the settings land on this timer.
+func raceSettingsNote() string {
+	if timingSystem == "RotorHazard" {
+		return "On RotorHazard the bracket's race class gets its own race format with these, copied from your current one."
+	}
+	return "FPVTrackside takes the laps per race; its race time is set for the whole event in FPVTrackside."
+}

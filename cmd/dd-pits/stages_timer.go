@@ -32,6 +32,9 @@ type stageTimer interface {
 	// control starts, stops ("stop" saves the result), restarts or discards
 	// the race behind a link.
 	control(link, action string) error
+	// applySettings brings the laps and race time to races already on the
+	// timer and not yet flown.
+	applySettings(st stageRecord, sent []stageRace) error
 }
 
 var stageHTTP = &http.Client{Timeout: 20 * time.Second}
@@ -95,11 +98,13 @@ func (t *rhStageTimer) send(st stageRecord, races []stageRace, makeCurrent bool)
 			fmt.Sscanf(l, "rh-h%d", &heat)
 		}
 		err := postJSON(strings.TrimSuffix(t.base, "/")+"/dd-pits/api/stage-heat", map[string]any{
-			"class":   st.Name,
-			"name":    r.Title,
-			"pilots":  r.Pilots,
-			"heat":    heat,
-			"current": makeCurrent && i == 0,
+			"class":     st.Name,
+			"name":      r.Title,
+			"pilots":    r.Pilots,
+			"heat":      heat,
+			"current":   makeCurrent && i == 0,
+			"laps":      st.Setup.Laps,
+			"race_time": st.Setup.RaceSeconds,
 		}, t.token, &out)
 		if errors.Is(err, errNoStageAPI) {
 			return links, errors.New("the dd-pits RotorHazard plugin is out of date; update it to send races")
@@ -125,6 +130,18 @@ func (t *rhStageTimer) control(link, action string) error {
 	return err
 }
 
+// applySettings sets the bracket's race class format on RotorHazard; every
+// heat in the class runs with it, so nothing per heat is needed.
+func (t *rhStageTimer) applySettings(st stageRecord, _ []stageRace) error {
+	err := postJSON(strings.TrimSuffix(t.base, "/")+"/dd-pits/api/stage-format", map[string]any{
+		"class": st.Name, "laps": st.Setup.Laps, "race_time": st.Setup.RaceSeconds,
+	}, t.token, nil)
+	if errors.Is(err, errNoStageAPI) {
+		return errors.New("the dd-pits RotorHazard plugin is out of date; update it to set laps and race time")
+	}
+	return err
+}
+
 // ── FPVTrackside ─────────────────────────────────────────────────────────────
 
 type ftStageTimer struct {
@@ -140,6 +157,7 @@ func (t *ftStageTimer) send(st stageRecord, races []stageRace, makeCurrent bool)
 	type planRace struct {
 		ExternalID int    `json:"externalId"`
 		Pilots     []seat `json:"pilots"`
+		TargetLaps int    `json:"targetLaps,omitempty"`
 	}
 	type planRound struct {
 		ExternalID int        `json:"externalId"`
@@ -158,7 +176,7 @@ func (t *ftStageTimer) send(st stageRecord, races []stageRace, makeCurrent bool)
 		for _, p := range r.Pilots {
 			seats = append(seats, seat{Pilot: p})
 		}
-		pr.Races = append(pr.Races, planRace{ExternalID: st.Ext[r.ID], Pilots: seats})
+		pr.Races = append(pr.Races, planRace{ExternalID: st.Ext[r.ID], Pilots: seats, TargetLaps: st.Setup.Laps})
 	}
 	var nums []int
 	for n := range rounds {
@@ -215,6 +233,17 @@ func (t *ftStageTimer) send(st stageRecord, races []stageRace, makeCurrent bool)
 		return links, errors.New(strings.Join(problems, "; "))
 	}
 	return links, nil
+}
+
+// applySettings re-sends the races not yet flown: meeting sync updates a
+// pending race's target laps and leaves flown ones alone. FPVTrackside's race
+// time belongs to the whole event, so it isn't set per bracket.
+func (t *ftStageTimer) applySettings(st stageRecord, sent []stageRace) error {
+	if len(sent) == 0 {
+		return nil
+	}
+	_, err := t.send(st, sent, false)
+	return err
 }
 
 // control drives FPVTrackside's race-director screen through its REST API.
