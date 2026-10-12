@@ -310,8 +310,9 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 			if _, err := fmt.Sscanf(link, "rh-h%d", &heat); err != nil || heat == 0 {
 				return ""
 			}
-			// The Event page, with this heat picked out among all the others.
-			return fmt.Sprintf("%s/event#dd-heat-%d", base, heat)
+			// The plugin sends it on to the web app's Heats page when that's
+			// installed, else the classic Event page with the heat picked out.
+			return fmt.Sprintf("%s/dd-pits/heat/%d", base, heat)
 		}
 	}
 	ready := 0

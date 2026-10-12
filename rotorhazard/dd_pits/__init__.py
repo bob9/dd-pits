@@ -23,7 +23,7 @@ import os
 import re
 import urllib.request
 
-from flask import Blueprint, Response, jsonify, redirect, request
+from flask import Blueprint, Response, current_app, jsonify, redirect, request
 from eventmanager import Evt
 from RHUI import UIField, UIFieldType
 
@@ -480,6 +480,21 @@ class DDPits:
             if group is not None:
                 out["round"] = int(group) + 1
             return jsonify(out)
+
+        @bp.route("/heat/<int:heat_id>")
+        def heat_page(heat_id):
+            # A heat on RotorHazard's own pages, for links from dd-pits: the
+            # web app's Heats page (its class, round by round) when the
+            # RotorHazard Web App plugin is installed and this browser hasn't
+            # chosen the classic interface; otherwise the classic Event page
+            # with the heat picked out.
+            heat = self.rhapi.db.heat_by_id(heat_id)
+            webapp = any(r.rule == "/app/heats" or r.rule == "/app/<path:asset_path>"
+                         for r in current_app.url_map.iter_rules())
+            if heat is not None and webapp and request.cookies.get("rh_interface") != "classic":
+                cls = heat.class_id if heat.class_id else "none"
+                return redirect("/app/heats?class=%s&heat=%d" % (cls, heat_id))
+            return redirect("/event#dd-heat-%d" % heat_id)
 
         @bp.route("/event.js")
         def event_js():
