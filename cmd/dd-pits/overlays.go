@@ -528,6 +528,8 @@ func (s *liveServer) overlaySpotlightPush(w http.ResponseWriter, r *http.Request
 // overlayFuncs are the template helpers the overlays need on top of the
 // dashboard's own.
 var overlayFuncs = template.FuncMap{
+	// timer names the timing system dd-pits reads: "FPVTrackside" or "RotorHazard".
+	"timer": func() string { return timingSystem },
 	"signed": func(v float64) string {
 		if v == 0 {
 			return ""

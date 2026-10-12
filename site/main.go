@@ -91,6 +91,9 @@ var data = pageData{
 		"netpackOrigin": "https://github.com/i-am-grub/elrs-netpack",
 		"coffee":        "https://buymeacoffee.com/bobnine",
 		"fpvtrackside":  "https://fpvtrackside.com",
+		"rotorhazard":   "https://github.com/RotorHazard/RotorHazard",
+		"rhplugin":      "https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-rotorhazard-plugin.zip",
+		"rhdocs":        "https://github.com/bob9/dd-pits#rotorhazard",
 		"tdl":           "https://threedigitalllamas.com.au",
 		"demo":          "https://demo.dd-pits.threedigitalllamas.com.au",
 		"demoOverlays":  "https://demo.dd-pits.threedigitalllamas.com.au/overlays",
@@ -102,7 +105,8 @@ var data = pageData{
 		{"mac-intel", "Mac · Intel", "Older Macs", "dd-pits-darwin-amd64"},
 		{"windows", "Windows", "64-bit", "dd-pits-windows-amd64.exe"},
 		{"linux", "Linux", "x86-64 PC", "dd-pits-linux-amd64"},
-		{"linux-arm", "Linux · ARM", "Raspberry Pi 4/5", "dd-pits-linux-arm64"},
+		{"linux-arm", "Raspberry Pi", "64-bit Pi OS", "dd-pits-linux-arm64"},
+		{"linux-arm32", "Raspberry Pi", "32-bit Pi OS", "dd-pits-linux-arm"},
 	},
 	Overlays: []siteOverlayGroup{
 		{"Live timing", []siteOverlay{

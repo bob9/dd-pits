@@ -1024,11 +1024,18 @@ func (a *agent) startRaceAudio(profile string, cfg tts.LocalConfig, remote remot
 		soundsPath = DefaultSoundsPath(profile)
 	}
 	sounds, err := LoadSoundSet(soundsPath)
-	if err != nil {
+	switch {
+	case err != nil && timingSystem != "FPVTrackside":
+		// No FPVTrackside here to configure the wording in, so speak its stock
+		// calls rather than nothing.
+		sounds = StockSoundSet()
+		log.Printf("race audio: using the built-in race calls (%d sounds) for %s", sounds.Count(), timingSystem)
+	case err != nil:
 		log.Printf("race audio: %v — not speaking race calls", err)
 		return
+	default:
+		log.Printf("race audio: read %d sounds from %s", sounds.Count(), soundsPath)
 	}
-	log.Printf("race audio: read %d sounds from %s", sounds.Count(), soundsPath)
 	if lp := a.localCfg.CallsConfig().logPath(); lp != "" {
 		log.Printf("race audio: following FPVTrackside's log at %s", lp)
 	}

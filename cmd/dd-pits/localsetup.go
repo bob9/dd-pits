@@ -80,8 +80,28 @@ func localSetupAllowed(r *http.Request) bool {
 		return false
 	}
 	// Accepted from a form field or a query param so a phone can be given a
-	// bookmarkable URL.
-	return r.FormValue("pin") == setupPIN
+	// bookmarkable URL, and from the cookie rememberSetupPIN sets, so the
+	// pages linked from there work too. On a timer with no screen of its own
+	// (a RotorHazard Pi) every setup page is opened from another device.
+	if r.FormValue("pin") == setupPIN {
+		return true
+	}
+	c, err := r.Cookie(setupPINCookie)
+	return err == nil && c.Value == setupPIN
+}
+
+const setupPINCookie = "dd_pits_pin"
+
+// rememberSetupPIN wraps the server so that arriving with the right ?pin=
+// keeps working for the rest of the visit, without the PIN on every link.
+func rememberSetupPIN(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if setupPIN != "" && !demoMode && r.URL.Query().Get("pin") == setupPIN {
+			http.SetCookie(w, &http.Cookie{Name: setupPINCookie, Value: setupPIN, Path: "/",
+				HttpOnly: true, SameSite: http.SameSiteLaxMode, MaxAge: 30 * 24 * 3600})
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // setupDenied renders the refusal, naming the fix rather than just saying no.
@@ -1960,45 +1980,7 @@ func (s *liveServer) setupHelp(w http.ResponseWriter, r *http.Request) {
 	base := esc(setupBaseURL)
 	writeSetup(w, "Help", `
 
-<div class="card"><h2>What this is</h2>
-<p>dd-pits runs on the timing laptop, reads FPVTrackside, and does the rest itself: the
-dashboard pilots watch, the OBS overlay, the race calls, live commentary, and the lap
-times in pilots' goggles.</p>
-<p><strong>None of it needs the internet or an account.</strong> Everything below is configured on this
-machine and stored in one file beside the agent.</p>
-</div>
-
-<div class="card"><h2>Getting started — 5 minutes</h2>
-<p><strong>1. Turn on FPVTrackside's web server</strong>: it is off by default, and it is how
-dd-pits reads the timing. In FPVTrackside open <strong>Menu → Application Settings</strong>, and under
-<strong>Web</strong> tick <strong>Auto start HTTP Server</strong>. Restart FPVTrackside and open your event.
-<a href="http://localhost:8080" target="_blank" rel="noopener">http://localhost:8080</a> should now show
-FPVTrackside's page. Run dd-pits on the same laptop.</p>
-
-<p><strong>2. Check the dashboard.</strong> Open <a href="/">the dashboard</a>. If you can see your
-event and pilots, dd-pits is talking to FPVTrackside and the hard part is done. Pilots can
-open the same address on their phones over the venue wifi.</p>
-
-<p><strong>3. Decide who speaks the lap times</strong> — <a href="/setup/calls">Race calls</a>.
-Leave it on <strong>FPVTrackside</strong> and it announces laps exactly as it always has; you need
-nothing else. Choose <strong>dd-pits</strong> for one voice across calls and commentary, and mute
-FPVTrackside's own audio so you do not hear both.</p>
-
-<p><strong>4. Add your pilots' goggles</strong> (optional) — <a href="/setup/pilots">Goggle pilots</a>.
-One <strong>bind phrase</strong> per pilot is all it takes. See "Goggles" below.</p>
-
-<p><strong>5. Turn on commentary</strong> (optional) — <a href="/setup/booth">Commentary</a>.
-See "Commentary" below; it needs two things, not one.</p>
-
-<p><strong>6. Faster lap calls</strong> (optional): in FPVTrackside's <strong>Menu → Application
-Settings</strong>, under <strong>Gate / LED POST notifications</strong>, set <strong>Notifier enabled / mode</strong>
-to <code>LegacyMode</code> (or <code>ExtensionMode</code> if you have it) and <strong>NotificationURL</strong> to
-<code>`+base+`/fpvtrackside/events</code>, then restart FPVTrackside. Each lap then reaches dd-pits the
-moment it happens instead of on the next poll.</p>
-
-<p class="mut">Settings take effect when you restart dd-pits, except pilots and OSD screens, which
-apply on the next heat.</p>
-</div>
+`+helpIntro(base)+`
 
 <div class="card"><h2>Race day</h2>
 <p>All of these work with no internet. Give pilots and spectators the first one.</p>
@@ -2603,4 +2585,87 @@ func demoBanner() string {
 	return `<div class="card" style="border-color:rgba(198,255,61,.35);background:rgba(198,255,61,.08)"><b>Read-only demo.</b>
 <span class="mut">A real dd-pits fed by a simulated meeting. Look around: nothing here can be changed.
 <a href="https://github.com/bob9/dd-pits/releases">Get dd-pits</a> to run it at your venue.</span></div>`
+}
+
+// helpIntro is the top of the help page: what dd-pits is and how to start, for
+// whichever timer it is reading.
+func helpIntro(base string) string {
+	if timingSystem == "RotorHazard" {
+		return `
+<div class="card"><h2>What this is</h2>
+<p>dd-pits runs on your RotorHazard timer, started by the dd-pits plugin, and turns its
+timing into the dashboard pilots watch, the OBS overlays, the race calls, live commentary,
+and the lap times in pilots' goggles.</p>
+<p><strong>None of it needs the internet or an account.</strong> Everything below is stored in one
+file on the timer.</p>
+</div>
+
+<div class="card"><h2>Getting started — 5 minutes</h2>
+<p><strong>1. Set up your event in RotorHazard</strong> as you always do: pilots, classes, heats.
+dd-pits follows whichever heat RotorHazard has selected, and its next heats show as "up next".</p>
+
+<p><strong>2. Check the dashboard.</strong> Open <a href="/">the dashboard</a>. If you can see your
+event and pilots, the plugin is feeding dd-pits and the hard part is done. Pilots open the same
+address on their phones over the venue wifi.</p>
+
+<p><strong>3. Decide who speaks the lap times</strong> — <a href="/setup/calls">Race calls</a>.
+RotorHazard's own voice callouts play in the browser running its Race page. Choose
+<strong>dd-pits</strong> for one voice across calls and commentary, and turn RotorHazard's
+callouts off so you do not hear both.</p>
+
+<p><strong>4. Add your pilots' goggles</strong> (optional) — <a href="/setup/pilots">Goggle pilots</a>.
+One <strong>bind phrase</strong> per pilot is all it takes. See "Goggles" below. Use dd-pits or
+RotorHazard's own ELRS plugin for goggles, not both.</p>
+
+<p><strong>5. Turn on commentary</strong> (optional) — <a href="/setup/booth">Commentary</a>.
+See "Commentary" below; it needs two things, not one.</p>
+
+<p class="mut">Start, stop and update dd-pits from RotorHazard: <strong>Settings → dd-pits</strong>.
+Settings here take effect when dd-pits restarts, except pilots and OSD screens, which apply on
+the next heat.</p>
+</div>
+
+`
+	}
+	return `<div class="card"><h2>What this is</h2>
+<p>dd-pits runs on the timing laptop, reads FPVTrackside, and does the rest itself: the
+dashboard pilots watch, the OBS overlay, the race calls, live commentary, and the lap
+times in pilots' goggles.</p>
+<p><strong>None of it needs the internet or an account.</strong> Everything below is configured on this
+machine and stored in one file beside the agent.</p>
+</div>
+
+<div class="card"><h2>Getting started — 5 minutes</h2>
+<p><strong>1. Turn on FPVTrackside's web server</strong>: it is off by default, and it is how
+dd-pits reads the timing. In FPVTrackside open <strong>Menu → Application Settings</strong>, and under
+<strong>Web</strong> tick <strong>Auto start HTTP Server</strong>. Restart FPVTrackside and open your event.
+<a href="http://localhost:8080" target="_blank" rel="noopener">http://localhost:8080</a> should now show
+FPVTrackside's page. Run dd-pits on the same laptop.</p>
+
+<p><strong>2. Check the dashboard.</strong> Open <a href="/">the dashboard</a>. If you can see your
+event and pilots, dd-pits is talking to FPVTrackside and the hard part is done. Pilots can
+open the same address on their phones over the venue wifi.</p>
+
+<p><strong>3. Decide who speaks the lap times</strong> — <a href="/setup/calls">Race calls</a>.
+Leave it on <strong>FPVTrackside</strong> and it announces laps exactly as it always has; you need
+nothing else. Choose <strong>dd-pits</strong> for one voice across calls and commentary, and mute
+FPVTrackside's own audio so you do not hear both.</p>
+
+<p><strong>4. Add your pilots' goggles</strong> (optional) — <a href="/setup/pilots">Goggle pilots</a>.
+One <strong>bind phrase</strong> per pilot is all it takes. See "Goggles" below.</p>
+
+<p><strong>5. Turn on commentary</strong> (optional) — <a href="/setup/booth">Commentary</a>.
+See "Commentary" below; it needs two things, not one.</p>
+
+<p><strong>6. Faster lap calls</strong> (optional): in FPVTrackside's <strong>Menu → Application
+Settings</strong>, under <strong>Gate / LED POST notifications</strong>, set <strong>Notifier enabled / mode</strong>
+to <code>LegacyMode</code> (or <code>ExtensionMode</code> if you have it) and <strong>NotificationURL</strong> to
+<code>` + base + `/fpvtrackside/events</code>, then restart FPVTrackside. Each lap then reaches dd-pits the
+moment it happens instead of on the next poll.</p>
+
+<p class="mut">Settings take effect when you restart dd-pits, except pilots and OSD screens, which
+apply on the next heat.</p>
+</div>
+
+`
 }

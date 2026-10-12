@@ -18,3 +18,16 @@ jobs:
           go-version-file: go.mod
       - run: go vet ./...
       - run: go test ./...
+
+  rotorhazard-plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Lint the RotorHazard plugin
+        run: |
+          pip install pyflakes
+          python -m pyflakes rotorhazard/dd_pits
+          python -m json.tool rotorhazard/dd_pits/manifest.json > /dev/null

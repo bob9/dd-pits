@@ -99,15 +99,21 @@ func (ra *raceAnnouncer) serveRaceControl(w http.ResponseWriter, r *http.Request
 		if enabled {
 			b.WriteString(`<button type="submit">Say it</button>`)
 		} else {
-			b.WriteString(`<button type="submit" disabled>Switched off in FPVTrackside</button>`)
+			b.WriteString(`<button type="submit" disabled>Switched off in ` + timingSystem + `</button>`)
 		}
 		b.WriteString(`</form>`)
 	}
 
 	// Says WHERE the wording comes from, so nobody goes looking for it here.
-	b.WriteString(`<p class="note">The words for each call come from FPVTrackside's own sound
+	if timingSystem == "FPVTrackside" {
+		b.WriteString(`<p class="note">The words for each call come from FPVTrackside's own sound
 settings — change them there and this page follows. A call switched off there stays
 off here too.</p></div>`)
+	} else {
+		b.WriteString(`<p class="note">These are FPVTrackside's standard race calls, built into
+dd-pits for ` + timingSystem + `. Turn off ` + timingSystem + `'s own voice callouts so the
+calls are not spoken twice.</p></div>`)
+	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(b.String()))

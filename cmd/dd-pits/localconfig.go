@@ -583,10 +583,13 @@ func callsSource(stored localCalls, hasVoice bool) string {
 func describeCallsSource(source string, hasVoice bool) string {
 	if source == "trackside" {
 		if !hasVoice {
-			return "FPVTrackside speaks its own race calls — no voice is configured here, " +
+			return timingSystem + " speaks its own race calls — no voice is configured here, " +
 				"so dd-pits is leaving the audio alone. The dashboard, overlays and goggles all still work."
 		}
-		return "FPVTrackside speaks its own race calls, by choice. dd-pits is leaving the audio alone."
+		return timingSystem + " speaks its own race calls, by choice. dd-pits is leaving the audio alone."
+	}
+	if timingSystem == "RotorHazard" {
+		return "dd-pits speaks the race calls in its own voice — turn off RotorHazard's voice callouts."
 	}
 	return "dd-pits speaks the race calls in its own voice — mute FPVTrackside's audio output."
 }

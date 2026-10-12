@@ -42,13 +42,31 @@ jobs:
           set -e
           mkdir -p dist
           COMMIT=$(git rev-parse --short HEAD)
-          for t in darwin/arm64 darwin/amd64 windows/amd64 linux/amd64 linux/arm64; do
+          for t in darwin/arm64 darwin/amd64 windows/amd64 linux/amd64 linux/arm64 linux/arm; do
             os=${t%/*}; arch=${t#*/}; ext=; [ "$os" = windows ] && ext=.exe
-            CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath \
+            # linux/arm is 32-bit Raspberry Pi OS; ARMv6 runs on every Pi.
+            CGO_ENABLED=0 GOOS=$os GOARCH=$arch GOARM=6 go build -trimpath \
               -ldflags "-s -w -X main.version=$VERSION -X main.commit=$COMMIT" \
               -o "dist/dd-pits-$os-$arch$ext" ./cmd/dd-pits
           done
           cd dist && sha256sum dd-pits-* > SHA256SUMS.txt
+
+      - name: Package the RotorHazard plugin
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          set -e
+          mkdir -p build && cp -r rotorhazard/dd_pits build/dd_pits
+          find build -name __pycache__ -prune -exec rm -rf {} +
+          # The plugin's version follows the release, so RotorHazard shows which one it has.
+          python3 - "$VERSION" <<'PY'
+          import json, sys
+          p = "build/dd_pits/manifest.json"
+          m = json.load(open(p))
+          m["version"] = sys.argv[1].lstrip("v")
+          json.dump(m, open(p, "w"), indent=4)
+          PY
+          (cd build && zip -qr ../dist/dd-pits-rotorhazard-plugin.zip dd_pits)
 
       - name: Publish
         uses: softprops/action-gh-release@v2
@@ -69,7 +87,9 @@ jobs:
             | Mac with Intel | `dd-pits-darwin-amd64` |
             | Windows | `dd-pits-windows-amd64.exe` |
             | Linux (PC) | `dd-pits-linux-amd64` |
-            | Linux (Raspberry Pi 4/5, ARM) | `dd-pits-linux-arm64` |
+            | Linux (Raspberry Pi, 64-bit OS) | `dd-pits-linux-arm64` |
+            | Linux (Raspberry Pi, 32-bit OS) | `dd-pits-linux-arm` |
+            | **RotorHazard timer** | `dd-pits-rotorhazard-plugin.zip`: upload it in RotorHazard under Settings → Plugins. It downloads and runs dd-pits for you. |
 
             **Mac:** in Terminal, run `chmod +x dd-pits-darwin-*` and `xattr -d com.apple.quarantine dd-pits-darwin-*` once, then `./dd-pits-darwin-arm64`.
             **Windows:** if SmartScreen warns, choose More info → Run anyway.

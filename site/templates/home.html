@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>dd-pits — Race day, run from one laptop</title>
-<meta name="description" content="dd-pits is a free, open-source race-day companion for FPVTrackside: live dashboard, OBS overlays, race calls, AI commentary and lap times in pilots' goggles. No internet. No account.">
+<meta name="description" content="dd-pits is a free, open-source race-day companion for FPVTrackside and RotorHazard: live dashboard, OBS overlays, race calls, AI commentary and lap times in pilots' goggles. No internet. No account.">
 <meta name="theme-color" content="#050607">
 <link rel="canonical" href="{{.SiteURL}}/">
 <link rel="icon" type="image/png" sizes="32x32" href="{{asset "img/favicon-32.png"}}">
@@ -47,6 +47,7 @@
       <a href="#booth">Commentary</a>
       <a href="#goggles">Goggles</a>
       <a href="#netpack">Netpack</a>
+      <a href="#rotorhazard">RotorHazard</a>
       <a href="#faq">FAQ</a>
     </nav>
     <div class="nav-cta">
@@ -66,7 +67,7 @@
   </picture>
   <div class="hero-shade"></div>
   <div class="hero-copy">
-    <p class="eyebrow">Free &amp; open source · for FPVTrackside</p>
+    <p class="eyebrow">Free &amp; open source · for FPVTrackside &amp; RotorHazard</p>
     <h1 class="display">Race day,<br><span class="grad">run from one laptop.</span></h1>
     <p class="lede">A live dashboard on every phone. Race calls in one voice. AI commentary for your stream. Lap times in pilots' goggles. All from the timing laptop — no internet, no account.</p>
     <div class="ctas">
@@ -312,6 +313,24 @@
   </div>
 </section>
 
+<!-- ROTORHAZARD -->
+<section class="feature" id="rotorhazard" aria-labelledby="rh-h">
+  <div class="wrap center">
+    <p class="eyebrow reveal">RotorHazard plugin</p>
+    <h2 class="headline reveal" id="rh-h">Racing on RotorHazard? <span class="grad">It's all here too.</span></h2>
+    <p class="sub reveal">Install dd-pits as a RotorHazard plugin and the timer itself runs everything: the phone dashboard with up-next heats and the leaderboard, the TV view, every OBS overlay, race calls, commentary and goggle OSD. No laptop needed beside it.</p>
+  </div>
+  <div class="grid3">
+    <div class="card reveal"><h3>1 · Upload the plugin</h3><p>On RotorHazard 4.3 or later, open <b>Settings → Plugins</b>, upload the zip and restart. On 4.0 to 4.2, copy the <code>dd_pits</code> folder into <code>src/server/plugins</code>.</p></div>
+    <div class="card reveal"><h3>2 · Start it once online</h3><p>The plugin downloads the right dd-pits for your Pi (32- or 64-bit), checks it against the release checksums, and keeps it running. After that, no internet is needed.</p></div>
+    <div class="card reveal"><h3>3 · Share the dashboard</h3><p>Pilots open <code>http://&lt;timer&gt;:8088</code>. RotorHazard's <b>Settings → dd-pits</b> panel links to the dashboard, the overlays and dd-pits' settings, behind your RotorHazard login.</p></div>
+  </div>
+  <div class="wrap center">
+    <p class="reveal rh-cta"><a class="btn" href="{{.Links.rhplugin}}">Download the RotorHazard plugin</a> <a class="btn ghost" href="{{.Links.rhdocs}}">Read the guide</a></p>
+    <p class="dl-note reveal">Works with RotorHazard 4.0 and later. Heats, rounds, classes, laps and results come straight from the timer; the next heats show as "up next" with their lineups and channels.</p>
+  </div>
+</section>
+
 <!-- RACE CALLS -->
 <section class="feature alt" id="calls" aria-labelledby="calls-h">
   <div class="split rev">
@@ -496,6 +515,7 @@
 <section class="faq" id="faq" aria-labelledby="faq-h">
   <div class="wrap narrow">
     <h2 class="headline center reveal" id="faq-h">Questions.</h2>
+    <details class="reveal"><summary>Does it work with RotorHazard?</summary><p>Yes. Install the <a href="#rotorhazard">dd-pits RotorHazard plugin</a> (RotorHazard 4.0 or later) and the timer runs dd-pits itself, with the same dashboard, overlays, race calls, commentary and goggle OSD.</p></details>
     <details class="reveal"><summary>Does it replace FPVTrackside?</summary><p>No. FPVTrackside keeps doing the timing. dd-pits reads it on the same laptop and does everything else: the dashboard, overlays, race calls, commentary and goggles.</p></details>
     <details class="reveal"><summary>Does it need the internet?</summary><p>No. The dashboard, overlays, race calls, goggle OSD and API all run on the laptop. Only the cloud AI options (Gemini or Qwen) and YouTube Watch links use a connection — and the commentary booth can run fully locally on Apple Silicon.</p></details>
     <details class="reveal"><summary>How do pilots see the dashboard?</summary><p>They open the laptop's address on their phones over the venue wifi. Settings pages only accept changes from the laptop itself, so a phone in the pits can't change anyone's goggle channel.</p></details>

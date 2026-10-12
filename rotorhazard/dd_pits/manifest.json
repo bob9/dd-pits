@@ -1,0 +1,17 @@
+{
+    "domain": "dd_pits",
+    "name": "dd-pits",
+    "author": "bob9",
+    "author_uri": "https://github.com/bob9",
+    "description": "Live race-day dashboard for every phone, TV view, 22 OBS overlays, spoken race calls, AI commentary and lap times in pilots' goggles over ELRS, all driven by this timer.",
+    "documentation_uri": "https://github.com/bob9/dd-pits#rotorhazard",
+    "info_uri": "https://dd-pits.threedigitalllamas.com.au",
+    "license": "MIT",
+    "license_uri": "https://github.com/bob9/dd-pits/blob/main/LICENSE",
+    "required_rhapi_version": "1.0",
+    "version": "0.1.0",
+    "dependencies": [],
+    "zip_filename": "dd-pits-rotorhazard-plugin.zip",
+    "update_uri": null,
+    "text_domain": null
+}

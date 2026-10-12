@@ -51,6 +51,10 @@ var (
 // dashboard, the setup pages and the startup log.
 const supportURL = "https://buymeacoffee.com/bobnine"
 
+// timingSystem names the timer dd-pits reads, for logs and the pages that tell
+// a race director what to switch on: "FPVTrackside" unless -rotorhazard is set.
+var timingSystem = "FPVTrackside"
+
 func envOr(key, fallback string) string {
 	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
 		return v
@@ -67,7 +71,12 @@ type agent struct {
 	// post-race audio (postskip.go).
 	lastSelectedRace string
 
-	ft         *dronedash.Client
+	ft *dronedash.Client
+	// rh is set when the timing comes from RotorHazard (-rotorhazard) instead
+	// of FPVTrackside; rhVersion is the plugin's change token last fetched, so
+	// an unchanged timer costs one tiny request per tick.
+	rh         *dronedash.RHClient
+	rhVersion  string
 	httpClient *http.Client
 
 	idleInterval   time.Duration // tick cadence when no race is active
@@ -147,6 +156,9 @@ func main() {
 
 	ftURL := flag.String("fpvtrackside", envOr("DD_PITS_FPVTRACKSIDE", "http://localhost:8080"),
 		"base URL of the local FPVTrackside HTTP server")
+	rhURL := flag.String("rotorhazard", envOr("DD_PITS_ROTORHAZARD", ""),
+		"read timing from a RotorHazard timer instead of FPVTrackside (e.g. http://localhost:5000); "+
+			"needs the dd-pits RotorHazard plugin, which normally starts dd-pits with this set")
 	intervalStr := flag.String("interval", envOr("DD_PITS_INTERVAL", "250ms"),
 		"poll cadence when no race is in-flight (Go duration) — bounds how fast a heat start / holeshot is picked up")
 	activeIntervalStr := flag.String("active-interval", envOr("DD_PITS_ACTIVE_INTERVAL", "100ms"),
@@ -296,8 +308,18 @@ func main() {
 		log.Fatalf("dd-pits: bad -fpvtrackside URL: %v", err)
 	}
 
+	var rhClient *dronedash.RHClient
+	if *rhURL != "" {
+		if rhClient, err = dronedash.NewRHClient(*rhURL); err != nil {
+			log.Fatalf("dd-pits: bad -rotorhazard URL: %v", err)
+		}
+		timingSystem = "RotorHazard"
+		log.Printf("dd-pits: reading timing from RotorHazard at %s", *rhURL)
+	}
+
 	a := &agent{
 		ft:             ftClient,
+		rh:             rhClient,
 		httpClient:     &http.Client{Timeout: 10 * time.Second},
 		idleInterval:   interval,
 		activeInterval: activeInterval,
@@ -902,8 +924,12 @@ func main() {
 		}
 	}
 
-	log.Printf("dd-pits: polling FPVTrackside at %s (idle=%s active=%s)",
-		*ftURL, interval, activeInterval)
+	timerURL := *ftURL
+	if *rhURL != "" {
+		timerURL = *rhURL
+	}
+	log.Printf("dd-pits: polling %s at %s (idle=%s active=%s)",
+		timingSystem, timerURL, interval, activeInterval)
 
 	if *once {
 		if err := a.safeTick(ctx); err != nil {
@@ -954,13 +980,13 @@ func (a *agent) runTick(ctx context.Context) {
 		// First few failures verbosely, then sparsely, so a long outage doesn't
 		// flood the console while still showing it's alive and retrying.
 		if a.fetchFailures <= 3 || a.fetchFailures%20 == 0 {
-			log.Printf("dd-pits: FPVTrackside read failed (#%d): %v — retrying every %s",
-				a.fetchFailures, err, a.nextInterval())
+			log.Printf("dd-pits: %s read failed (#%d): %v — retrying every %s",
+				timingSystem, a.fetchFailures, err, a.nextInterval())
 		}
 		return
 	}
 	if a.fetchFailures > 0 {
-		log.Printf("dd-pits: FPVTrackside read recovered after %d failed read(s)", a.fetchFailures)
+		log.Printf("dd-pits: %s read recovered after %d failed read(s)", timingSystem, a.fetchFailures)
 		a.fetchFailures = 0
 
 		// Re-baseline the race calls.
@@ -975,7 +1001,7 @@ func (a *agent) runTick(ctx context.Context) {
 		// Treated exactly like startup: the first snapshot after an outage is
 		// the state of the world, not a list of things that just happened.
 		if ann := a.raceAnnouncer(); ann != nil {
-			ann.Reprime("FPVTrackside came back")
+			ann.Reprime(timingSystem + " came back")
 		}
 	}
 }
@@ -989,9 +1015,46 @@ func (a *agent) tick(ctx context.Context) error {
 	tctx, cancel := context.WithTimeout(ctx, 4*time.Second)
 	defer cancel()
 
+	snap, err := a.fetchSnapshot(tctx)
+	if err != nil {
+		return err
+	}
+	return a.handleSnapshot(snap)
+}
+
+// fetchSnapshot reads the meeting from whichever timer this venue uses.
+func (a *agent) fetchSnapshot(tctx context.Context) (dronedash.Snapshot, error) {
+	if a.rh != nil {
+		return a.fetchRotorHazard(tctx)
+	}
+	return a.fetchFPVTrackside(tctx)
+}
+
+// fetchRotorHazard asks the plugin whether anything changed and only pulls the
+// meeting when it has. The plugin bumps its version on every lap, heat change
+// and edit, so an unchanged version means the previous snapshot is still exact.
+func (a *agent) fetchRotorHazard(tctx context.Context) (dronedash.Snapshot, error) {
+	v, err := a.rh.FetchVersion(tctx)
+	if err != nil {
+		return dronedash.Snapshot{}, fmt.Errorf("RotorHazard not reachable (is the dd-pits plugin installed?): %w", err)
+	}
+	if v != "" && v == a.rhVersion && a.prev.Event.ID != "" {
+		return a.prev, nil
+	}
+	snap, err := a.rh.FetchSnapshot(tctx)
+	if err != nil {
+		return snap, fmt.Errorf("read RotorHazard meeting: %w", err)
+	}
+	a.rhVersion = v
+	return snap, nil
+}
+
+// fetchFPVTrackside reads FPVTrackside's HTTP API, reusing finished heats from
+// the previous snapshot between periodic full re-reads.
+func (a *agent) fetchFPVTrackside(tctx context.Context) (dronedash.Snapshot, error) {
 	eventID, err := a.ft.FetchCurrentEventID(tctx)
 	if err != nil {
-		return fmt.Errorf("FPVTrackside not reachable: %w", err)
+		return dronedash.Snapshot{}, fmt.Errorf("FPVTrackside not reachable: %w", err)
 	}
 	// Periodically force a FULL re-read (empty prev) instead of the incremental
 	// fetch. The incremental path treats a finished heat as immutable and reuses
@@ -1009,7 +1072,7 @@ func (a *agent) tick(ctx context.Context) error {
 	}
 	snap, err := a.ft.FetchSnapshotIncremental(tctx, eventID, prevForFetch)
 	if err != nil {
-		return fmt.Errorf("fetch snapshot: %w", err)
+		return snap, fmt.Errorf("fetch snapshot: %w", err)
 	}
 	// A change of the operator's selected race (FPVTrackside /current) means a heat
 	// was just cued — and it may be a RE-RUN (a finished heat the operator reset).
@@ -1024,10 +1087,16 @@ func (a *agent) tick(ctx context.Context) error {
 		}
 	}
 	a.lastSelected = snap.SelectedRaceID
-	a.prev = snap // keep for next tick's incremental fetch
 	if dueForReconcile {
 		a.lastReconcileAt = time.Now()
 	}
+	return snap, nil
+}
+
+// handleSnapshot feeds one fresh snapshot to everything that consumes it: the
+// dashboard, the goggles, the booth and the race calls.
+func (a *agent) handleSnapshot(snap dronedash.Snapshot) error {
+	a.prev = snap // keep for next tick's incremental fetch
 
 	// Persist a cued UN-RUN heat across an "earlier review". FPVTrackside's /current
 	// goes null when the operator clicks an already-run heat to review it — but a

@@ -389,3 +389,6 @@ section { position: relative; }
 .dl-note code { font-size: 12.5px; }
 .step-tip { margin-top: 14px; font-size: 14px; color: var(--mut); line-height: 1.55; }
 .step-tip code { font-size: 12.5px; }
+
+/* ── rotorhazard ─────────────────────────────────────── */
+.rh-cta { margin-top: 28px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }

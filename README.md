@@ -2,9 +2,11 @@
 
 # dd-pits
 
-**A race-day companion for [FPVTrackside](https://github.com/FPVTrackside).**
-dd-pits runs on the timing laptop next to FPVTrackside and turns its timing
-data into everything else a race director wants on the day: a live dashboard
+**A race-day companion for [FPVTrackside](https://github.com/FPVTrackside) and
+[RotorHazard](https://github.com/RotorHazard/RotorHazard).**
+dd-pits runs next to your timer (on the FPVTrackside laptop, or on the
+RotorHazard Pi as a plugin) and turns its timing data into everything else a
+race director wants on the day: a live dashboard
 pilots can open on their phones, OBS overlays, spoken race calls, AI
 commentary, and lap times in pilots' goggles via an ELRS backpack.
 
@@ -16,6 +18,7 @@ beside the binary.
 **[Live demo](https://demo.dd-pits.threedigitalllamas.com.au)** ·
 **[Download](#download)** ·
 **[Set up with FPVTrackside](#set-up-with-fpvtrackside)** ·
+**[RotorHazard plugin](#rotorhazard)** ·
 [ELRS Netpack](https://github.com/bob9/elrs-netpack) ·
 made by **[bob9](https://github.com/bob9)**
 
@@ -207,7 +210,9 @@ fetch the latest build:
 | Mac, Intel | [dd-pits-darwin-amd64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-darwin-amd64) |
 | Windows | [dd-pits-windows-amd64.exe](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-windows-amd64.exe) |
 | Linux PC | [dd-pits-linux-amd64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-linux-amd64) |
-| Raspberry Pi 4/5 (Linux ARM) | [dd-pits-linux-arm64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-linux-arm64) |
+| Raspberry Pi, 64-bit OS | [dd-pits-linux-arm64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-linux-arm64) |
+| Raspberry Pi, 32-bit OS | [dd-pits-linux-arm](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-linux-arm) |
+| **RotorHazard timer** | [dd-pits-rotorhazard-plugin.zip](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-rotorhazard-plugin.zip). See [RotorHazard](#rotorhazard) |
 
 **Mac:** run `chmod +x dd-pits-darwin-*` and
 `xattr -d com.apple.quarantine dd-pits-darwin-*` once in Terminal.
@@ -260,6 +265,61 @@ hear both. Restart FPVTrackside when the page says to.
 > FPVTrackside without it.
 
 The in-app help at `/setup/help` covers the rest of race-day setup.
+
+## RotorHazard
+
+dd-pits also runs as a **RotorHazard plugin**, so a club timing on RotorHazard
+gets the same features: the phone dashboard with the current race, up-next
+heats and leaderboard, the TV view, all the OBS overlays, race history, pilot
+pages, spoken race calls, the commentary booth, and goggle OSD over ELRS.
+
+The plugin runs inside RotorHazard. It shares RotorHazard's pilots, heats,
+classes, laps and results with dd-pits, and downloads, starts and supervises
+dd-pits on the timer itself. Nothing else needs to run on a laptop.
+
+**Works with RotorHazard 4.0 and later**, tested on 4.0.1, 4.1.1, 4.2.1, 4.3.1
+and 4.4.0. RotorHazard 3.x has no plugin system, so it is not supported.
+
+**1. Install the plugin.** Download
+[dd-pits-rotorhazard-plugin.zip](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-rotorhazard-plugin.zip).
+
+- **RotorHazard 4.3 or later:** go to **Settings → Plugins**, upload the zip, and
+  restart RotorHazard.
+- **RotorHazard 4.0 to 4.2:** unzip it and copy the `dd_pits` folder into
+  `RotorHazard/src/server/plugins/` on the timer, then restart RotorHazard.
+
+**2. Start it once with internet.** On its first start the plugin downloads the
+right dd-pits for the timer (64-bit or 32-bit Pi, Linux PC, Mac or Windows) and
+checks it against the release checksums. After that, no internet is needed.
+To set it up offline, put a dd-pits binary on the timer and enter its path under
+**Use my own dd-pits program**.
+
+**3. Open the dashboard.** Pilots open `http://<timer>:8088` on the venue
+wifi. RotorHazard's **Settings → dd-pits** panel links to the dashboard, the OBS
+overlays and dd-pits' own settings. It also has Start/restart, Stop and Update
+buttons, plus the port setting.
+
+The **Set up dd-pits** link is behind RotorHazard's admin login. It opens
+dd-pits' settings from your laptop or phone with a PIN the plugin generates,
+because the timer has no screen of its own.
+
+| RotorHazard | dd-pits |
+| --- | --- |
+| The selected heat | Current race: cued while staging, live while racing |
+| The next heats after it | Up next, with lineups and channels |
+| Saved races and their results | Race history and positions |
+| Classes and rounds | "Open Round 2 — Race 3" labels |
+| Fastest-consecutive formats | Time-trial scoring |
+| Seat frequencies and colours | Channel labels and colours |
+
+**Race calls.** FPVTrackside lets you edit the wording of each call; RotorHazard
+has no equivalent, so on RotorHazard dd-pits uses FPVTrackside's standard calls
+("Vortex lap 2 in first"). If dd-pits speaks the calls, turn off RotorHazard's
+own voice callouts so they aren't spoken twice. For goggle OSD, use either
+dd-pits or RotorHazard's own ELRS plugin, not both.
+
+Without the plugin, any dd-pits can still read a RotorHazard timer that has the
+plugin installed: `dd-pits -rotorhazard http://<timer>:5000`.
 
 ### Settings and flags
 
@@ -328,7 +388,8 @@ this.
 ```
 cmd/dd-pits/         the application: poller, local web server, setup pages,
                      race calls, commentary booth, ELRS controller
-internal/dronedash/  FPVTrackside client and snapshot model
+internal/dronedash/  FPVTrackside and RotorHazard clients, snapshot model
+rotorhazard/dd_pits/ the RotorHazard plugin (Python)
 internal/ddapi/      the JSON read API served at /docs
 internal/booth/      commentary prompt building and style
 internal/elrs/       ELRS backpack protocol (serial + netpack)

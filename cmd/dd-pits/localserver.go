@@ -1428,7 +1428,7 @@ const (
 // start runs the local server until ctx is cancelled, retrying a busy address
 // for listenRetry so a self-update handover can't lose the port.
 func (s *liveServer) start(ctx context.Context, addr string) {
-	srv := &http.Server{Addr: addr, Handler: s.handler()}
+	srv := &http.Server{Addr: addr, Handler: rememberSetupPIN(s.handler())}
 	s.srvMu.Lock()
 	s.srv, s.addr = srv, addr
 	s.srvMu.Unlock()
@@ -2241,18 +2241,27 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
      <div id="app"> must contain nothing but its body partial, or a refresh will
      silently drop whatever else was in there. */}}
 
-{{define "waiting"}}<!doctype html><html><head><meta charset="utf-8"><title>dd-pits — waiting for FPVTrackside</title>{{template "css" .}}</head>
+{{define "waiting"}}<!doctype html><html><head><meta charset="utf-8"><title>dd-pits — waiting for {{timer}}</title>{{template "css" .}}</head>
 <body>{{template "shell-top" .}}<div id="app">{{template "waiting-body" .}}</div>{{template "js" (dictRefresh 2000 .)}}</body></html>{{end}}
 
 {{define "waiting-body"}}<section class="hero-wait"><div>
-  <span class="pill"><i></i>Waiting for FPVTrackside</span>
+  <span class="pill"><i></i>Waiting for {{timer}}</span>
   <h1>Race day, <span>live.</span></h1>
+  {{if eq timer "RotorHazard"}}
+  <p>Set up your event in RotorHazard and this board lights up on its own: heats, lap times and standings, on every phone at the field.</p>
+  <ol class="steps">
+    <li>In RotorHazard, add your pilots and heats, and pick the heat to race.</li>
+    <li>Check the dd-pits plugin is running: <b>Settings → dd-pits</b>.</li>
+    <li>This page updates by itself. Nothing else to do.</li>
+  </ol>
+  {{else}}
   <p>Open your event in FPVTrackside and this board lights up on its own: heats, lap times and standings, on every phone at the field.</p>
   <ol class="steps">
     <li>In FPVTrackside: <b>Menu → Application Settings → Web</b>, tick <b>Auto start HTTP Server</b>.</li>
     <li>Restart FPVTrackside and open your event.</li>
     <li>This page updates by itself. Nothing else to do.</li>
   </ol>
+  {{end}}
   <div class="cta"><a href="/setup/help">Get set up</a><a class="sec" href="/setup">Settings</a><a class="sec" href="/overlays">OBS overlays</a></div>
   <p style="margin-top:1.4rem;font-size:.9rem;color:#9aa3af">Free and open source · made by <a href="https://github.com/bob9" target="_blank" rel="noopener">bob9</a></p>
 </div></section>{{end}}

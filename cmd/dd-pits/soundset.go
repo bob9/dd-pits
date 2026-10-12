@@ -142,6 +142,9 @@ func (s *SoundSet) Template(key SoundKey) (string, bool) {
 // Reload re-reads the file, so a change in FPVTrackside's settings takes effect
 // without restarting the agent.
 func (s *SoundSet) Reload() error {
+	if s.path == "" {
+		return nil // the built-in stock set: nothing to re-read
+	}
 	fresh, err := LoadSoundSet(s.path)
 	if err != nil {
 		return err
@@ -213,4 +216,47 @@ func DefaultSoundsPath(profile string) string {
 	default:
 		return ""
 	}
+}
+
+// stockSounds are FPVTrackside's own default race calls (Sound/SoundManager.cs),
+// for a timer that has no Sounds.xml to read — RotorHazard. The wording is the
+// one FPVTrackside ships with, so a club moving between the two hears the same
+// calls, and only the sounds dd-pits can derive from timing data are listed.
+var stockSounds = []Sound{
+	{Key: "StartRaceIn", Text: "Arm your quads. Starting on the tone in less than {time}", Enabled: true, Category: "Race"},
+	{Key: SoundRaceStart, Text: "Go", Enabled: true, Category: "Race"},
+	{Key: SoundRaceOver, Text: "Race over", Enabled: true, Category: "Race"},
+	{Key: SoundRaceResumed, Text: "Race Resumed", Enabled: true, Category: "Race"},
+	{Key: SoundTimesUp, Text: "Times Up", Enabled: true, Category: "Race"},
+	{Key: SoundTimeRemaining, Text: "{time} remaining", Enabled: true, Category: "Race"},
+	{Key: SoundAfterTimesUp, Text: "Finish your lap and then land", Enabled: true, Category: "Race"},
+	{Key: SoundRaceAnnounce, Text: "Next up Round {round} {type} {race} {bracket}. ", Enabled: true, Category: "Announcements"},
+	{Key: SoundInTheHole, Text: "In the hole {pilots}", Enabled: false, Category: "Announcements"},
+	{Key: SoundRaceAnnounceResults, Text: "Results of Round {round} {type} {race} {bracket}. ", Enabled: true, Category: "Announcements"},
+	{Key: SoundAnnouncePilotChannel, Text: "{pilot} on {band}{channel}", Enabled: true, Category: "Announcements"},
+	{Key: "PilotResult", Text: "{pilot} {position}", Enabled: true, Category: "Announcements"},
+	{Key: SoundNameTest, Text: "{pilot}", Enabled: true, Category: "Announcements"},
+	{Key: SoundHurryUp, Text: "Hurry Up {pilot}", Enabled: true, Category: "Announcements"},
+	{Key: SoundSector, Text: "{pilot} sector {count} in {position}", Enabled: false, Category: "Detection"},
+	{Key: SoundRaceDone, Text: "{pilot} finished in {position}", Enabled: true, Category: "Detection"},
+	{Key: SoundRaceLap, Text: "{pilot} lap {lapnumber} in {position}", Enabled: true, Category: "Detection"},
+	{Key: SoundTimeTrialEveryLap, Text: "{pilot} {laptime}", Enabled: false, Category: "Detection"},
+	{Key: SoundTimeTrialTargetLaps, Text: "{pilot} {count} lap{s} in {lapstime}", Enabled: true, Category: "Detection"},
+	{Key: SoundTimeTrialDone, Text: "{pilot} finished {count} lap{s} in {lapstime}, Please land", Enabled: true, Category: "Detection"},
+	{Key: SoundPracticeLap, Text: "{pilot} {laptime}", Enabled: true, Category: "Detection"},
+	{Key: SoundCasualLap, Text: "{pilot} {count} lap{s} in {lapstime}", Enabled: true, Category: "Detection"},
+	{Key: SoundHoleshot, Text: "Holeshot {pilot} {laptime}", Enabled: true, Category: "Detection"},
+	{Key: SoundNewLapRecord, Text: "{pilot} new record {count} lap{s} in {lapstime}", Enabled: false, Category: "Records"},
+	{Key: SoundNewHoleshotRecord, Text: "{pilot} new record holeshot in {time}", Enabled: false, Category: "Records"},
+	{Key: SoundPilotsEnableVideo, Text: "Pilots turn on your video transmitters", Enabled: true, Category: "Race"},
+	{Key: SoundUntilRaceStart, Text: "{time} until the race start", Enabled: true, Category: "Announcements"},
+}
+
+// StockSoundSet is FPVTrackside's default sound configuration, built in.
+func StockSoundSet() *SoundSet {
+	s := &SoundSet{byKey: map[SoundKey]Sound{}, path: "", loaded: true}
+	for _, snd := range stockSounds {
+		s.byKey[snd.Key] = snd
+	}
+	return s
 }
