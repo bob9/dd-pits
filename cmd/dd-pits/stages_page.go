@@ -2,7 +2,7 @@ package main
 
 // The stage (bracket) pages.
 //
-//	/stages              every stage; "New stage" for the race director
+//	/stages              every bracket; "Create bracket" for the race director
 //	/stages/new          set one up: format, options, pilots in seed order
 //	/stages/<id>         the bracket: rounds, races, results, standings
 //	/stages/<id>.json    the same, for scripts and overlays
@@ -53,10 +53,10 @@ func (s *liveServer) stagesList(w http.ResponseWriter, r *http.Request) {
 		b.WriteString(`<div class="card"><h2>Run a bracket</h2>
 <p>Pick a format and the pilots in seed order, and dd-pits draws the races. Each race goes to ` + esc(timingSystem) + ` as soon as its line-up is known,
 and the results come back from the timing, so the next races fill in on their own.</p>
-<p><a href="/stages/new"><button>New stage</button></a></p></div>`)
+<p><a href="/stages/new"><button>Create bracket</button></a></p></div>`)
 	}
 	if len(list) == 0 {
-		b.WriteString(`<div class="card"><p class="mut">No stages yet.</p></div>`)
+		b.WriteString(`<div class="card"><p class="mut">No brackets yet.</p></div>`)
 	}
 	for i := len(list) - 1; i >= 0; i-- {
 		st := list[i]
@@ -153,7 +153,7 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
 
 	b := &strings.Builder{}
 	if errMsg != "" {
-		fmt.Fprintf(b, `<div class="card"><p class="warn">Couldn't create the stage: %s</p></div>`, esc(errMsg))
+		fmt.Fprintf(b, `<div class="card"><p class="warn">Couldn't create the bracket: %s</p></div>`, esc(errMsg))
 	}
 	b.WriteString(`<form method="post" id="stageform">
 <div class="card"><h2>1 · Format</h2><div class="fmts">`)
@@ -206,7 +206,7 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
 </div>
 <p><label><input type="checkbox" name="autoSend" checked> Send each race to ` + esc(timingSystem) + ` as soon as its line-up is known</label></p>
 </div>
-<p><button type="submit">Create stage</button> <a href="/stages" class="mut">Cancel</a></p>
+<p><button type="submit">Create bracket</button> <a href="/stages" class="mut">Cancel</a></p>
 </form>
 <style>
  .fmts{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:.7rem}
@@ -242,7 +242,7 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
    li.ondrop=e=>{e.preventDefault();const from=+e.dataTransfer.getData('text/plain');const [m]=items.splice(from,1);items.splice(i,0,m);draw()};
    list.appendChild(li);
   });
-  document.getElementById('count').textContent=n+' pilots in the stage';
+  document.getElementById('count').textContent=n+' pilots in the bracket';
   document.getElementById('pilots').value=items.filter(x=>x.on).map(x=>x.name).join('\n');
  }
  document.getElementById('addbtn').onclick=()=>{
@@ -258,7 +258,7 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
  showOpts(); draw();
 })();
 </script>`)
-	writeSetup(w, "New stage", b.String())
+	writeSetup(w, "Create bracket", b.String())
 }
 
 // ── one stage ────────────────────────────────────────────────────────────────
@@ -308,7 +308,7 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 		b.WriteString(`<button class="sec" name="do" value="sync">Check results</button>`)
 		fmt.Fprintf(b, `<button class="sec" name="do" value="autosend">Auto-send: %s</button>`, onOff(st.AutoSend))
 		fmt.Fprintf(b, `<button class="sec" name="do" value="autoresults">Results from timing: %s</button>`, onOff(st.AutoResults))
-		b.WriteString(`<button class="sec" name="do" value="delete" onclick="return confirm('Delete this stage? Races already on the timer stay there.')">Delete</button></form>`)
+		b.WriteString(`<button class="sec" name="do" value="delete" onclick="return confirm('Delete this bracket? Races already on the timer stay there.')">Delete</button></form>`)
 	}
 	b.WriteString(`</div>`)
 	if st.LastError != "" && admin {

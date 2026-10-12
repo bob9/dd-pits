@@ -266,8 +266,8 @@ var setupBanners = map[string]struct{ img, eyebrow, line string }{
 	"Debug":          {"desk.webp", "Debug", "The log, in the browser — send it when something goes wrong."},
 	"Help":           {"hero.webp", "Getting started", "Everything a race director needs, in five minutes."},
 	"OBS overlays":   {"stream.webp", "On stream", "Broadcast graphics that follow the meeting on their own. Paste a URL into OBS."},
-	"Brackets":       {"director.webp", "Stages", "Double elimination, MultiGP qualifiers, bracket progression, ladders and points brackets."},
-	"New stage":      {"director.webp", "Stages", "Pick a format and seed the pilots; dd-pits draws the races and runs them on the timer."},
+	"Brackets":       {"director.webp", "Brackets", "Double elimination, MultiGP qualifiers, bracket progression, ladders and points brackets."},
+	"Create bracket": {"director.webp", "Brackets", "Pick a format and seed the pilots; dd-pits draws the races and runs them on the timer."},
 }
 
 // reloadELRSConfig re-reads the goggle config after an edit, when ELRS is on.

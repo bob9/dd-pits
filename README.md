@@ -364,7 +364,7 @@ platform, so a stage gives the same races in all three.
 | Ladder | The lowest seeds race first; the top finishers climb into the next race against higher seeds |
 | Points brackets | Pilots split into brackets by seed, several rounds each, ranked by a points table (drop-worst optional) |
 
-**Set one up** at **Brackets → New stage** (`/stages/new`). Pick the format and
+**Set one up** at **Brackets → Create bracket** (`/stages/new`). Pick the format and
 pilots, seeded from the meeting's results (best consecutive laps). Drag to
 reorder, then set the options: pilots per race, how many advance, finals, and
 so on.
