@@ -406,7 +406,7 @@ func (s *liveServer) raceCard(b *strings.Builder, st stageRecord, rc stageRace, 
 		b.WriteString(`<li class="mut">to be decided</li>`)
 	}
 	b.WriteString(`</ol>`)
-	if rc.Locked && rc.IsComplete {
+	if admin && rc.Locked && rc.IsComplete {
 		b.WriteString(`<p class="mut small">Result entered by hand</p>`)
 	}
 	if admin && !rc.IsVoid && len(rc.Pilots) > 0 {
