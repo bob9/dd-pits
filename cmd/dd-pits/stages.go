@@ -157,6 +157,42 @@ func (st *stageRecord) engine() (raceformat.Format, error) {
 	return raceformat.FromState(st.Format, st.config(), st.State)
 }
 
+// draftStage builds a stage without saving it: what create stores, and what
+// the create page previews.
+func draftStage(name string, kind raceformat.FormatKind, pilots []string, setup stageSetup, autoSend bool) (*stageRecord, error) {
+	var clean []string
+	seen := map[string]bool{}
+	for _, p := range pilots {
+		p = strings.TrimSpace(p)
+		if p == "" || seen[strings.ToLower(p)] {
+			continue
+		}
+		seen[strings.ToLower(p)] = true
+		clean = append(clean, p)
+	}
+	if len(clean) < 2 {
+		return nil, errors.New("a stage needs at least two pilots")
+	}
+	if strings.TrimSpace(name) == "" {
+		name = "Stage"
+	}
+	st := &stageRecord{
+		Name: strings.TrimSpace(name), Format: kind, Setup: setup, Pilots: clean,
+		Created: time.Now(), AutoSend: autoSend, AutoResults: true,
+		Links: map[string]string{}, Ext: map[string]int{}, Locked: map[string]bool{}, Applied: map[string]string{},
+	}
+	f, err := raceformat.New(kind, st.config())
+	if err != nil {
+		return nil, err
+	}
+	raw, err := json.Marshal(f.State())
+	if err != nil {
+		return nil, err
+	}
+	st.State = raw
+	return st, nil
+}
+
 // seeds maps each pilot to their 1-based seed.
 func (st *stageRecord) seeds() map[string]int {
 	m := make(map[string]int, len(st.Pilots))
@@ -289,36 +325,11 @@ func (m *stageManager) snapshot() dronedash.Snapshot {
 // create builds a new stage. The engine draws it straight away, so a field the
 // format can't use is refused here rather than discovered mid-meeting.
 func (m *stageManager) create(name string, kind raceformat.FormatKind, pilots []string, setup stageSetup, autoSend bool) (*stageRecord, error) {
-	var clean []string
-	seen := map[string]bool{}
-	for _, p := range pilots {
-		p = strings.TrimSpace(p)
-		if p == "" || seen[strings.ToLower(p)] {
-			continue
-		}
-		seen[strings.ToLower(p)] = true
-		clean = append(clean, p)
-	}
-	if len(clean) < 2 {
-		return nil, errors.New("a stage needs at least two pilots")
-	}
-	if strings.TrimSpace(name) == "" {
-		name = "Stage"
-	}
-	st := &stageRecord{
-		Name: strings.TrimSpace(name), Format: kind, Setup: setup, Pilots: clean,
-		Created: time.Now(), AutoSend: autoSend, AutoResults: true,
-		Links: map[string]string{}, Ext: map[string]int{}, Locked: map[string]bool{}, Applied: map[string]string{},
-	}
-	f, err := raceformat.New(kind, st.config())
+	st, err := draftStage(name, kind, pilots, setup, autoSend)
 	if err != nil {
 		return nil, err
 	}
-	raw, err := json.Marshal(f.State())
-	if err != nil {
-		return nil, err
-	}
-	st.State = raw
+	clean := st.Pilots
 
 	m.store.mu.Lock()
 	m.store.NextID++

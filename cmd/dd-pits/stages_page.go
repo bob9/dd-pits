@@ -42,6 +42,8 @@ func (s *liveServer) stageRoute(w http.ResponseWriter, r *http.Request) {
 		s.stageFind(w, r)
 	case rest == "links":
 		s.stageLinks(w, r)
+	case rest == "preview":
+		s.stagePreview(w, r)
 	case strings.HasSuffix(rest, ".json"):
 		s.stageJSON(w, r, strings.TrimSuffix(rest, ".json"))
 	case strings.HasSuffix(rest, "/action"):
@@ -115,6 +117,92 @@ func atoiOr(v string, def int) int {
 	return def
 }
 
+// stageForm reads the create page's format, options and seeded pilots.
+func stageForm(r *http.Request) (raceformat.FormatKind, stageSetup, []string) {
+	kind := raceformat.FormatKind(r.FormValue("format"))
+	setup := stageSetup{
+		EliminationType: r.FormValue("eliminationType"),
+		FinalsFormat:    r.FormValue("finalsFormat"),
+		PilotsPerRace:   atoiOr(r.FormValue("pilotsPerRace"), 4),
+		PilotsToAdvance: atoiOr(r.FormValue("pilotsToAdvance"), 2),
+		AceWinsRequired: atoiOr(r.FormValue("aceWinsRequired"), 2),
+		QualifierCTA:    r.FormValue("qualifierCta") == "on",
+		QualifierSeed:   r.FormValue("qualifierSeed"),
+		PilotsPerMain:   atoiOr(r.FormValue("pilotsPerMain"), 16),
+		BumpUp:          atoiOr(r.FormValue("bumpUp"), 4),
+		Mains:           atoiOr(r.FormValue("mains"), 0),
+		Rounds:          atoiOr(r.FormValue("rounds"), 3),
+		Direction:       r.FormValue("direction"),
+		DropWorst:       atoiOr(r.FormValue("dropWorst"), 0),
+		Laps:            atoiOr(r.FormValue("laps"), 0),
+	}
+	if secs, err := parseDuration(r.FormValue("raceTime")); err == nil {
+		setup.RaceSeconds = secs
+	}
+	if r.FormValue("ctaAllMains") == "on" {
+		setup.CTAMains = []string{"*"}
+	}
+	for _, p := range strings.Split(r.FormValue("pointsTable"), ",") {
+		if n, err := strconv.Atoi(strings.TrimSpace(p)); err == nil {
+			setup.PointsTable = append(setup.PointsTable, n)
+		}
+	}
+	pilots := strings.Split(strings.ReplaceAll(r.FormValue("pilots"), "\r", ""), "\n")
+	return kind, setup, pilots
+}
+
+// stagePreview draws the bracket the create page would make, without
+// saving it: every race in every round, round 1 seated, later rounds
+// filled in as results come.
+func (s *liveServer) stagePreview(w http.ResponseWriter, r *http.Request) {
+	if !localSetupAllowed(r) {
+		http.Error(w, "not allowed", http.StatusForbidden)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	kind, setup, pilots := stageForm(r)
+	st, err := draftStage(r.FormValue("name"), kind, pilots, setup, false)
+	var races []stageRace
+	if err == nil {
+		races, _, err = s.stages.races(*st, nil)
+	}
+	if err != nil {
+		msg := strings.TrimPrefix(err.Error(), "raceformat: ")
+		fmt.Fprintf(w, `<p class="warn">Can't draw this bracket: %s</p>`, esc(msg))
+		return
+	}
+	rounds := map[int]bool{}
+	n := 0
+	for _, rc := range races {
+		if !rc.IsVoid {
+			n++
+			rounds[rc.Round] = true
+		}
+	}
+	plural := func(k int, one string) string {
+		if k == 1 {
+			return "1 " + one
+		}
+		return fmt.Sprintf("%d %ss", k, one)
+	}
+	fmt.Fprintf(w, `<p class="mut">%s · %s · %s, up to %s. Round 1 is seeded now; later races fill in as results come in.</p>`,
+		esc(formatLabel(kind)), plural(len(st.Pilots), "pilot"), plural(n, "race"), plural(len(rounds), "round"))
+	shown := races[:0]
+	for _, rc := range races {
+		if rc.IsVoid {
+			continue
+		}
+		rc.State = "pv-later"
+		if len(rc.Pilots) > 0 {
+			rc.State = "pv-seeded"
+		}
+		shown = append(shown, rc)
+	}
+	b := &strings.Builder{}
+	s.bracketGrid(b, *st, shown, false, nil, false)
+	_, _ = w.Write([]byte(b.String()))
+}
+
 func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
 	if !localSetupAllowed(r) {
 		setupDenied(w)
@@ -122,35 +210,7 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
 	}
 	errMsg := ""
 	if r.Method == http.MethodPost {
-		kind := raceformat.FormatKind(r.FormValue("format"))
-		setup := stageSetup{
-			EliminationType: r.FormValue("eliminationType"),
-			FinalsFormat:    r.FormValue("finalsFormat"),
-			PilotsPerRace:   atoiOr(r.FormValue("pilotsPerRace"), 4),
-			PilotsToAdvance: atoiOr(r.FormValue("pilotsToAdvance"), 2),
-			AceWinsRequired: atoiOr(r.FormValue("aceWinsRequired"), 2),
-			QualifierCTA:    r.FormValue("qualifierCta") == "on",
-			QualifierSeed:   r.FormValue("qualifierSeed"),
-			PilotsPerMain:   atoiOr(r.FormValue("pilotsPerMain"), 16),
-			BumpUp:          atoiOr(r.FormValue("bumpUp"), 4),
-			Mains:           atoiOr(r.FormValue("mains"), 0),
-			Rounds:          atoiOr(r.FormValue("rounds"), 3),
-			Direction:       r.FormValue("direction"),
-			DropWorst:       atoiOr(r.FormValue("dropWorst"), 0),
-			Laps:            atoiOr(r.FormValue("laps"), 0),
-		}
-		if secs, err := parseDuration(r.FormValue("raceTime")); err == nil {
-			setup.RaceSeconds = secs
-		}
-		if r.FormValue("ctaAllMains") == "on" {
-			setup.CTAMains = []string{"*"}
-		}
-		for _, p := range strings.Split(r.FormValue("pointsTable"), ",") {
-			if n, err := strconv.Atoi(strings.TrimSpace(p)); err == nil {
-				setup.PointsTable = append(setup.PointsTable, n)
-			}
-		}
-		pilots := strings.Split(strings.ReplaceAll(r.FormValue("pilots"), "\r", ""), "\n")
+		kind, setup, pilots := stageForm(r)
 		st, err := s.stages.create(r.FormValue("name"), kind, pilots, setup, r.FormValue("autoSend") == "on")
 		if err == nil {
 			http.Redirect(w, r, "/stages/"+st.ID, http.StatusSeeOther)
@@ -232,8 +292,9 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
 <p class="mut">` + raceSettingsNote() + `</p>
 <p><label><input type="checkbox" name="autoSend" checked> Send each race to ` + esc(timingSystem) + ` as soon as its line-up is known</label></p>
 </div>
+<div class="card"><h2>4 · Preview</h2><div id="preview"><p class="mut">Drawing the bracket…</p></div></div>
 <p><button type="submit">Create bracket</button> <a href="/stages" class="mut">Cancel</a></p>
-</form>
+</form>` + stageCSS + `
 <style>
  .fmts{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:.7rem}
  .fmt{display:block;margin:0;padding:.85rem 1rem;border:1px solid var(--line);border-radius:16px;cursor:pointer;background:rgba(0,0,0,.25)}
@@ -244,6 +305,9 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
  .seedlist li.off{opacity:.45}.seedlist li .n{color:var(--acc);font-weight:700;min-width:2.2rem}
  .seedlist li .nm{flex:1}.seedlist li button{padding:.15rem .55rem;font-size:.8rem}
  .seedlist li.drag{opacity:.4}
+ #preview .psec+.psec{margin-top:1.1rem;padding-top:1rem;border-top:1px solid var(--line)}
+ #preview .psec h2{font-size:1rem;margin:0 0 .6rem}
+ #preview.busy{opacity:.6;transition:opacity .2s}
 </style>
 <script>
 (function(){
@@ -289,7 +353,22 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
   });
   document.getElementById('count').textContent=n+' pilots in the bracket';
   document.getElementById('pilots').value=items.filter(x=>x.on).map(x=>x.name).join('\n');
+  preview();
  }
+ // The preview: the same bracket engine draws the races, nothing is saved.
+ const form = document.getElementById('stageform'), pv = document.getElementById('preview');
+ let pvTimer = null, pvSeq = 0;
+ function preview(){
+  clearTimeout(pvTimer);
+  pvTimer = setTimeout(() => {
+   const seq = ++pvSeq; pv.classList.add('busy');
+   fetch('/stages/preview', {method:'POST', body:new URLSearchParams(new FormData(form))})
+    .then(r => r.text()).then(html => { if(seq === pvSeq){ pv.innerHTML = html; pv.classList.remove('busy'); } })
+    .catch(() => { if(seq === pvSeq) pv.classList.remove('busy'); });
+  }, 200);
+ }
+ form.addEventListener('input', e => { if(e.target.id !== 'addp') preview(); });
+ form.addEventListener('change', e => { if(e.target.id !== 'addp') preview(); });
  document.getElementById('addbtn').onclick=()=>{
   const ta=document.getElementById('addp');
   ta.value.split('\n').map(x=>x.trim()).filter(Boolean).forEach(n=>{if(!items.some(x=>x.name.toLowerCase()===n.toLowerCase()))items.push({name:n,on:true})});
@@ -373,6 +452,9 @@ var stateLabel = map[string]string{
 	"flown":    "Flown",
 	"finished": "Done",
 	"void":     "Not needed",
+	// the create page's preview
+	"pv-seeded": "Seeded",
+	"pv-later":  "From results",
 }
 
 func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string) {
@@ -448,6 +530,27 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 		fmt.Fprintf(b, `<div class="card"><p class="warn">%s</p></div>`, esc(st.LastError))
 	}
 
+	s.bracketGrid(b, st, races, admin, heatLink, true)
+
+	if rows := standings(f, st.seeds()); len(rows) > 0 && (f.IsComplete() || st.Format == raceformat.KindMains || st.Format == raceformat.KindLadder) {
+		b.WriteString(`<div class="card"><h2>Standings</h2><table><tr><th>#</th><th>Pilot</th><th></th></tr>`)
+		for _, row := range rows {
+			tied := ""
+			if row.Tied {
+				tied = ` <span class="badge">not decided on track</span>`
+			}
+			fmt.Fprintf(b, `<tr><td>%d</td><td>%s%s</td><td class="mut">%s</td></tr>`, row.Rank, esc(row.Pilot), tied, esc(row.Detail))
+		}
+		b.WriteString(`</table></div>`)
+	}
+	b.WriteString(stageCSS + stageRefresh)
+	writeSetup(w, st.Name, b.String())
+}
+
+// bracketGrid lays out a bracket's races: one section per bracket (bracket
+// progression) or points bracket, a column per round within it. card is
+// false for a section without its own card (the create page's preview).
+func (s *liveServer) bracketGrid(b *strings.Builder, st stageRecord, races []stageRace, admin bool, heatLink func(string) string, card bool) {
 	// One section per bracket (bracket progression) or per points bracket;
 	// within it, a column per round.
 	type section struct {
@@ -470,7 +573,11 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 		sec.rounds[rc.Round] = append(sec.rounds[rc.Round], rc)
 	}
 	for _, sec := range sections {
-		b.WriteString(`<div class="card">`)
+		if card {
+			b.WriteString(`<div class="card">`)
+		} else {
+			b.WriteString(`<div class="psec">`)
+		}
 		if sec.key != "" {
 			name := sec.key
 			if len(name) == 1 {
@@ -494,19 +601,6 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 		b.WriteString(`</div></div>`)
 	}
 
-	if rows := standings(f, st.seeds()); len(rows) > 0 && (f.IsComplete() || st.Format == raceformat.KindMains || st.Format == raceformat.KindLadder) {
-		b.WriteString(`<div class="card"><h2>Standings</h2><table><tr><th>#</th><th>Pilot</th><th></th></tr>`)
-		for _, row := range rows {
-			tied := ""
-			if row.Tied {
-				tied = ` <span class="badge">not decided on track</span>`
-			}
-			fmt.Fprintf(b, `<tr><td>%d</td><td>%s%s</td><td class="mut">%s</td></tr>`, row.Rank, esc(row.Pilot), tied, esc(row.Detail))
-		}
-		b.WriteString(`</table></div>`)
-	}
-	b.WriteString(stageCSS + stageRefresh)
-	writeSetup(w, st.Name, b.String())
 }
 
 func onOff(b bool) string {
@@ -543,6 +637,10 @@ func (s *liveServer) raceCard(b *strings.Builder, st stageRecord, rc stageRace, 
 		b.WriteString(`<li class="mut">to be decided</li>`)
 	}
 	b.WriteString(`</ol>`)
+	if strings.HasPrefix(rc.State, "pv-") {
+		b.WriteString(`</div>`)
+		return // a preview: nothing to link to or run yet
+	}
 	if u := s.dashboardLink(rc); u != "" {
 		fmt.Fprintf(b, `<a class="mlink" href="%s">Dashboard</a> `, esc(u))
 	}
@@ -783,6 +881,7 @@ const stageCSS = `<style>
  .race li .sd{color:var(--mut);font-size:.75rem;min-width:1.3rem;text-align:right;padding-top:.12rem}
  .race li.win{color:var(--acc);font-weight:700}.race li.out{color:var(--mut)}
  .badge{font-size:.68rem;font-weight:700;padding:.12rem .45rem;border-radius:999px;background:rgba(255,255,255,.08);color:#c3c9d2;white-space:nowrap}
+ .st-pv-seeded{border-color:rgba(198,255,61,.5)}.st-pv-seeded .badge{background:rgba(198,255,61,.16);color:var(--acc)}
  .st-ready{border-color:rgba(198,255,61,.5)}.st-ready .badge{background:rgba(198,255,61,.16);color:var(--acc)}
  .st-running{border-color:#ff453a}.st-running .badge{background:rgba(255,69,58,.2);color:#ff6b61}
  .st-sent .badge,.st-flown .badge{background:rgba(61,224,255,.14);color:var(--cyan)}
