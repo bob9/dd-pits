@@ -20,6 +20,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -314,6 +315,9 @@ func main() {
 			log.Fatalf("dd-pits: bad -rotorhazard URL: %v", err)
 		}
 		timingSystem = "RotorHazard"
+		if u, err := url.Parse(*rhURL); err == nil {
+			rotorhazardPort = u.Port()
+		}
 		log.Printf("dd-pits: reading timing from RotorHazard at %s", *rhURL)
 	}
 

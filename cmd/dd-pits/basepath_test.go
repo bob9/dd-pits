@@ -105,13 +105,36 @@ func TestSetupPagesClosedThroughProxy(t *testing.T) {
 	if try("/setup/pilots", true) != http.StatusForbidden {
 		t.Fatal("setup pages must be closed through the proxy without the PIN")
 	}
-	if try("/setup/pilots?pin=4321", true) != http.StatusOK {
-		t.Fatal("the PIN opens them")
+	r := httptest.NewRequest("GET", "/setup/pilots?pin=4321", nil)
+	r.Header.Set("X-Forwarded-For", "203.0.113.9")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/setup/pilots" || len(w.Result().Cookies()) == 0 {
+		t.Fatalf("the PIN should be saved and dropped from the address: %d %q", w.Code, w.Header().Get("Location"))
+	}
+	r = httptest.NewRequest("GET", "/setup/pilots", nil)
+	r.Header.Set("X-Forwarded-For", "203.0.113.9")
+	r.AddCookie(w.Result().Cookies()[0])
+	w = httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != http.StatusOK {
+		t.Fatal("the saved PIN opens them")
 	}
 	if try("/setup/help", true) != http.StatusOK || try("/", true) != http.StatusOK {
 		t.Fatal("help and the dashboard stay open")
 	}
 	if try("/setup/pilots", false) != http.StatusOK {
 		t.Fatal("this machine still gets in")
+	}
+}
+
+func TestSafeNext(t *testing.T) {
+	r := httptest.NewRequest("POST", "/login", nil)
+	r.Header.Set("X-Forwarded-Prefix", "/pits")
+	for in, want := range map[string]string{"/pits/stages/s1": "/stages/s1", "/stages/s1": "/stages/s1",
+		"//evil.example": "/", "https://evil.example": "/", "/pits": "/"} {
+		if got := safeNext(r, in); got != want {
+			t.Errorf("safeNext(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

@@ -17,8 +17,11 @@ Free and open source (MIT), by bob9: https://github.com/bob9/dd-pits
 """
 
 import dataclasses
+import json
 import logging
 import os
+import re
+import urllib.request
 
 from flask import Blueprint, Response, jsonify, redirect, request
 from eventmanager import Evt
@@ -72,6 +75,19 @@ _SETTING_DEFAULTS = {"autostart": "1", "port": "8088", "binary": "", "public_url
 # The links added to RotorHazard's own menu, so nobody has to know the port.
 _NAV_MAIN = ('<li class="dd-pits-nav"><a href="/dd-pits/">dd-pits</a></li>'
              '<li class="dd-pits-nav"><a href="/dd-pits/upcoming">Upcoming</a></li>')
+# On RotorHazard's race pages, a strip that links the selected heat to its
+# race in a dd-pits bracket. Filled in by the browser from /dd-pits/api/heat-link.
+_HEAT_STRIP = (
+    '<div id="ddp-heat" data-heat="%s" style="display:none;margin:0 auto;max-width:1200px;padding:.55rem 1rem;'
+    'background:rgba(198,255,61,.12);border:1px solid rgba(198,255,61,.45);border-radius:10px;font-weight:600"></div>'
+    '<script>(function(){var el=document.getElementById("ddp-heat"),heat=el.dataset.heat;'
+    'function load(){fetch("/dd-pits/api/heat-link?heat="+heat).then(function(r){return r.json()}).then(function(d){'
+    'if(!d||!d.url){el.style.display="none";return}el.innerHTML="";var a=document.createElement("a");a.href=d.url;'
+    'a.textContent="\U0001F3C1 "+d.stage+" \u00b7 "+d.title+" \u2014 open the bracket in dd-pits \u2192";'
+    'el.appendChild(a);el.style.display="block"}).catch(function(){})}'
+    'load();if(heat==="current")setInterval(load,5000)})();</script>')
+_HEAT_PAGES = re.compile(r"^/(run|current|marshal|stream/heat/(\d+))/?$")
+
 _NAV_EXTRA = ('<li class="dd-pits-nav"><a href="/dd-pits/stages">dd-pits brackets</a></li>'
               '<li class="dd-pits-nav"><a href="/dd-pits/overlays">dd-pits OBS overlays</a></li>')
 
@@ -328,10 +344,23 @@ class DDPits:
                     or not _truthy(self.setting("menu", "1"))):
                 return resp
             html = resp.get_data(as_text=True)
-            if 'id="nav-main"' not in html or "dd-pits-nav" in html:
+            if "dd-pits-nav" in html or "ddp-heat" in html:
                 return resp
-            html = html.replace('<li class="extra">', _NAV_MAIN + '<li class="extra">', 1)
-            html = html.replace('<li><a href="/streams">', _NAV_EXTRA + '<li><a href="/streams">', 1)
+            changed = False
+            if 'id="nav-main"' in html:
+                html = html.replace('<li class="extra">', _NAV_MAIN + '<li class="extra">', 1)
+                html = html.replace('<li><a href="/streams">', _NAV_EXTRA + '<li><a href="/streams">', 1)
+                changed = True
+            m = _HEAT_PAGES.match(request.path)
+            if m:
+                strip = _HEAT_STRIP % (m.group(2) or "current")
+                if "</header>" in html:
+                    html = html.replace("</header>", "</header>" + strip, 1)
+                elif "<body" in html:
+                    html = re.sub(r"(<body[^>]*>)", lambda b: b.group(1) + strip, html, count=1)
+                changed = True
+            if not changed:
+                return resp
             resp.set_data(html)
         except Exception as ex:  # never break a RotorHazard page over a link
             logger.debug("dd-pits: menu link not added: %s", ex)
@@ -402,6 +431,28 @@ class DDPits:
             self.builder.invalidate()
             return jsonify(out)
 
+        @bp.route("/api/heat-link")
+        def api_heat_link():
+            # Which dd-pits bracket race is this heat? Asked by the strip on
+            # RotorHazard's race pages; public, like the bracket itself.
+            want = request.args.get("heat", "current")
+            try:
+                heat = int(self.rhapi.race.heat or 0) if want == "current" else int(want)
+            except (TypeError, ValueError):
+                heat = 0
+            if not heat or not self.runner.running():
+                return jsonify({})
+            try:
+                with urllib.request.urlopen("http://127.0.0.1:%d/stages/find?link=rh-h%d" % (self.port(), heat),
+                                            timeout=2) as resp:
+                    found = json.loads(resp.read().decode("utf-8") or "{}")
+            except Exception:
+                return jsonify({})
+            if not found.get("path"):
+                return jsonify({})
+            return jsonify({"stage": found.get("stage", ""), "title": found.get("title", ""),
+                            "url": self._dd_url(found["path"])})
+
         @bp.route("/api/snapshot")
         def api_snapshot():
             return jsonify(self.snapshot())
@@ -431,7 +482,13 @@ class DDPits:
             if not self._admin_ok():
                 return Response("Log in to RotorHazard to set up dd-pits.", 401,
                                 {"WWW-Authenticate": 'Basic realm="Login Required"'})
-            return redirect(self._dd_url("/setup?pin=%s" % self.runner.setup_pin()))
+            # Back to the dd-pits page the race director came from (?next=),
+            # with the PIN, which dd-pits keeps in a cookie from then on.
+            nxt = request.args.get("next") or "/setup"
+            if not nxt.startswith("/") or nxt.startswith("//") or "\\" in nxt:
+                nxt = "/setup"
+            sep = "&" if "?" in nxt else "?"
+            return redirect(self._dd_url("%s%spin=%s" % (nxt, sep, self.runner.setup_pin())))
 
         @bp.route("/log")
         def log_page():

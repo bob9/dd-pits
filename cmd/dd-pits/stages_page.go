@@ -37,6 +37,8 @@ func (s *liveServer) stageRoute(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/stages", http.StatusSeeOther)
 	case rest == "new":
 		s.stageNew(w, r)
+	case rest == "find":
+		s.stageFind(w, r)
 	case strings.HasSuffix(rest, ".json"):
 		s.stageJSON(w, r, strings.TrimSuffix(rest, ".json"))
 	case strings.HasSuffix(rest, "/action"):
@@ -49,6 +51,7 @@ func (s *liveServer) stageRoute(w http.ResponseWriter, r *http.Request) {
 func (s *liveServer) stagesList(w http.ResponseWriter, r *http.Request) {
 	admin := localSetupAllowed(r)
 	b := &strings.Builder{}
+	b.WriteString(loginBar(r))
 	list := s.stages.list()
 	if admin {
 		b.WriteString(`<div class="card"><h2>Run a bracket</h2>
@@ -283,10 +286,22 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 	admin := localSetupAllowed(r)
 	races, f, err := s.stages.races(st, s.currentMeeting())
 	b := &strings.Builder{}
+	b.WriteString(loginBar(r))
 	if err != nil {
 		fmt.Fprintf(b, `<div class="card"><p class="warn">%s</p></div>`, esc(err.Error()))
 		writeSetup(w, st.Name, b.String())
 		return
+	}
+	// RotorHazard's page for a heat this bracket sent there.
+	var heatLink func(string) string
+	if base := rhBase(r); base != "" {
+		heatLink = func(link string) string {
+			var heat int
+			if _, err := fmt.Sscanf(link, "rh-h%d", &heat); err != nil || heat == 0 {
+				return ""
+			}
+			return fmt.Sprintf("%s/stream/heat/%d", base, heat)
+		}
 	}
 	ready := 0
 	for _, rc := range races {
@@ -295,8 +310,12 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 		}
 	}
 
-	fmt.Fprintf(b, `<div class="card stagehead"><div><p class="mut"><a href="/stages">Brackets</a></p><h1>%s</h1><p class="mut">%s · %d pilots</p>`,
-		esc(st.Name), esc(formatLabel(st.Format)), len(st.Pilots))
+	rh := ""
+	if base := rhBase(r); base != "" {
+		rh = ` · <a href="` + esc(base) + `/run">RotorHazard Run page ↗</a> · <a href="` + esc(base) + `/results">Results ↗</a>`
+	}
+	fmt.Fprintf(b, `<div class="card stagehead"><div><p class="mut"><a href="/stages">Brackets</a>%s%s</p><h1>%s</h1><p class="mut">%s · %d pilots</p>`,
+		rh, logoutLink(r), esc(st.Name), esc(formatLabel(st.Format)), len(st.Pilots))
 	if c := f.Champion(); c != "" {
 		fmt.Fprintf(b, `<p class="champ">🏆 %s</p>`, esc(c))
 	}
@@ -355,7 +374,7 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 		for _, n := range nums {
 			fmt.Fprintf(b, `<div class="col"><div class="colh">Round %d</div>`, n)
 			for _, rc := range sec.rounds[n] {
-				s.raceCard(b, st, rc, admin)
+				s.raceCard(b, st, rc, admin, heatLink)
 			}
 			b.WriteString(`</div>`)
 		}
@@ -384,9 +403,9 @@ func onOff(b bool) string {
 	return "off"
 }
 
-func (s *liveServer) raceCard(b *strings.Builder, st stageRecord, rc stageRace, admin bool) {
-	fmt.Fprintf(b, `<div class="race st-%s"><div class="rh"><b>%s</b><span class="badge">%s</span></div><ol>`,
-		esc(rc.State), esc(rc.Title), esc(stateLabel[rc.State]))
+func (s *liveServer) raceCard(b *strings.Builder, st stageRecord, rc stageRace, admin bool, rhHeatLink func(string) string) {
+	fmt.Fprintf(b, `<div class="race st-%s" id="r-%s"><div class="rh"><b>%s</b><span class="badge">%s</span></div><ol>`,
+		esc(rc.State), esc(rc.ID), esc(rc.Title), esc(stateLabel[rc.State]))
 	won := map[string]bool{}
 	for _, p := range rc.Winners {
 		won[p] = true
@@ -407,6 +426,11 @@ func (s *liveServer) raceCard(b *strings.Builder, st stageRecord, rc stageRace, 
 		b.WriteString(`<li class="mut">to be decided</li>`)
 	}
 	b.WriteString(`</ol>`)
+	if rc.Link != "" && rhHeatLink != nil {
+		if u := rhHeatLink(rc.Link); u != "" {
+			fmt.Fprintf(b, `<a class="mlink" href="%s">RotorHazard heat ↗</a>`, esc(u))
+		}
+	}
 	if admin && rc.Locked && rc.IsComplete {
 		b.WriteString(`<p class="mut small">Result entered by hand</p>`)
 	}
@@ -528,6 +552,33 @@ func (s *liveServer) stageAction(w http.ResponseWriter, r *http.Request, id stri
 	http.Redirect(w, r, "/stages/"+id, http.StatusSeeOther)
 }
 
+// stageFind answers which bracket race a timer race belongs to, for the
+// RotorHazard plugin's "open the bracket in dd-pits" strip:
+// /stages/find?link=rh-h12 -> {"stage","race","title","path"}.
+func (s *liveServer) stageFind(w http.ResponseWriter, r *http.Request) {
+	link := r.FormValue("link")
+	w.Header().Set("Content-Type", "application/json")
+	for _, st := range s.stages.list() {
+		for raceID, l := range st.Links {
+			if l != link || link == "" {
+				continue
+			}
+			title := raceID
+			if f, err := st.engine(); err == nil {
+				for _, rv := range f.Races() {
+					if rv.ID == raceID {
+						title = stageTerms(rv.Title)
+					}
+				}
+			}
+			_ = json.NewEncoder(w).Encode(map[string]string{"stage": st.Name, "race": raceID, "title": title,
+				"path": "/stages/" + st.ID + "#r-" + raceID})
+			return
+		}
+	}
+	_, _ = w.Write([]byte("{}"))
+}
+
 func (s *liveServer) stageJSON(w http.ResponseWriter, r *http.Request, id string) {
 	st, ok := s.stages.get(id)
 	if !ok {
@@ -560,6 +611,7 @@ func (s *liveServer) stageJSON(w http.ResponseWriter, r *http.Request, id string
 
 const stageCSS = `<style>
  main{max-width:96rem}
+ .loginbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-color:rgba(198,255,61,.35)}
  .stagehead{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:center}
  .stagehead h1{margin:.1rem 0;font-size:clamp(1.6rem,3.5vw,2.3rem);letter-spacing:-.03em}
  .stagehead .champ{font-size:1.4rem;font-weight:800;color:var(--acc);margin:.2rem 0}
@@ -578,6 +630,7 @@ const stageCSS = `<style>
  .st-running{border-color:#ff453a}.st-running .badge{background:rgba(255,69,58,.2);color:#ff6b61}
  .st-sent .badge,.st-flown .badge{background:rgba(61,224,255,.14);color:var(--cyan)}
  .st-void{opacity:.45}
+ .race:target{box-shadow:0 0 0 3px var(--acc);border-color:var(--acc)}
  .ra{margin-top:.5rem;display:grid;gap:.35rem}
  .ra details summary{cursor:pointer;color:var(--acc);font-size:.84rem}
  .ra label{margin:.35rem 0 .1rem}

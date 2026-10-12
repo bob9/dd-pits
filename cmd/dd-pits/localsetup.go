@@ -120,6 +120,16 @@ func rememberSetupPIN(next http.Handler) http.Handler {
 		if setupPIN != "" && !demoMode && r.URL.Query().Get("pin") == setupPIN {
 			http.SetCookie(w, &http.Cookie{Name: setupPINCookie, Value: setupPIN, Path: "/",
 				HttpOnly: true, SameSite: http.SameSiteLaxMode, MaxAge: 30 * 24 * 3600})
+			// Then the same page without the PIN in the address, so it isn't
+			// left in the address bar, the history or a shared link.
+			if r.Method == http.MethodGet {
+				q := r.URL.Query()
+				q.Del("pin")
+				u := *r.URL
+				u.RawQuery = q.Encode()
+				http.Redirect(w, r, u.RequestURI(), http.StatusSeeOther)
+				return
+			}
 		}
 		// Published on the internet, the setup pages are not for browsing: on
 		// the venue network they can be looked at read-only, but through a
@@ -148,9 +158,9 @@ exactly as it does at a venue, but nothing here can be changed, saved or install
 	}
 	if timingSystem == "RotorHazard" {
 		fmt.Fprint(w, setupPage("Not from here", `<div class="card"><h2>Open setup from RotorHazard</h2>
-<p>dd-pits' settings open from <strong>RotorHazard → Settings → dd-pits → Set up dd-pits</strong>,
-which asks for RotorHazard's admin login and then lets you in.</p>
-<p><a href="/"><button>Back to the dashboard</button></a></p></div>`))
+<p>Log in as the race director with RotorHazard's admin login, or open
+<strong>RotorHazard → Settings → dd-pits → Set up dd-pits</strong>.</p>
+<p><a href="/login?next=/setup"><button>Log in</button></a> <a href="/"><button class="sec">Back to the dashboard</button></a></p></div>`))
 		return
 	}
 	fmt.Fprint(w, setupPage("Not from here", `

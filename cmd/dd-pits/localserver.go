@@ -1326,10 +1326,10 @@ func (s *liveServer) handler() http.Handler {
 				}
 			}
 			if r.URL.Query().Get("fragment") == "1" {
-				s.fragment(w, r, view, mv)
+				s.fragmentExtra(w, r, view, mv, map[string]any{"RH": rhBase(r)})
 				return
 			}
-			s.render(w, view, mv, nil)
+			s.render(w, view, mv, map[string]any{"RH": rhBase(r)})
 		}
 	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -1413,6 +1413,7 @@ func (s *liveServer) handler() http.Handler {
 	s.registerLocalSetup(mux)
 	s.registerStages(mux)
 	s.registerMarshal(mux)
+	s.registerLogin(mux)
 
 	// JSON read-API + SSE streams + Swagger UI / OpenAPI — the shared surface
 	// (internal/platform/ddapi), served identically by the cloud server. There is
@@ -1628,6 +1629,7 @@ html[data-lite] .pos.p3{background:#c06a2c}
 .card.up-race{padding:.9rem 1.1rem;border-bottom:1px solid var(--line);margin-bottom:.6rem}
 .card.up-now{border-color:rgba(198,255,61,.45)}
 .up-when{margin-left:auto;font-size:.78rem;font-weight:700;color:var(--accent,#c6ff3d);white-space:nowrap}
+.rh-run{margin-left:auto;font-size:.8rem;font-weight:600;color:var(--accent,#c6ff3d);white-space:nowrap}
 .up-all{display:inline-block;margin-top:.7rem;font-weight:600;font-size:.9rem;color:var(--accent,#c6ff3d)}
 .up-search{padding-top:1rem;padding-bottom:0}
 .up-search input{width:100%;padding:.8rem 1rem;font:inherit;font-size:1.05rem;color:inherit;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:14px;outline:none}
@@ -2213,7 +2215,7 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
   <span class="name">{{if eq .Brand.Name "dd-pits"}}<span class="dd">dd</span>-pits{{else}}{{.Brand.Name}}{{end}}</span>
   {{if .M}}<span class="meet">{{.M.Name}}</span>{{end}}
   <nav>
-    <a href="/">Home</a><a href="/live">Live</a><a href="/dronedash/upcoming">Upcoming</a><a href="/dronedash/races">Races</a><a href="/stages">Brackets</a><a href="/overlays">Overlays</a>
+    <a href="/">Home</a><a href="/live">Live</a><a href="/dronedash/upcoming">Upcoming</a><a href="/dronedash/races">Races</a><a href="/stages">Brackets</a><a href="/overlays">Overlays</a>{{if .RH}}<a href="{{.RH}}/event">RotorHazard ↗</a>{{end}}
   </nav>
   <a class="bmc" href="` + supportURL + `" target="_blank" rel="noopener" title="dd-pits is free — support the developer">☕ Support</a>
   {{if .Brand.Version}}<span class="ver" title="dd-pits version — quote this when reporting a problem">{{.Brand.Version}}</span>{{end}}
@@ -2305,7 +2307,7 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
   {{with .M.Current}}
   <div class="card">
     <div style="display:flex;align-items:center;gap:.5rem">
-      <h2>Current Race <span class="sub">{{.Label}}</span>{{if eq .State "running"}}<span class="badge run">LIVE</span>{{end}}</h2>
+      <h2>Current Race <span class="sub">{{.Label}}</span>{{if eq .State "running"}}<span class="badge run">LIVE</span>{{end}}{{if $.RH}}<a class="rh-run" href="{{$.RH}}/run">Run in RotorHazard ↗</a>{{end}}</h2>
       {{if eq .State "running"}}<span class="clock" data-clock-start="{{.StartMs}}">0.0</span>{{end}}
     </div>
     {{template "race-rows" .}}
