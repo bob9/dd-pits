@@ -736,7 +736,7 @@ func (s *liveServer) raceCard(b *strings.Builder, st stageRecord, rc stageRace, 
 		if src, ok := flow.Known[rc.ID][p]; ok && !rc.IsComplete {
 			via = from(src)
 		}
-		fmt.Fprintf(b, `<li class="seat%s">%s<span class="nm">%s</span>%s%s</li>`, cls, seed, esc(p), via, mark)
+		fmt.Fprintf(b, `<li class="seat%s">%s<span class="who"><span class="nm">%s</span>%s</span>%s</li>`, cls, seed, esc(p), via, mark)
 	}
 	for _, src := range flow.Open[rc.ID] {
 		fmt.Fprintf(b, `<li class="seat tbd"><span class="sd">·</span>%s</li>`, from(src))
@@ -1025,8 +1025,9 @@ const stageCSS = `<style>
  .race li.seat+li.seat{border-top:1px solid rgba(255,255,255,.04)}
  .race li .sd{flex:0 0 1.35rem;height:1.35rem;display:inline-grid;place-items:center;border-radius:6px;background:rgba(255,255,255,.06);color:var(--mut);font-size:.7rem;font-weight:700;font-variant-numeric:tabular-nums}
  .race li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
- .race li .from{flex:1;min-width:0;color:var(--mut);font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
- .race li .nm+.from{flex:0 1 auto;max-width:55%;opacity:.8}
+ .race li .from{flex:1;min-width:0;color:var(--mut);font-size:.76rem;line-height:1.3}
+ .race li .who{flex:1;min-width:0;display:flex;flex-direction:column}
+ .race li .who .from{font-size:.7rem;opacity:.85}
  .race li .from b{color:#c3c9d2;font-weight:700;margin-right:.15rem}
  .race li.tbd{background:repeating-linear-gradient(135deg,transparent 0 6px,rgba(255,255,255,.018) 6px 12px)}
  .race li.tbd .sd{background:transparent;border:1px dashed rgba(255,255,255,.18)}
