@@ -26,6 +26,7 @@ from RHUI import UIField, UIFieldType
 
 from .runner import Runner
 from .snapshot import SnapshotBuilder, live_signature
+from .stages import StageError, stage_heat
 
 logger = logging.getLogger(__name__)
 
@@ -277,12 +278,16 @@ class DDPits:
 
     # ── pages ───────────────────────────────────────────────────────────
 
-    def _admin_ok(self):
-        """RotorHazard's own admin login, as its Settings page checks it."""
+    def _admin_ok(self, require=False):
+        """RotorHazard's own admin login, as its Settings page checks it.
+
+        With require, a timer with no admin login set does not count: an
+        unprotected timer must not let anyone on the network change its heats.
+        """
         user = server_config(self.rhapi, "SECRETS", "ADMIN_USERNAME", "")
         pw = server_config(self.rhapi, "SECRETS", "ADMIN_PASSWORD", "")
         if not user and not pw:
-            return True
+            return not require
         auth = request.authorization
         return auth is not None and auth.username == user and auth.password == pw
 
@@ -303,6 +308,20 @@ class DDPits:
             return jsonify({"status": r.status, "running": r.running(), "error": r.last_error,
                             "port": r.port, "autostart": _truthy(self.setting("autostart", "1")),
                             "persistent_settings": _PERSISTENT})
+
+        @bp.route("/api/stage-heat", methods=["POST"])
+        def api_stage_heat():
+            # Changes RotorHazard's data, so only dd-pits (which holds the token
+            # the plugin gave it) or a RotorHazard admin may call it.
+            auth = request.headers.get("Authorization", "")
+            if auth != "Bearer " + self.runner.api_token() and not self._admin_ok(require=True):
+                return jsonify({"error": "not allowed"}), 401
+            try:
+                heat = stage_heat(self.rhapi, request.get_json(force=True) or {})
+            except StageError as ex:
+                return jsonify({"error": str(ex)}), 409
+            self.generation += 1
+            return jsonify({"heat": heat})
 
         @bp.route("/api/snapshot")
         def api_snapshot():

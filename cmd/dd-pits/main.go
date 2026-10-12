@@ -537,6 +537,15 @@ func main() {
 		}
 		a.localCfg = lc
 		a.local.cfg = lc
+
+		// Brackets, kept beside the settings file and sent to whichever timer
+		// this venue reads.
+		var timer stageTimer = &ftStageTimer{base: *ftURL}
+		if *rhURL != "" {
+			timer = &rhStageTimer{base: *rhURL, token: os.Getenv("DD_PITS_TIMER_TOKEN")}
+		}
+		a.local.stages = newStageManager(stagesPath(lc.Path()), timer)
+		go a.local.stages.run(ctx.Done())
 		a.local.logs = logRingBuf
 		// Keeps FPVTrackside's speech volume matching the who-speaks switch,
 		// writing whenever FPVTrackside is closed. Makes "restart FPVTrackside"
@@ -1133,6 +1142,9 @@ func (a *agent) handleSnapshot(snap dronedash.Snapshot) error {
 	// live even when the cloud is unreachable.
 	if a.local != nil {
 		a.local.setSnapshot(snap)
+		if a.local.stages != nil {
+			a.local.stages.observe(snap)
+		}
 	}
 
 	// Feed the ELRS OSD engine (if enabled). Coalescing hand-off — a slow

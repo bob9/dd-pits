@@ -948,6 +948,10 @@ type liveServer struct {
 	// built without it.
 	cfg *localConfig
 
+	// stages runs brackets against the timer (stages.go). nil until main
+	// creates it beside the settings file.
+	stages *stageManager
+
 	// hasVoice is whether anything can actually speak, which decides whether
 	// dd-pits or FPVTrackside makes the race calls.
 	hasVoice bool
@@ -1405,6 +1409,7 @@ func (s *liveServer) handler() http.Handler {
 	// Mounted whenever a settings file exists, so a cloud-connected agent can
 	// still SHOW its configuration (read-only) rather than 404ing.
 	s.registerLocalSetup(mux)
+	s.registerStages(mux)
 
 	// JSON read-API + SSE streams + Swagger UI / OpenAPI — the shared surface
 	// (internal/platform/ddapi), served identically by the cloud server. There is
@@ -2182,7 +2187,7 @@ body.overlay .card{backdrop-filter:none;-webkit-backdrop-filter:none}
   <span class="name">{{if eq .Brand.Name "dd-pits"}}<span class="dd">dd</span>-pits{{else}}{{.Brand.Name}}{{end}}</span>
   {{if .M}}<span class="meet">{{.M.Name}}</span>{{end}}
   <nav>
-    <a href="/">Home</a><a href="/live">Live</a><a href="/dronedash/races">Races</a><a href="/overlays">Overlays</a>
+    <a href="/">Home</a><a href="/live">Live</a><a href="/dronedash/races">Races</a><a href="/stages">Brackets</a><a href="/overlays">Overlays</a>
   </nav>
   <a class="bmc" href="` + supportURL + `" target="_blank" rel="noopener" title="dd-pits is free — support the developer">☕ Support</a>
   {{if .Brand.Version}}<span class="ver" title="dd-pits version — quote this when reporting a problem">{{.Brand.Version}}</span>{{end}}

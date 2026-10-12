@@ -93,6 +93,25 @@ class Runner:
             f.write(pin + "\n")
         return pin
 
+    def api_token(self):
+        """The secret dd-pits presents when it asks RotorHazard to create heats."""
+        path = os.path.join(self.home, "api-token.txt")
+        try:
+            with open(path) as f:
+                tok = f.read().strip()
+                if tok:
+                    return tok
+        except OSError:
+            pass
+        tok = secrets.token_urlsafe(24)
+        with open(path, "w") as f:
+            f.write(tok + "\n")
+        try:
+            os.chmod(path, 0o600)
+        except OSError:
+            pass
+        return tok
+
     def installed_version(self):
         if not os.path.exists(self.binary):
             return ""
@@ -154,8 +173,9 @@ class Runner:
                 kwargs["start_new_session"] = True
                 if platform.system() == "Linux":
                     kwargs["preexec_fn"] = _die_with_parent
+            env = dict(os.environ, DD_PITS_TIMER_TOKEN=self.api_token())
             self.proc = subprocess.Popen(args, cwd=self.home, stdout=log, stderr=subprocess.STDOUT,
-                                         stdin=subprocess.DEVNULL, **kwargs)
+                                         stdin=subprocess.DEVNULL, env=env, **kwargs)
             log.close()
             self.status = "running"
             self.last_error = ""

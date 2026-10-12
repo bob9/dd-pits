@@ -19,6 +19,7 @@ beside the binary.
 **[Download](#download)** ·
 **[Set up with FPVTrackside](#set-up-with-fpvtrackside)** ·
 **[RotorHazard plugin](#rotorhazard)** ·
+**[Brackets](#brackets)** ·
 [ELRS Netpack](https://github.com/bob9/elrs-netpack) ·
 made by **[bob9](https://github.com/bob9)**
 
@@ -321,6 +322,48 @@ dd-pits or RotorHazard's own ELRS plugin, not both.
 Without the plugin, any dd-pits can still read a RotorHazard timer that has the
 plugin installed: `dd-pits -rotorhazard http://<timer>:5000`.
 
+## Brackets
+
+dd-pits runs **stages**: competitions made of several races, where each result
+decides who flies next. They work on RotorHazard and on FPVTrackside. The draw
+and progression come from the same engine as the Stages in
+[bob9's FPVTrackside](https://github.com/bob9/FPVTracksideCore) and the AUFPV
+platform, so a stage gives the same races in all three.
+
+| Format | What it is |
+| --- | --- |
+| Double elimination | Winners and losers brackets; a pilot is out after two losses. Ends in a grand final (with reset) or chase the ace. Single elimination too |
+| Double elimination: top 4 advance | The MultiGP qualifier sheet. Ends in a final that ranks the top four, who qualify onward |
+| Bracket progression | A qualifier per bracket (A, B, C…). The lowest bracket races first and its top finishers move up |
+| Ladder | The lowest seeds race first; the top finishers climb into the next race against higher seeds |
+| Points brackets | Pilots split into brackets by seed, several rounds each, ranked by a points table (drop-worst optional) |
+
+**Set one up** at **Brackets → New stage** (`/stages/new`). Pick the format and
+pilots, seeded from the meeting's results (best consecutive laps). Drag to
+reorder, then set the options: pilots per race, how many advance, finals, and
+so on.
+
+**Running it.** Each race is sent to the timer **as soon as its line-up is
+known**: round 1 straight away, later races as results come in.
+
+- **On RotorHazard,** each race becomes a heat in a race class named after the
+  stage, with the pilots seated in seed order.
+- **On FPVTrackside,** races are created through the REST API in
+  [bob9's FPVTrackside](https://github.com/bob9/FPVTracksideCore). Stock
+  FPVTrackside can't take races from outside, so there you add the races by
+  hand and enter the results on the stage page.
+
+When a race ends, its finishing order is read from the timing and the bracket
+moves on: losers drop into the losers bracket, finalists are seated, and unused
+chase-the-ace races are marked "not needed".
+
+**Results** can also be entered or corrected by hand on the stage page. A
+hand-entered result is locked against timing. A result can be cleared as long as
+no later race that depends on it has been flown.
+
+**Watching.** Anyone on the venue wifi can follow the bracket at `/stages`.
+There is also a JSON feed at `/stages/<id>.json`.
+
 ### Settings and flags
 
 Settings are saved to `dd-pits-local.json` beside the binary. Copy that file to
@@ -389,6 +432,8 @@ this.
 cmd/dd-pits/         the application: poller, local web server, setup pages,
                      race calls, commentary booth, ELRS controller
 internal/dronedash/  FPVTrackside and RotorHazard clients, snapshot model
+internal/stages/     bracket engine: elimination, qualifier, progression,
+                     ladder, points brackets (shared with the AUFPV platform)
 rotorhazard/dd_pits/ the RotorHazard plugin (Python)
 internal/ddapi/      the JSON read API served at /docs
 internal/booth/      commentary prompt building and style

@@ -199,6 +199,7 @@ func setupPage(title, body string) string {
  <a href="/setup/trackside">FPVTrackside</a>
  <a href="/setup/booth">Commentary</a>
  <a href="/setup/calls">Race calls</a>
+ <a href="/stages">Brackets</a>
  <a href="/goggles">Goggle control</a>
  <a href="/overlays">OBS overlays</a>
  <a href="/setup/models">AI models</a>
@@ -229,6 +230,8 @@ var setupBanners = map[string]struct{ img, eyebrow, line string }{
 	"Debug":          {"desk.webp", "Debug", "The log, in the browser — send it when something goes wrong."},
 	"Help":           {"hero.webp", "Getting started", "Everything a race director needs, in five minutes."},
 	"OBS overlays":   {"stream.webp", "On stream", "Broadcast graphics that follow the meeting on their own. Paste a URL into OBS."},
+	"Brackets":       {"director.webp", "Stages", "Double elimination, MultiGP qualifiers, bracket progression, ladders and points brackets."},
+	"New stage":      {"director.webp", "Stages", "Pick a format and seed the pilots; dd-pits draws the races and runs them on the timer."},
 }
 
 // reloadELRSConfig re-reads the goggle config after an edit, when ELRS is on.
