@@ -103,6 +103,7 @@ nav.site.site .ng .menu a.on{background:rgba(198,255,61,.14);color:#c6ff3d}
 nav.site .ng .menu a small{display:block;color:#8e96a3;font-weight:500;font-size:.75rem;margin-top:.05rem}
 @media(max-width:760px){
  .top.top:has(nav.site){flex-wrap:wrap}
+ .top.top:has(nav.site),header:has(nav.site){position:static}
  nav.site.site{flex-basis:100%;order:10;margin-left:0;gap:.1rem;flex-wrap:wrap;overflow:visible}
  nav.site.site>a,nav.site.site .ng>summary{padding:.3rem .55rem;font-size:.82rem}
  nav.site .ng .menu{position:fixed;left:.8rem;right:.8rem;top:auto}}

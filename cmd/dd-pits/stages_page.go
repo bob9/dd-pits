@@ -292,7 +292,7 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
 <p class="mut">` + raceSettingsNote() + `</p>
 <p><label><input type="checkbox" name="autoSend" checked> Send each race to ` + esc(timingSystem) + ` as soon as its line-up is known</label></p>
 </div>
-<div class="card"><h2>4 · Preview</h2><div id="preview"><p class="mut">Drawing the bracket…</p></div></div>
+<div class="card pvcard"><h2>4 · Preview <span class="mut pvsub">what will be created · updates as you change things</span></h2><div id="preview"><p class="mut">Drawing the bracket…</p></div></div>
 <p><button type="submit">Create bracket</button> <a href="/stages" class="mut">Cancel</a></p>
 </form>` + stageCSS + `
 <style>
@@ -306,6 +306,18 @@ func (s *liveServer) stageNew(w http.ResponseWriter, r *http.Request) {
  .seedlist li .nm{flex:1}.seedlist li button{padding:.15rem .55rem;font-size:.8rem}
  .seedlist li.drag{opacity:.4}
  #preview .psec+.psec{margin-top:1.1rem;padding-top:1rem;border-top:1px solid var(--line)}
+ .pvsub{font-size:.8rem;font-weight:500;margin-left:.4rem}
+ /* The preview's rounds stack top to bottom, each a row of its races. */
+ #preview .grid{flex-direction:column;overflow:visible;gap:1rem}
+ #preview .col{flex:none;min-width:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(12.5rem,1fr));gap:.6rem}
+ #preview .colh{grid-column:1/-1;padding-bottom:.2rem;border-bottom:1px solid var(--line)}
+ /* Wide screens: it sits beside the form and stays in view. */
+ @media(min-width:1200px){
+  main:has(#stageform){max-width:100rem}
+  #stageform{display:grid;grid-template-columns:minmax(0,34rem) minmax(0,1fr);gap:0 1.2rem;align-items:start}
+  #stageform>*{grid-column:1}
+  #stageform>.pvcard{grid-column:2;grid-row:1 / span 20;position:sticky;top:4.5rem;max-height:calc(100vh - 5.5rem);overflow:auto;margin:0}
+ }
  #preview .psec h2{font-size:1rem;margin:0 0 .6rem}
  #preview.busy{opacity:.6;transition:opacity .2s}
 </style>
