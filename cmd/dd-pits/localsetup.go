@@ -204,6 +204,23 @@ func setupPage(title, body string) string {
  nav a:hover{background:rgba(255,255,255,.07);color:#fff}
  nav a.on{background:rgba(198,255,61,.14);color:var(--acc)}
  nav a.bmc{color:#ffdd00;background:rgba(255,221,0,.08);border:1px solid rgba(255,221,0,.22)}
+ nav.groups{align-items:center;gap:.25rem;flex:1}
+ nav.groups a.bmc{margin-left:auto}
+ .ng{position:relative}
+ .ng>summary{list-style:none;cursor:pointer;color:#c3c9d2;font-size:.86rem;font-weight:600;padding:.34rem .72rem;border-radius:999px;user-select:none}
+ .ng>summary::-webkit-details-marker{display:none}
+ .ng>summary::after{content:"▾";margin-left:.35rem;font-size:.7rem;opacity:.7}
+ .ng>summary:hover,.ng[open]>summary{background:rgba(255,255,255,.07);color:#fff}
+ .ng.on>summary{background:rgba(198,255,61,.14);color:var(--acc)}
+ .ng .menu{position:absolute;top:calc(100% + .35rem);left:0;z-index:20;min-width:13rem;padding:.4rem;display:grid;gap:.1rem;
+  background:rgba(14,16,20,.97);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 50px -20px rgba(0,0,0,.9);backdrop-filter:blur(18px)}
+ .ng .menu a{display:block;padding:.5rem .7rem;border-radius:10px;white-space:nowrap}
+ .ng .menu a small{display:block;color:var(--mut);font-weight:500;font-size:.75rem;margin-top:.05rem}
+ @media(max-width:640px){
+  nav.groups{flex-basis:100%;gap:.1rem}
+  nav.groups>a,.ng>summary{padding:.3rem .55rem;font-size:.82rem}
+  nav.groups a.bmc{margin-left:0}
+  .ng .menu{position:fixed;left:.8rem;right:.8rem;top:auto}}
  main{max-width:60rem;margin:0 auto;padding:1.4rem 1.2rem 1rem}
  .banner{border-radius:26px;min-height:190px;background-size:cover;background-position:center;display:flex;align-items:flex-end;padding:1.6rem 1.8rem;margin-bottom:1.3rem;
   border:1px solid var(--line);box-shadow:0 30px 60px -30px rgba(0,0,0,.9)}
@@ -236,28 +253,18 @@ func setupPage(title, body string) string {
  @media(max-width:640px){header{padding:.6rem .8rem}.banner{min-height:150px;padding:1.2rem;border-radius:20px}main{padding:1rem .8rem}}
 </style></head><body>
 <header><a class="brand" href="/"><img src="/assets/icon-256.webp" alt=""><span><span class="dd">dd</span>-pits</span><small>setup</small></a>
-<nav>
- <a href="/setup">Overview</a>
- <a href="/setup/pilots">Goggle pilots</a>
- <a href="/setup/osd">OSD screen</a>
- <a href="/setup/video">Video</a>
- <a href="/setup/backpack">Backpack</a>
- <a href="/setup/trackside">FPVTrackside</a>
- <a href="/setup/booth">Commentary</a>
- <a href="/setup/calls">Race calls</a>
- <a href="/stages">Brackets</a>
- <a href="/marshal">Marshal</a>
- <a href="/goggles">Goggle control</a>
- <a href="/overlays">OBS overlays</a>
- <a href="/setup/models">AI models</a>
- <a href="/setup/debug">Debug</a>
- <a href="/setup/help">Help</a>
+<nav class="groups">` + setupNav() + `
  <a class="bmc" href="` + supportURL + `" target="_blank" rel="noopener">☕ Support dd-pits</a>
 </nav></header>
 <main>` + demoBanner() + banner + body + `</main>
 <footer>dd-pits is free and open source, made by <a href="https://github.com/bob9" target="_blank" rel="noopener">bob9</a>. If it makes your race days easier,
 <a href="` + supportURL + `" target="_blank" rel="noopener">buy the developer a coffee ☕</a>.</footer>
-<script>for(const a of document.querySelectorAll('nav a'))if(a.getAttribute('href')===location.pathname)a.classList.add('on')</script>
+<script>
+for(const a of document.querySelectorAll('nav a'))if(a.getAttribute('href')===location.pathname){a.classList.add('on');const g=a.closest('.ng');if(g)g.classList.add('on')}
+// one menu open at a time; a click elsewhere closes it
+document.addEventListener('click',e=>{for(const d of document.querySelectorAll('.ng[open]'))if(!d.contains(e.target))d.open=false});
+for(const d of document.querySelectorAll('.ng'))d.addEventListener('toggle',()=>{if(d.open)for(const o of document.querySelectorAll('.ng[open]'))if(o!==d)o.open=false});
+</script>
 </body></html>`
 }
 
@@ -344,16 +351,22 @@ func (s *liveServer) setupOverview(w http.ResponseWriter, r *http.Request) {
 		engine = "Qwen3-TTS (over the internet)"
 	}
 
+	timerAddr := s.tracksideURL
+	if s.stages != nil {
+		if t, ok := s.stages.timer.(*rhStageTimer); ok {
+			timerAddr = t.base
+		}
+	}
 	b := &strings.Builder{}
 	fmt.Fprintf(b, `<div class="card"><h2>What this venue is running</h2>
 <table>
-<tr><th>Timing</th><td>FPVTrackside at <code>%s</code></td></tr>
+<tr><th>Timing</th><td>%s at <code>%s</code></td></tr>
 <tr><th>Goggle pilots</th><td>%d configured, %d with the OSD on — <a href="/setup/pilots">edit</a></td></tr>
 <tr><th>Race calls</th><td>%s</td></tr>
 <tr><th>Commentary</th><td>%s — <a href="/setup/booth">edit</a></td></tr>
 <tr><th>Settings file</th><td><code>%s</code></td></tr>
 </table></div>`,
-		esc(s.tracksideURL), len(pilots), ready,
+		esc(timingSystem), esc(timerAddr), len(pilots), ready,
 		esc(describeCallsSource(source, s.hasVoice)), esc(engine), esc(cfg.Path()))
 
 	b.WriteString(`<div class="card"><h2>Race day</h2>
@@ -2724,4 +2737,49 @@ apply on the next heat.</p>
 </div>
 
 `
+}
+
+// setupNav is the setup pages' menu, grouped the way a race director works:
+// race day, the stream, pilots' goggles, then settings.
+func setupNav() string {
+	type item struct{ href, label, hint string }
+	group := func(name string, items ...item) string {
+		b := &strings.Builder{}
+		fmt.Fprintf(b, `<details class="ng"><summary>%s</summary><div class="menu">`, esc(name))
+		for _, it := range items {
+			fmt.Fprintf(b, `<a href="%s">%s<small>%s</small></a>`, it.href, esc(it.label), esc(it.hint))
+		}
+		b.WriteString(`</div></details>`)
+		return b.String()
+	}
+	settings := []item{
+		{"/setup", "Overview", "What this venue is running"},
+		{"/setup/calls", "Race calls", "Who speaks the lap times"},
+	}
+	if timingSystem == "FPVTrackside" {
+		settings = append(settings, item{"/setup/trackside", "FPVTrackside", "Where it is, what dd-pits reads"})
+	}
+	settings = append(settings,
+		item{"/setup/models", "AI models", "Local voice and writing models"},
+		item{"/setup/debug", "Debug", "The log, for when something goes wrong"},
+	)
+	return `<a href="/">Dashboard</a>` +
+		group("Race day",
+			item{"/stages", "Brackets", "Create and run brackets"},
+			item{"/marshal", "Marshal", "Fix a race's laps"},
+			item{"/calls", "Race calls", "Say a call now"},
+			item{"/goggles", "Goggle control", "Channels and messages to goggles"},
+		) +
+		group("Stream",
+			item{"/overlays", "OBS overlays", "Graphics for your stream"},
+			item{"/setup/booth", "Commentary", "AI play-by-play and colour"},
+			item{"/setup/video", "Video", "Watch links and chapters"},
+		) +
+		group("Goggles",
+			item{"/setup/pilots", "Goggle pilots", "Bind phrases, OSD on or off"},
+			item{"/setup/osd", "OSD screen", "What pilots see"},
+			item{"/setup/backpack", "Backpack", "ELRS netpack or USB backpack"},
+		) +
+		group("Settings", settings...) +
+		`<a href="/setup/help">Help</a>`
 }

@@ -40,6 +40,8 @@ func (s *liveServer) stageRoute(w http.ResponseWriter, r *http.Request) {
 		s.stageNew(w, r)
 	case rest == "find":
 		s.stageFind(w, r)
+	case rest == "links":
+		s.stageLinks(w, r)
 	case strings.HasSuffix(rest, ".json"):
 		s.stageJSON(w, r, strings.TrimSuffix(rest, ".json"))
 	case strings.HasSuffix(rest, "/action"):
@@ -622,6 +624,30 @@ func (s *liveServer) stageFind(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	_, _ = w.Write([]byte("{}"))
+}
+
+// stageLinks lists every bracket with the timer races it made, so the
+// RotorHazard plugin can link each race class back to its bracket:
+// [{"id","name","path","classId","links":["rh-h12",…]}].
+func (s *liveServer) stageLinks(w http.ResponseWriter, _ *http.Request) {
+	type entry struct {
+		ID      string   `json:"id"`
+		Name    string   `json:"name"`
+		Path    string   `json:"path"`
+		ClassID int      `json:"classId,omitempty"`
+		Links   []string `json:"links"`
+	}
+	out := []entry{}
+	for _, st := range s.stages.list() {
+		e := entry{ID: st.ID, Name: st.Name, Path: "/stages/" + st.ID, ClassID: st.ClassID, Links: []string{}}
+		for _, l := range st.Links {
+			e.Links = append(e.Links, l)
+		}
+		sort.Strings(e.Links)
+		out = append(out, e)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(out)
 }
 
 func (s *liveServer) stageJSON(w http.ResponseWriter, r *http.Request, id string) {

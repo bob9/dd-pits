@@ -411,11 +411,11 @@ class DDPits:
             if auth != "Bearer " + self.runner.api_token() and not self._admin_ok(require=True):
                 return jsonify({"error": "not allowed"}), 401
             try:
-                heat = stage_heat(self.rhapi, request.get_json(force=True) or {})
+                heat, class_id = stage_heat(self.rhapi, request.get_json(force=True) or {})
             except StageError as ex:
                 return jsonify({"error": str(ex)}), 409
             self.generation += 1
-            return jsonify({"heat": heat})
+            return jsonify({"heat": heat, "class_id": class_id})
 
         @bp.route("/api/stage-delete", methods=["POST"])
         def api_stage_delete():
@@ -522,6 +522,36 @@ class DDPits:
                 return jsonify({})
             return jsonify({"stage": found.get("stage", ""), "title": found.get("title", ""),
                             "url": self._dd_url(found["path"])})
+
+        @bp.route("/api/class-links")
+        def api_class_links():
+            # Which race classes are dd-pits brackets: {"<class id>": {"stage",
+            # "url"}}, for "open the bracket" links on RotorHazard's Event page
+            # and in the RotorHazard web app. Public, like the brackets.
+            if not self.runner.running():
+                return jsonify({})
+            try:
+                with urllib.request.urlopen("http://127.0.0.1:%d/stages/links" % self.port(), timeout=2) as resp:
+                    stages = json.loads(resp.read().decode("utf-8") or "[]")
+            except Exception:
+                return jsonify({})
+            heat_class = {}
+            for h in self.rhapi.db.heats or []:
+                heat_class[h.id] = getattr(h, "class_id", 0) or 0
+            out = {}
+            for st in stages or []:
+                cid = int(st.get("classId") or 0)
+                if not cid:
+                    for link in st.get("links") or []:
+                        m = re.match(r"^rh-h(\d+)$", link or "")
+                        if m and heat_class.get(int(m.group(1))):
+                            cid = heat_class[int(m.group(1))]
+                            break
+                if cid and str(cid) not in out:
+                    out[str(cid)] = {"stage": st.get("name", ""), "url": self._dd_url(st.get("path") or "/stages")}
+            resp = jsonify(out)
+            resp.headers["Access-Control-Allow-Origin"] = "*"
+            return resp
 
         @bp.route("/api/snapshot")
         def api_snapshot():

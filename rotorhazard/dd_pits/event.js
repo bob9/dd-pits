@@ -6,12 +6,29 @@
  *    heats and groups themselves are RotorHazard's own.
  * 2. #dd-heat-<id> (a link from a dd-pits bracket) scrolls to that heat and
  *    highlights it.
+ * 3. A class that is a dd-pits bracket gets a link to the bracket.
  */
 (function () {
   var list = document.getElementById('heat_list');
   if (!list) return;
   var busy = false;
   var focus = null; // {name, round} from /dd-pits/api/heat-info
+  var brackets = {}; // class id -> {stage, url} from /dd-pits/api/class-links
+
+  function bracketLinks() {
+    list.querySelectorAll('li[data-class-id]').forEach(function (li) {
+      var b = brackets[li.getAttribute('data-class-id')];
+      var h = li.querySelector(':scope > h3');
+      if (!b || !h || h.querySelector('.dd-bracket-link')) return;
+      var a = document.createElement('a');
+      a.className = 'dd-bracket-link';
+      a.href = b.url;
+      a.textContent = '\uD83C\uDFC1 Open the bracket in dd-pits \u2192';
+      a.style.cssText = 'margin-left:.8em;font-size:.7em;font-weight:600;padding:.2em .6em;border-radius:999px;' +
+        'color:#c6ff3d;background:rgba(0,0,0,.3);border:1px solid rgba(198,255,61,.55);text-decoration:none;vertical-align:middle';
+      h.appendChild(a);
+    });
+  }
 
   function roundOf(li) {
     var t = li.querySelector('h4,h3,h2');
@@ -68,11 +85,16 @@
   function apply() {
     if (busy) return;
     busy = true;
-    try { sections(); highlight(); } finally { busy = false; }
+    try { sections(); highlight(); bracketLinks(); } finally { busy = false; }
   }
 
   new MutationObserver(function () { setTimeout(apply, 0); }).observe(list, { childList: true, subtree: true });
   apply();
+
+  fetch('/dd-pits/api/class-links').then(function (r) { return r.json(); }).then(function (d) {
+    brackets = d || {};
+    apply();
+  }).catch(function () {});
 
   var m = /dd-heat-(\d+)/.exec(location.hash);
   if (m) {

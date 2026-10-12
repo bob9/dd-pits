@@ -91,25 +91,43 @@ type rhStageTimer struct {
 
 func (t *rhStageTimer) name() string { return "RotorHazard" }
 
+// classLinkKey, in the links send returns, carries the RotorHazard race
+// class the bracket's heats went in ("rh-c<id>"), not a race.
+const classLinkKey = "#class"
+
 func (t *rhStageTimer) send(st stageRecord, races []stageRace, makeCurrent bool) (map[string]string, error) {
 	links := map[string]string{}
+	classID := st.ClassID
+	// A bracket from before dd-pits remembered its class: any heat it already
+	// has tells the plugin which class that is.
+	classHeat := 0
+	for _, l := range st.Links {
+		if h := 0; strings.HasPrefix(l, "rh-h") {
+			if fmt.Sscanf(l, "rh-h%d", &h); h > classHeat {
+				classHeat = h
+			}
+		}
+	}
 	for i, r := range races {
 		var out struct {
-			Heat int `json:"heat"`
+			Heat    int `json:"heat"`
+			ClassID int `json:"class_id"`
 		}
 		heat := 0
 		if l := st.Links[r.ID]; strings.HasPrefix(l, "rh-h") {
 			fmt.Sscanf(l, "rh-h%d", &heat)
 		}
 		err := postJSON(strings.TrimSuffix(t.base, "/")+"/dd-pits/api/stage-heat", map[string]any{
-			"class":     st.Name,
-			"name":      r.Title,
-			"pilots":    r.Pilots,
-			"heat":      heat,
-			"current":   makeCurrent && i == 0,
-			"laps":      st.Setup.Laps,
-			"race_time": st.Setup.RaceSeconds,
-			"round":     r.Round, // its heat group, on RotorHazard 4.2+
+			"class":      st.Name,
+			"class_id":   classID,
+			"class_heat": classHeat,
+			"name":       r.Title,
+			"pilots":     r.Pilots,
+			"heat":       heat,
+			"current":    makeCurrent && i == 0,
+			"laps":       st.Setup.Laps,
+			"race_time":  st.Setup.RaceSeconds,
+			"round":      r.Round, // its heat group, on RotorHazard 4.2+
 		}, t.token, &out)
 		if errors.Is(err, errNoStageAPI) {
 			return links, errors.New("the dd-pits RotorHazard plugin is out of date; update it to send races")
@@ -118,6 +136,10 @@ func (t *rhStageTimer) send(st stageRecord, races []stageRace, makeCurrent bool)
 			return links, err
 		}
 		links[r.ID] = fmt.Sprintf("rh-h%d", out.Heat)
+		if out.ClassID != 0 && out.ClassID != classID {
+			classID = out.ClassID
+			links[classLinkKey] = fmt.Sprintf("rh-c%d", classID)
+		}
 	}
 	return links, nil
 }
@@ -148,7 +170,7 @@ func (t *rhStageTimer) control(link, action string) (string, error) {
 // heat in the class runs with it, so nothing per heat is needed.
 func (t *rhStageTimer) applySettings(st stageRecord, _ []stageRace) error {
 	err := postJSON(strings.TrimSuffix(t.base, "/")+"/dd-pits/api/stage-format", map[string]any{
-		"class": st.Name, "laps": st.Setup.Laps, "race_time": st.Setup.RaceSeconds,
+		"class": st.Name, "class_id": st.ClassID, "laps": st.Setup.Laps, "race_time": st.Setup.RaceSeconds,
 	}, t.token, nil)
 	if errors.Is(err, errNoStageAPI) {
 		return errors.New("the dd-pits RotorHazard plugin is out of date; update it to set laps and race time")

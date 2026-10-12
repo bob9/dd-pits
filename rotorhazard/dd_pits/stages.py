@@ -63,6 +63,43 @@ def _find_class(rhapi, class_name, create=True):
     return rhapi.db.raceclass_add(name=class_name, description="Created by dd-pits for a bracket.")
 
 
+def _new_class(rhapi, class_name):
+    """A race class of the bracket's own, named after it ("Finals 2" when a
+    class called "Finals" is already there), so two brackets never share one."""
+    taken = {(c.name or "").strip().lower() for c in rhapi.db.raceclasses or []}
+    name, n = class_name, 1
+    while name.lower() in taken:
+        n += 1
+        name = "%s %d" % (class_name, n)
+    return rhapi.db.raceclass_add(name=name, description="Created by dd-pits for a bracket.")
+
+
+def _stage_class(rhapi, data, create=True):
+    """The race class a bracket's heats go in.
+
+    dd-pits remembers its bracket's class and sends class_id; a bracket that
+    has none yet gets a new class (its heats so far tell us which one it has,
+    for brackets made before dd-pits remembered). A dd-pits too old to send
+    class_id still matches the class by name.
+    """
+    db = rhapi.db
+    class_name = (data.get("class") or "dd-pits stage").strip()
+    if "class_id" not in data:
+        return _find_class(rhapi, class_name, create)
+    cid = int(data.get("class_id") or 0)
+    if cid:
+        cls = db.raceclass_by_id(cid)
+        if cls is not None:
+            return cls
+    for key in ("heat", "class_heat"):
+        heat = db.heat_by_id(int(data.get(key) or 0)) if data.get(key) else None
+        if heat is not None and getattr(heat, "class_id", None):
+            cls = db.raceclass_by_id(heat.class_id)
+            if cls is not None:
+                return cls
+    return _new_class(rhapi, class_name) if create else None
+
+
 def stage_format(rhapi, data, cls=None):
     """Give a bracket's race class the laps and race time set in dd-pits.
 
@@ -75,12 +112,13 @@ def stage_format(rhapi, data, cls=None):
     db = rhapi.db
     laps = int(data.get("laps") or 0)
     secs = int(data.get("race_time") or 0)
-    class_name = (data.get("class") or "dd-pits stage").strip()
     if laps <= 0 and secs <= 0:
         return None
     if cls is None:
-        cls = _find_class(rhapi, class_name)
-    name = "dd-pits \u00b7 " + class_name
+        cls = _stage_class(rhapi, data, create=False)
+        if cls is None:
+            return None  # nothing on the timer yet; set when the first race goes
+    name = "dd-pits \u00b7 " + (cls.name or "").strip()
     fmt = None
     for f in db.raceformats or []:
         if (getattr(f, "name", "") or "") == name:
@@ -115,15 +153,16 @@ def stage_format(rhapi, data, cls=None):
 
 
 def stage_heat(rhapi, data):
-    """Create (or re-seat, if not yet run) the heat for one bracket race."""
+    """Create (or re-seat, if not yet run) the heat for one bracket race.
+
+    Returns the heat id and the bracket's race class id."""
     db = rhapi.db
-    class_name = (data.get("class") or "dd-pits stage").strip()
     heat_name = (data.get("name") or "Race").strip()
     callsigns = [str(p).strip() for p in (data.get("pilots") or []) if str(p).strip()]
     # No pilots yet is fine: a later bracket race goes on the timer as soon
     # as the bracket exists, and is seated as the results come in.
 
-    cls = _find_class(rhapi, class_name)
+    cls = _stage_class(rhapi, data)
     stage_format(rhapi, data, cls)
     bracket_round = int(data.get("round") or 0)
 
@@ -145,7 +184,7 @@ def stage_heat(rhapi, data):
     if want:
         heat = db.heat_by_id(want)
         if heat is not None and (db.races_by_heat(heat.id) or []):
-            return heat.id  # already flown: never re-seat a race that has run
+            return heat.id, cls.id  # already flown: never re-seat a race that has run
     if heat is None:
         heat = db.heat_add(name=heat_name, raceclass=cls.id)
     elif heat.name != heat_name:
@@ -177,7 +216,7 @@ def stage_heat(rhapi, data):
             getattr(rhapi.ui, fn)()
         except Exception:
             pass
-    return heat.id
+    return heat.id, cls.id
 
 
 READY, RACING, DONE, STAGING = 0, 1, 2, 3  # RHRace.RaceStatus

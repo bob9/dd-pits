@@ -90,6 +90,9 @@ type stageRecord struct {
 	// RerunAfter holds, per race being flown again, when the re-run was asked
 	// for (epoch ms): runs that started before it no longer count.
 	RerunAfter map[string]int64 `json:"rerunAfter,omitempty"`
+	// ClassID is the RotorHazard race class holding this bracket's heats: a
+	// class of its own, so brackets never share one.
+	ClassID int `json:"classId,omitempty"`
 
 	AutoSend    bool `json:"autoSend"`
 	AutoResults bool `json:"autoResults"`
@@ -817,6 +820,10 @@ func (m *stageManager) sendRaces(id string, races []stageRace, makeCurrent bool)
 			s.Seated = map[string]string{}
 		}
 		for k, v := range links {
+			if k == classLinkKey {
+				fmt.Sscanf(v, "rh-c%d", &s.ClassID)
+				continue
+			}
 			s.Links[k] = v
 		}
 		for _, r := range races {
