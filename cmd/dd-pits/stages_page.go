@@ -645,13 +645,16 @@ func (s *liveServer) bracketGrid(b *strings.Builder, st stageRecord, races []sta
 			}
 		}
 		ej, _ := json.Marshal(edges)
+		if card && len(edges) > 0 {
+			b.WriteString(`<p class="flowkey">Lines follow the winners. Point at a race (or tap it) to see where all its pilots go, losers' bracket included.</p>`)
+		}
 		fmt.Fprintf(b, `<div class="grid" data-flow="%s">`, esc(string(ej)))
 		for _, n := range nums {
-			fmt.Fprintf(b, `<div class="col"><div class="colh">Round %d</div>`, n)
+			fmt.Fprintf(b, `<div class="col"><div class="colh">Round %d</div><div class="colb">`, n)
 			for _, rc := range sec.rounds[n] {
 				s.raceCard(b, st, rc, admin, heatLink, flow, titles)
 			}
-			b.WriteString(`</div>`)
+			b.WriteString(`</div></div>`)
 		}
 		b.WriteString(`</div></div>`)
 	}
@@ -696,8 +699,13 @@ func (s *liveServer) raceCard(b *strings.Builder, st stageRecord, rc stageRace, 
 	if rc.State == "waiting" && rc.Link != "" {
 		label = "On the timer · pilots to come"
 	}
-	fmt.Fprintf(b, `<div class="race st-%s" id="r-%s"><div class="rh"><b class="rt">%s</b><span class="badge"><i></i>%s</span></div><ol>`,
-		esc(rc.State), esc(rc.ID), esc(rc.Title), esc(label))
+	side, sideLabel := raceSide(rc.Title)
+	tag := ""
+	if sideLabel != "" {
+		tag = `<span class="side">` + sideLabel + `</span>`
+	}
+	fmt.Fprintf(b, `<div class="race st-%s side-%s" id="r-%s"><div class="rh">%s<b class="rt">%s</b><span class="badge"><i></i>%s</span></div><ol>`,
+		esc(rc.State), side, esc(rc.ID), tag, esc(rc.Title), esc(label))
 	place := map[string]int{}
 	for i, p := range resultOrder(rc.RaceView) {
 		place[p] = i + 1
@@ -806,6 +814,20 @@ func (s *liveServer) raceCard(b *strings.Builder, st stageRecord, rc stageRace, 
 		b.WriteString(`</div>`)
 	}
 	b.WriteString(`</div>`)
+}
+
+// raceSide is which part of the bracket a race is in, by its title: the
+// winners' or losers' bracket, or the finals.
+func raceSide(title string) (string, string) {
+	switch {
+	case strings.HasPrefix(title, "Winners"):
+		return "w", "Winners"
+	case strings.HasPrefix(title, "Losers"):
+		return "l", "Losers"
+	case strings.Contains(title, "Final") || strings.HasPrefix(title, "Chase the Ace"):
+		return "f", "Final"
+	}
+	return "x", ""
 }
 
 func ordinalPlace(n int) string {
@@ -980,11 +1002,24 @@ const stageCSS = `<style>
  .acts{display:flex;gap:.5rem;flex-wrap:wrap}
  .grid{display:flex;gap:2.4rem;overflow-x:auto;padding:.2rem .2rem .6rem;position:relative}
  .grid>svg.flow{position:absolute;left:0;top:0;pointer-events:none;overflow:visible;z-index:0}
- .col{min-width:15.5rem;flex:0 0 15.5rem;display:flex;flex-direction:column;justify-content:space-around;gap:.9rem;position:relative;z-index:1}
+ .col{min-width:15.5rem;flex:0 0 15.5rem;display:flex;flex-direction:column;gap:.6rem;position:relative;z-index:1}
+ .colb{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:.9rem}
+ #preview .colb{display:contents}
+ .grid>svg.flow path{transition:opacity .15s}
+ .grid>svg.flow path.drop{opacity:0}
+ .grid>svg.flow.focus path{opacity:.1}
+ .grid>svg.flow.focus path.on{opacity:1;stroke-width:2.5}
+ .race.lit{border-color:rgba(198,255,61,.6)}
+ .flowkey{color:var(--mut);font-size:.78rem;margin:.2rem .2rem .6rem}
  .colh{color:var(--mut);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:0 .2rem .35rem;border-bottom:1px solid var(--line);margin-bottom:.1rem;align-self:stretch}
  .race{border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(30,33,40,.96),rgba(18,20,25,.96));box-shadow:0 10px 30px -18px rgba(0,0,0,.9);overflow:hidden}
  .race .rh{display:flex;flex-direction:column;align-items:flex-start;gap:.3rem;padding:.6rem .75rem .5rem;border-bottom:1px solid var(--line);background:rgba(255,255,255,.025)}
  .race .rt{font-size:.88rem;line-height:1.25;letter-spacing:-.01em}
+ .race{border-left-width:4px}
+ .race .side{font-size:.62rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+ .race.side-w{border-left-color:#9fe03a}.race.side-w .rh{background:linear-gradient(90deg,rgba(159,224,58,.13),rgba(159,224,58,.02))}.race.side-w .side{color:#b5f04f}
+ .race.side-l{border-left-color:#ff9f43}.race.side-l .rh{background:linear-gradient(90deg,rgba(255,159,67,.13),rgba(255,159,67,.02))}.race.side-l .side{color:#ffb36b}
+ .race.side-f{border-left-color:#f5c542}.race.side-f .rh{background:linear-gradient(90deg,rgba(245,197,66,.16),rgba(245,197,66,.03))}.race.side-f .side{color:#f7d264}
  .race ol{list-style:none;margin:0;padding:.3rem 0;display:grid}
  .race li.seat{display:flex;align-items:center;gap:.55rem;padding:.3rem .75rem;font-size:.9rem;min-height:2rem}
  .race li.seat+li.seat{border-top:1px solid rgba(255,255,255,.04)}
@@ -1022,6 +1057,7 @@ const stageCSS = `<style>
  .mlink{font-size:.76rem;align-self:center;color:var(--mut)}.mlink:hover{color:var(--acc)}
  button.stop{background:#ff453a;color:#fff}
  p.small{font-size:.78rem;margin:.35rem 0 0}
+ .race>p.small{padding:0 .75rem;margin:0 0 .35rem}
 </style>`
 
 // flowLines draws the progression between races: from the right of a race
@@ -1031,45 +1067,71 @@ const stageCSS = `<style>
 const flowLines = `<script>
 (function(){
  if(window.ddFlowBound) return; window.ddFlowBound=true;
- var NS='http://www.w3.org/2000/svg';
+ var NS='http://www.w3.org/2000/svg', R=8;
+ // Bracket connectors: out of the race, along, then down a trunk just before
+ // the next race, so the lines into a race join up.
+ function elbow(x1,y1,x2,y2){
+  var xm=x2-16, dy=y2-y1, r=Math.min(R,Math.abs(dy)/2,Math.max(0,(xm-x1)/2));
+  if(Math.abs(dy)<1) return 'M'+x1+' '+y1+' H'+x2;
+  var s=dy>0?1:-1;
+  return 'M'+x1+' '+y1+' H'+(xm-r)+' Q'+xm+' '+y1+' '+xm+' '+(y1+s*r)+' V'+(y2-s*r)+' Q'+xm+' '+y2+' '+(xm+r)+' '+y2+' H'+x2;
+ }
  function draw(){
   document.querySelectorAll('.grid[data-flow]').forEach(function(g){
-   var old=g.querySelector(':scope > svg.flow'); if(old) old.remove();
-   var edges; try{ edges=JSON.parse(g.dataset.flow||'[]'); }catch(e){ return; }
-   if(!edges||!edges.length) return;
+   var old=g.querySelector(':scope > svg.flow');
+   var edges; try{ edges=JSON.parse(g.dataset.flow||'[]'); }catch(e){ edges=[]; }
    var gr=g.getBoundingClientRect(), svg=document.createElementNS(NS,'svg');
    svg.setAttribute('class','flow'); svg.setAttribute('width',g.scrollWidth); svg.setAttribute('height',g.scrollHeight);
-   var drawn=0;
+   var n=0;
    edges.forEach(function(e){
     var a=document.getElementById('r-'+e.from), b=document.getElementById('r-'+e.to);
     if(!a||!b||!g.contains(a)||!g.contains(b)) return;
     var ra=a.getBoundingClientRect(), rb=b.getBoundingClientRect();
     if(rb.left<ra.right-2) return; // stacked, not side by side
-    var x1=ra.right-gr.left+g.scrollLeft, y1=ra.top+ra.height/2-gr.top+g.scrollTop;
-    var x2=rb.left-gr.left+g.scrollLeft, y2=rb.top+Math.min(rb.height/2,44)-gr.top+g.scrollTop;
-    var mx=(x1+x2)/2, p=document.createElementNS(NS,'path');
-    p.setAttribute('d','M'+x1+' '+y1+' C'+mx+' '+y1+' '+mx+' '+y2+' '+x2+' '+y2);
-    p.setAttribute('fill','none'); p.setAttribute('stroke-width', e.drop?'1.5':'2');
-    p.setAttribute('stroke', e.drop?'rgba(255,170,90,.55)':'rgba(198,255,61,.55)');
-    if(e.drop) p.setAttribute('stroke-dasharray','5 5');
+    var x1=ra.right-gr.left+g.scrollLeft, y1=ra.top+Math.min(ra.height/2,48)-gr.top+g.scrollTop;
+    var x2=rb.left-gr.left+g.scrollLeft, y2=rb.top+Math.min(rb.height/2,48)-gr.top+g.scrollTop;
+    var p=document.createElementNS(NS,'path');
+    p.setAttribute('d',elbow(x1,y1,x2,y2)); p.setAttribute('fill','none');
+    p.setAttribute('stroke-width','1.5'); p.setAttribute('stroke-linecap','round');
+    p.setAttribute('stroke', e.drop?'rgba(255,170,90,.85)':'rgba(198,255,61,.5)');
+    if(e.drop){ p.setAttribute('stroke-dasharray','4 5'); p.setAttribute('class','drop'); }
+    p.dataset.from=e.from; p.dataset.to=e.to;
     var t=document.createElementNS(NS,'title');
     t.textContent=(e.ranks||[]).map(function(n){return n===1?'1st':n===2?'2nd':n===3?'3rd':n+'th'}).join(', ');
-    p.appendChild(t); svg.appendChild(p);
-    var dot=document.createElementNS(NS,'circle'); dot.setAttribute('cx',x2); dot.setAttribute('cy',y2); dot.setAttribute('r','3');
-    dot.setAttribute('fill', e.drop?'rgba(255,170,90,.8)':'rgba(198,255,61,.85)'); svg.appendChild(dot);
-    drawn++;
+    p.appendChild(t); svg.appendChild(p); n++;
    });
-   if(drawn) g.insertBefore(svg,g.firstChild);
+   if(old) old.remove();
+   if(n) g.insertBefore(svg,g.firstChild);
+   if(focusId) light(focusId);
   });
  }
- var t=null; function soon(){ clearTimeout(t); t=setTimeout(draw,30); }
+ // Point at a race: its lines in and out, everything else faded.
+ var focusId=null;
+ function light(id){
+  focusId=id;
+  document.querySelectorAll('.race.lit').forEach(function(r){ r.classList.remove('lit'); });
+  document.querySelectorAll('.grid > svg.flow').forEach(function(svg){
+   svg.classList.toggle('focus',!!id);
+   svg.querySelectorAll('path').forEach(function(p){
+    var on=!!id&&(p.dataset.from===id||p.dataset.to===id);
+    p.classList.toggle('on',on);
+    if(on){ var o=document.getElementById('r-'+(p.dataset.from===id?p.dataset.to:p.dataset.from)); if(o) o.classList.add('lit'); }
+   });
+  });
+ }
+ document.addEventListener('mouseover',function(e){
+  var r=e.target.closest&&e.target.closest('.grid .race'); var id=r?r.id.replace(/^r-/,''):null;
+  if(id!==focusId) light(id);
+ });
+ document.addEventListener('click',function(e){
+  if(e.target.closest('a,button,summary,select,input')) return;
+  var r=e.target.closest('.grid .race'); light(r?r.id.replace(/^r-/,''):null);
+ });
+ var t=null; function soon(){ clearTimeout(t); t=setTimeout(draw,60); }
  window.addEventListener('resize',soon);
- var main=document.querySelector('main');
- // Ignore the lines' own coming and going, or drawing would redraw forever.
- function ours(n){ return n.nodeType===1&&(n.matches('svg.flow')||n.closest&&n.closest('svg.flow')); }
- if(main) new MutationObserver(function(ms){
-  if(ms.some(function(m){ return [].some.call(m.addedNodes,function(n){return !ours(n)})||[].some.call(m.removedNodes,function(n){return !ours(n)}); })) soon();
- }).observe(main,{childList:true,subtree:true});
+ // The page redraws itself as results arrive; draw the lines straight away
+ // (before the browser paints) so they never blink out.
+ window.ddDrawFlow=draw;
  if(document.readyState!=='loading') draw(); else document.addEventListener('DOMContentLoaded',draw);
  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(draw);
 })();
@@ -1078,11 +1140,33 @@ const flowLines = `<script>
 // stageRefresh reloads the bracket while racing, unless someone is in the
 // middle of entering a result.
 const stageRefresh = `<script>
+// ddPatch brings cur up to date with next, replacing only what differs:
+// race cards by id, other blocks one by one; the lines are left to redraw.
+function ddPatch(cur, next){
+ var a=[].filter.call(cur.children,function(n){return !(n.matches&&n.matches('svg.flow'))}), b=[].slice.call(next.children);
+ if(a.length!==b.length){ cur.innerHTML=next.innerHTML; return; }
+ for(var i=0;i<a.length;i++){
+  var x=a[i], y=b[i];
+  if(x.tagName!==y.tagName||x.id!==y.id||x.className!==y.className){ x.replaceWith(y.cloneNode(true)); continue; }
+  var xs=x.cloneNode(true); xs.querySelectorAll('svg.flow').forEach(function(n){n.remove()});
+  if(xs.outerHTML===y.outerHTML) continue;
+  [].forEach.call(y.attributes,function(at){ if(x.getAttribute(at.name)!==at.value) x.setAttribute(at.name,at.value); });
+  if(x.id&&/^r-/.test(x.id)||!y.children.length){ x.replaceWith(y.cloneNode(true)); continue; }
+  ddPatch(x, y);
+ }
+}
+// The page as served, without the drawn lines, to compare refreshes against.
+(function(){ var m=document.querySelector('main'); if(!m) return; var c=m.cloneNode(true);
+ c.querySelectorAll('svg.flow').forEach(function(x){x.remove()}); window.ddLastMain=c.innerHTML; })();
 setInterval(function(){
  if(document.querySelector('details[open]')||document.activeElement&&/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;
  if(window.ddSaving)return;
  fetch(location.href,{headers:{'X-Fragment':'1'}}).then(r=>r.text()).then(t=>{
-  const d=new DOMParser().parseFromString(t,'text/html');const m=d.querySelector('main');if(m)document.querySelector('main').innerHTML=m.innerHTML;
+  const d=new DOMParser().parseFromString(t,'text/html');const m=d.querySelector('main');if(!m)return;
+  // Only when something changed, and then only the parts that did, with
+  // the lines redrawn before the browser paints: no flicker, no lost place.
+  if(m.innerHTML===window.ddLastMain)return; window.ddLastMain=m.innerHTML;
+  ddPatch(document.querySelector('main'), m); if(window.ddDrawFlow)window.ddDrawFlow();
  }).catch(()=>{});
 },4000);
 </script>` + ajaxForms
@@ -1107,7 +1191,7 @@ if(!window.ddAjaxBound){ window.ddAjaxBound=true;
     if(u.pathname!==location.pathname){location.href=r.url;return;}
     return r.text().then(function(t){
       var d=new DOMParser().parseFromString(t,'text/html'),m=d.querySelector('main'); if(!m)return;
-      var y=window.scrollY; document.querySelector('main').innerHTML=m.innerHTML; window.scrollTo(0,y);
+      var y=window.scrollY; if(window.ddPatch) ddPatch(document.querySelector('main'),m); else document.querySelector('main').innerHTML=m.innerHTML; window.ddLastMain=m.innerHTML; if(window.ddDrawFlow)window.ddDrawFlow(); window.scrollTo(0,y);
       document.querySelectorAll('main details > summary').forEach(function(s){if(open.indexOf(s.textContent.trim())>=0)s.parentNode.open=true;});
     });
   })

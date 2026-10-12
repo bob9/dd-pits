@@ -11,6 +11,7 @@ package main
 // the lines between races.
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/bob9/dd-pits/internal/stages/raceformat"
@@ -184,5 +185,16 @@ func flowEdges(flow raceFlow, titles map[string]string) []flowEdge {
 			add(s.From, to, s.Rank)
 		}
 	}
+	// In a fixed order, so an unchanged bracket renders identically and the
+	// page doesn't redraw for nothing.
+	for i := range out {
+		sort.Ints(out[i].Ranks)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].From != out[j].From {
+			return out[i].From < out[j].From
+		}
+		return out[i].To < out[j].To
+	})
 	return out
 }
