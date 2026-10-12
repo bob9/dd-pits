@@ -69,7 +69,7 @@ func (f *fakeTimer) removeRaces([]string) (int, error)            { return 0, ni
 func (f *fakeTimer) send(st stageRecord, races []stageRace, _ bool) (map[string]string, error) {
 	out := map[string]string{}
 	for _, r := range races {
-		f.sent = append(f.sent, r.ID)
+		f.sent = append(f.sent, r.ID+"="+strings.Join(r.Pilots, ","))
 		out[r.ID] = "rh-h" + r.ID
 	}
 	return out, nil
@@ -128,12 +128,18 @@ func TestStageRunsFromTimingResults(t *testing.T) {
 	if f.Champion() != "P1" {
 		t.Fatalf("champion = %q, want the top seed winning every race", f.Champion())
 	}
+	// Races go on the timer early and are re-seated as pilots arrive, but
+	// never re-sent with an unchanged line-up.
 	seen := map[string]bool{}
-	for _, id := range timer.sent {
-		if seen[id] {
-			t.Fatalf("%s was sent twice", id)
+	for _, sent := range timer.sent {
+		if seen[sent] {
+			t.Fatalf("%s was sent twice", sent)
 		}
-		seen[id] = true
+		seen[sent] = true
+	}
+	rec, _ = m.get(st.ID)
+	if len(rec.Links) < 6 {
+		t.Fatalf("every race should be on the timer: %v", rec.Links)
 	}
 	// The stage survives a restart.
 	again := newStageManager(m.store.path, timer)

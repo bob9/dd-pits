@@ -80,6 +80,9 @@ type stageRecord struct {
 	// Applied is the finishing order last taken from timing for each race, so
 	// an unchanged result is not applied twice.
 	Applied map[string]string `json:"applied,omitempty"`
+	// Seated is the line-up last put on the timer for each race, so a race
+	// sent before all its pilots were known is re-seated as they arrive.
+	Seated map[string]string `json:"seated,omitempty"`
 	// RerunAfter holds, per race being flown again, when the re-run was asked
 	// for (epoch ms): runs that started before it no longer count.
 	RerunAfter map[string]int64 `json:"rerunAfter,omitempty"`
@@ -525,12 +528,12 @@ func (m *stageManager) races(st stageRecord, mv *meetingView) ([]stageRace, race
 			sr.State = "running"
 		case sr.Link != "" && flown && tr.State == "ended":
 			sr.State = "flown"
+		case !ready(rv, all):
+			sr.State = "waiting" // on the timer or not, its line-up isn't final yet
 		case sr.Link != "":
 			sr.State = "sent"
-		case ready(rv, all):
-			sr.State = "ready"
 		default:
-			sr.State = "waiting"
+			sr.State = "ready"
 		}
 		out = append(out, sr)
 	}
@@ -617,16 +620,57 @@ func (m *stageManager) syncStage(id string, mv *meetingView, send bool) {
 	if err != nil {
 		return
 	}
+	// Every race the stage still needs goes on the timer straight away, with
+	// whoever is known so far, so the whole bracket is there from the start;
+	// a race already there is re-seated when its line-up changes. Nothing is
+	// changed once the timer has started a race.
 	var toSend []stageRace
+	var unneeded []string
 	for _, r := range races {
-		if r.State == "ready" {
+		switch {
+		case r.IsVoid:
+			if r.Link != "" && r.State != "running" && r.State != "flown" {
+				unneeded = append(unneeded, r.ID)
+			}
+		case r.IsComplete || r.State == "running" || r.State == "flown":
+		case r.Link == "":
+			toSend = append(toSend, r)
+		case st.Seated[r.ID] != strings.Join(r.Pilots, ","):
 			toSend = append(toSend, r)
 		}
 	}
-	if len(toSend) == 0 {
+	if len(toSend) > 0 {
+		m.sendRaces(id, toSend, false)
+	}
+	if len(unneeded) > 0 {
+		m.dropRaces(id, unneeded)
+	}
+}
+
+// dropRaces takes races the stage no longer needs (the rest of a
+// chase-the-ace series once there is a champion) off the timer.
+func (m *stageManager) dropRaces(id string, raceIDs []string) {
+	st, ok := m.get(id)
+	if !ok {
 		return
 	}
-	m.sendRaces(id, toSend, false)
+	var links []string
+	for _, r := range raceIDs {
+		if l := st.Links[r]; l != "" {
+			links = append(links, l)
+		}
+	}
+	if _, err := m.timer.removeRaces(links); err != nil {
+		log.Printf("stages: %s: removing unneeded races: %v", st.Name, err)
+		return
+	}
+	_ = m.update(id, func(s *stageRecord) error {
+		for _, r := range raceIDs {
+			delete(s.Links, r)
+			delete(s.Seated, r)
+		}
+		return nil
+	})
 }
 
 // sendOne sends a single race by hand ("Send & make current").
@@ -684,8 +728,16 @@ func (m *stageManager) sendRaces(id string, races []stageRace, makeCurrent bool)
 		if s.Links == nil {
 			s.Links = map[string]string{}
 		}
+		if s.Seated == nil {
+			s.Seated = map[string]string{}
+		}
 		for k, v := range links {
 			s.Links[k] = v
+		}
+		for _, r := range races {
+			if _, ok := links[r.ID]; ok {
+				s.Seated[r.ID] = strings.Join(r.Pilots, ",")
+			}
 		}
 		if err != nil {
 			s.LastError = "Sending to " + m.timer.name() + ": " + err.Error()

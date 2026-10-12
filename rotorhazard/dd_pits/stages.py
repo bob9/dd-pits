@@ -120,8 +120,8 @@ def stage_heat(rhapi, data):
     class_name = (data.get("class") or "dd-pits stage").strip()
     heat_name = (data.get("name") or "Race").strip()
     callsigns = [str(p).strip() for p in (data.get("pilots") or []) if str(p).strip()]
-    if not callsigns:
-        raise StageError("the race has no pilots")
+    # No pilots yet is fine: a later bracket race goes on the timer as soon
+    # as the bracket exists, and is seated as the results come in.
 
     cls = _find_class(rhapi, class_name)
     stage_format(rhapi, data, cls)

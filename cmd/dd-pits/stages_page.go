@@ -424,8 +424,12 @@ func onOff(b bool) string {
 }
 
 func (s *liveServer) raceCard(b *strings.Builder, st stageRecord, rc stageRace, admin bool, rhHeatLink func(string) string) {
+	label := stateLabel[rc.State]
+	if rc.State == "waiting" && rc.Link != "" {
+		label = "On the timer · pilots to come"
+	}
 	fmt.Fprintf(b, `<div class="race st-%s" id="r-%s"><div class="rh"><b>%s</b><span class="badge">%s</span></div><ol>`,
-		esc(rc.State), esc(rc.ID), esc(rc.Title), esc(stateLabel[rc.State]))
+		esc(rc.State), esc(rc.ID), esc(rc.Title), esc(label))
 	won := map[string]bool{}
 	for _, p := range rc.Winners {
 		won[p] = true
