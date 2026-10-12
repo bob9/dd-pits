@@ -800,31 +800,62 @@ func (s *liveServer) orderCard(b *strings.Builder, st stageRecord, races []stage
 			fmt.Fprintf(b, `<h3 class="ordh">Round %d</h3><ol class="ord" data-round="%d">`, round, round)
 		}
 		fixed := rc.State == "running" || rc.State == "flown" || rc.State == "finished"
-		cls, btns := "", `<button type="button" class="sec small up">▲</button><button type="button" class="sec small dn">▼</button>`
+		cls, grip, btns := "", `<span class="grip" title="Drag to reorder" aria-hidden="true">⠿</span>`,
+			`<button type="button" class="sec small up" aria-label="Move up">▲</button><button type="button" class="sec small dn" aria-label="Move down">▼</button>`
 		if fixed {
-			cls, btns = ` class="fixed"`, `<span class="mut small">flown</span>`
+			cls, grip, btns = ` class="fixed"`, `<span class="grip off" aria-hidden="true">⠿</span>`, `<span class="mut small">flown</span>`
 		}
-		fmt.Fprintf(b, `<li%s><input type="hidden" name="race" value="%s"><span>%s</span>%s</li>`, cls, esc(rc.ID), esc(rc.Title), btns)
+		fmt.Fprintf(b, `<li%s>%s<input type="hidden" name="race" value="%s"><span class="nm">%s</span>%s</li>`, cls, grip, esc(rc.ID), esc(rc.Title), btns)
 	}
 	if round != -1 {
 		b.WriteString(`</ol>`)
 	}
-	b.WriteString(`<p><button name="do" value="order">Save running order</button>
+	b.WriteString(`<p><button name="do" value="order" class="sec" id="ordersave">Save running order</button>
 <span class="mut">Re-creates the races not flown yet on the timer in this order; flown races and results stay.</span></p></form></details></div>
 <style>
  .ordh{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:.9rem 0 .3rem}
  .ord{list-style:none;margin:0;padding:0;display:grid;gap:.3rem}
  .ord li{display:flex;align-items:center;gap:.5rem;padding:.4rem .7rem;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.3)}
- .ord li span:first-of-type{flex:1}.ord li.fixed{opacity:.55}
+ .ord li .nm{flex:1}.ord li.fixed{opacity:.55}
+ .ord .grip{cursor:grab;touch-action:none;user-select:none;font-size:1.15rem;line-height:1;color:var(--mut);padding:.2rem .35rem;border-radius:8px}
+ .ord .grip:hover{color:var(--fg);background:rgba(255,255,255,.08)}.ord .grip.off{cursor:default;visibility:hidden}
+ .ord li.dragging{border-color:var(--acc);box-shadow:0 10px 30px -12px rgba(198,255,61,.6);background:rgba(198,255,61,.08)}
+ #ordersave.dirty{background:var(--acc);color:#07080a;border-color:var(--acc)}
 </style>
 <script>
-// One handler on the document: the page refreshes itself, replacing the list.
+// Handlers on the document: the page refreshes itself, replacing the list.
 if(!window.ddOrderBound){ window.ddOrderBound=true;
+ function changed(){ var s=document.getElementById('ordersave'); if(s){ s.classList.add('dirty'); s.textContent='Save running order •'; } }
  document.addEventListener('click',function(e){
   var btn=e.target.closest('#orderform button.up,#orderform button.dn'); if(!btn) return;
   var li=btn.closest('li'), ol=li.parentNode;
-  if(btn.classList.contains('up')){ var p=li.previousElementSibling; if(p&&!p.classList.contains('fixed')) ol.insertBefore(li,p); }
-  else { var n=li.nextElementSibling; if(n) ol.insertBefore(n,li); }
+  if(btn.classList.contains('up')){ var p=li.previousElementSibling; if(p&&!p.classList.contains('fixed')){ ol.insertBefore(li,p); changed(); } }
+  else { var n=li.nextElementSibling; if(n){ ol.insertBefore(n,li); changed(); } }
+ });
+ // Drag by the grip, with a mouse or a finger, within the race's own round.
+ // Flown races stay where they are, above anything still to fly.
+ document.addEventListener('pointerdown',function(e){
+  var grip=e.target.closest('#orderform .grip'); if(!grip||grip.classList.contains('off')) return;
+  var li=grip.closest('li'), ol=li.parentNode; e.preventDefault();
+  // Followed on the document, not by capturing the pointer on the grip:
+  // moving the row in the page would drop the capture after the first step.
+  li.classList.add('dragging');
+  var moved=false;
+  function move(ev){
+   var items=[].filter.call(ol.children,function(x){return x!==li});
+   var lastFixed=-1; items.forEach(function(x,i){ if(x.classList.contains('fixed')) lastFixed=i; });
+   var before=null;
+   for(var i=0;i<items.length;i++){ var r=items[i].getBoundingClientRect(); if(ev.clientY<r.top+r.height/2){ before=items[i]; break; } }
+   var idx=before?items.indexOf(before):items.length;
+   if(idx<=lastFixed) before=items[lastFixed+1]||null;
+   if(li.nextElementSibling!==before){ ol.insertBefore(li,before); moved=true; }
+  }
+  function up(){
+   li.classList.remove('dragging');
+   document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up);
+   if(moved) changed();
+  }
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',up); document.addEventListener('pointercancel',up);
  });
 }
 </script>`)
