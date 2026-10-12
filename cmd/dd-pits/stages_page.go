@@ -352,6 +352,9 @@ func (s *liveServer) stageView(w http.ResponseWriter, r *http.Request, id string
 	} else if st.Setup.Laps > 0 || st.Setup.RaceSeconds > 0 {
 		fmt.Fprintf(b, `<div class="card"><p class="mut">%s</p></div>`, esc(describeRaceSettings(st.Setup)))
 	}
+	if admin {
+		s.orderCard(b, st, races)
+	}
 	if st.LastError != "" && admin {
 		fmt.Fprintf(b, `<div class="card"><p class="warn">%s</p></div>`, esc(st.LastError))
 	}
@@ -570,6 +573,8 @@ func (s *liveServer) stageAction(w http.ResponseWriter, r *http.Request, id stri
 		err = m.setResult(id, raceID, order)
 	case "reset":
 		err = m.resetResult(id, raceID)
+	case "order":
+		err = m.setOrder(id, r.Form["race"], s.currentMeeting())
 	case "rebuild":
 		err = m.rebuildOnTimer(id, s.currentMeeting())
 	case "settings":
@@ -739,4 +744,53 @@ func raceSettingsNote() string {
 		return "On RotorHazard the bracket's race class gets its own race format with these, copied from your current one."
 	}
 	return "FPVTrackside takes the laps per race; its race time is set for the whole event in FPVTrackside."
+}
+
+// orderCard lets the race director choose the running order within each
+// round. Saving re-creates the unflown races on the timer in that order.
+func (s *liveServer) orderCard(b *strings.Builder, st stageRecord, races []stageRace) {
+	ordered := s.stages.runningOrder(st, races)
+	fmt.Fprintf(b, `<div class="card"><details><summary><b>Running order</b> <span class="mut">— choose which races fly first within each round</span></summary>
+<form method="post" action="/stages/%s/action" id="orderform">`, esc(st.ID))
+	round := -1
+	for _, rc := range ordered {
+		if rc.IsVoid {
+			continue
+		}
+		if rc.Round != round {
+			if round != -1 {
+				b.WriteString(`</ol>`)
+			}
+			round = rc.Round
+			fmt.Fprintf(b, `<h3 class="ordh">Round %d</h3><ol class="ord" data-round="%d">`, round, round)
+		}
+		fixed := rc.State == "running" || rc.State == "flown" || rc.State == "finished"
+		cls, btns := "", `<button type="button" class="sec small up">▲</button><button type="button" class="sec small dn">▼</button>`
+		if fixed {
+			cls, btns = ` class="fixed"`, `<span class="mut small">flown</span>`
+		}
+		fmt.Fprintf(b, `<li%s><input type="hidden" name="race" value="%s"><span>%s</span>%s</li>`, cls, esc(rc.ID), esc(rc.Title), btns)
+	}
+	if round != -1 {
+		b.WriteString(`</ol>`)
+	}
+	b.WriteString(`<p><button name="do" value="order">Save running order</button>
+<span class="mut">Re-creates the races not flown yet on the timer in this order; flown races and results stay.</span></p></form></details></div>
+<style>
+ .ordh{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:.9rem 0 .3rem}
+ .ord{list-style:none;margin:0;padding:0;display:grid;gap:.3rem}
+ .ord li{display:flex;align-items:center;gap:.5rem;padding:.4rem .7rem;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.3)}
+ .ord li span:first-of-type{flex:1}.ord li.fixed{opacity:.55}
+</style>
+<script>
+// One handler on the document: the page refreshes itself, replacing the list.
+if(!window.ddOrderBound){ window.ddOrderBound=true;
+ document.addEventListener('click',function(e){
+  var btn=e.target.closest('#orderform button.up,#orderform button.dn'); if(!btn) return;
+  var li=btn.closest('li'), ol=li.parentNode;
+  if(btn.classList.contains('up')){ var p=li.previousElementSibling; if(p&&!p.classList.contains('fixed')) ol.insertBefore(li,p); }
+  else { var n=li.nextElementSibling; if(n) ol.insertBefore(n,li); }
+ });
+}
+</script>`)
 }

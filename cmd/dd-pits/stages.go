@@ -80,6 +80,10 @@ type stageRecord struct {
 	// Applied is the finishing order last taken from timing for each race, so
 	// an unchanged result is not applied twice.
 	Applied map[string]string `json:"applied,omitempty"`
+	// Order is the race director's running order (race ids). Empty means
+	// round by round, winners before losers. Races always stay within their
+	// round: a race needs the earlier rounds' results.
+	Order []string `json:"order,omitempty"`
 	// Seated is the line-up last put on the timer for each race, so a race
 	// sent before all its pilots were known is re-seated as they arrive.
 	Seated map[string]string `json:"seated,omitempty"`
@@ -640,7 +644,7 @@ func (m *stageManager) syncStage(id string, mv *meetingView, send bool) {
 		}
 	}
 	if len(toSend) > 0 {
-		sortForTimer(toSend)
+		sortForTimer(toSend, st.Order)
 		m.sendRaces(id, toSend, false)
 	}
 	if len(unneeded) > 0 {
@@ -648,13 +652,18 @@ func (m *stageManager) syncStage(id string, mv *meetingView, send bool) {
 	}
 }
 
-// sortForTimer puts races in running order — round by round, winners before
-// losers within a round — so the timer, which lists heats in the order they
-// were created, shows a bracket round by round.
-func sortForTimer(races []stageRace) {
+// sortForTimer puts races in running order — round by round, and within a
+// round the race director's order (else winners before losers) — so the
+// timer, which runs and lists heats in the order they were created, follows it.
+func sortForTimer(races []stageRace, order []string) {
 	idx := map[string]int{}
 	for i, r := range races {
-		idx[r.ID] = i
+		idx[r.ID] = len(order) + i
+	}
+	for i, id := range order {
+		if _, ok := idx[id]; ok {
+			idx[id] = i
+		}
 	}
 	sort.SliceStable(races, func(i, j int) bool {
 		a, b := races[i], races[j]
@@ -666,6 +675,25 @@ func sortForTimer(races []stageRace) {
 		}
 		return idx[a.ID] < idx[b.ID]
 	})
+}
+
+// runningOrder is every race of the stage in running order, for the page.
+func (m *stageManager) runningOrder(st stageRecord, races []stageRace) []stageRace {
+	out := append([]stageRace(nil), races...)
+	sortForTimer(out, st.Order)
+	return out
+}
+
+// setOrder saves the race director's running order and re-creates the races
+// not yet flown on the timer in it.
+func (m *stageManager) setOrder(id string, order []string, mv *meetingView) error {
+	if err := m.update(id, func(st *stageRecord) error {
+		st.Order = order
+		return nil
+	}); err != nil {
+		return err
+	}
+	return m.rebuildOnTimer(id, mv)
 }
 
 // rebuildOnTimer takes a stage's races that haven't been flown off the timer
