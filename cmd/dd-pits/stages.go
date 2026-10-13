@@ -641,6 +641,9 @@ func (m *stageManager) linkedRaceID(link string, mv *meetingView) string {
 // sendAll forces a send of every ready race even where automatic sending is
 // off (the "Send ready races" button).
 func (m *stageManager) syncAll(sendAll bool) {
+	if !bracketsAvailable() {
+		return // nothing goes to a timer that can't run brackets
+	}
 	m.opMu.Lock()
 	defer m.opMu.Unlock()
 	snap := m.snapshot()

@@ -22,14 +22,18 @@ type navItem struct{ href, label, hint string }
 // them; everyone else can log in.
 func siteNav(admin bool) string {
 	b := &strings.Builder{}
-	for _, it := range []navItem{
+	main := []navItem{
 		{"/", "Home", ""},
 		{"/live", "Live", ""},
 		{"/dronedash/upcoming", "Upcoming", ""},
 		{"/dronedash/races", "Races", ""},
 		{"/stages", "Brackets", ""},
 		{"/overlays", "Overlays", ""},
-	} {
+	}
+	if !bracketsAvailable() {
+		main = append(main[:4], main[5:]...)
+	}
+	for _, it := range main {
 		fmt.Fprintf(b, `<a href="%s">%s</a>`, it.href, esc(it.label))
 	}
 	group := func(name string, items ...navItem) {
@@ -46,13 +50,17 @@ func siteNav(admin bool) string {
 		rhLink(b)
 		return b.String()
 	}
-	group("Race director",
-		navItem{"/stages/new", "Create bracket", "Draw a bracket from your pilots"},
-		navItem{"/marshal", "Marshal", "Fix a race's laps"},
-		navItem{"/calls", "Race calls", "Say a call now"},
-		navItem{"/goggles", "Goggle control", "Channels and messages to goggles"},
-		navItem{"/logout", "Log out", "View as a spectator: no race controls"},
-	)
+	director := []navItem{
+		{"/stages/new", "Create bracket", "Draw a bracket from your pilots"},
+		{"/marshal", "Marshal", "Fix a race's laps"},
+		{"/calls", "Race calls", "Say a call now"},
+		{"/goggles", "Goggle control", "Channels and messages to goggles"},
+		{"/logout", "Log out", "View as a spectator: no race controls"},
+	}
+	if !bracketsAvailable() {
+		director = director[1:]
+	}
+	group("Race director", director...)
 	settings := []navItem{
 		{"/setup", "Overview", "What this venue is running"},
 		{"/setup/pilots", "Goggle pilots", "Bind phrases, OSD on or off"},

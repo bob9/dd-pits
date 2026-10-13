@@ -247,3 +247,6 @@ func TestFTStageTimerMeetingSync(t *testing.T) {
 		t.Fatalf("stock FPVTrackside error = %v", err)
 	}
 }
+
+// The bracket tests drive FPVTrackside too, where brackets are off for now.
+func init() { ftBrackets = true }

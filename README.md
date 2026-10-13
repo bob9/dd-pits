@@ -351,7 +351,9 @@ plugin installed: `dd-pits -rotorhazard http://<timer>:5000`.
 ## Brackets
 
 dd-pits runs **stages**: competitions made of several races, where each result
-decides who flies next. They work on RotorHazard and on FPVTrackside. The draw
+decides who flies next. They run on **RotorHazard** for now; FPVTrackside
+support comes once FPVTrackside lets another program add and start races (the
+Brackets menu is hidden on FPVTrackside until then). The draw
 and progression come from the same engine as the Stages in
 [bob9's FPVTrackside](https://github.com/bob9/FPVTracksideCore) and the AUFPV
 platform, so a stage gives the same races in all three.
@@ -372,12 +374,8 @@ so on.
 **Running it.** Each race is sent to the timer **as soon as its line-up is
 known**: round 1 straight away, later races as results come in.
 
-- **On RotorHazard,** each race becomes a heat in a race class named after the
-  stage, with the pilots seated in seed order.
-- **On FPVTrackside,** races are created through the REST API in
-  [bob9's FPVTrackside](https://github.com/bob9/FPVTracksideCore). Stock
-  FPVTrackside can't take races from outside, so there you add the races by
-  hand and enter the results on the stage page.
+On RotorHazard each race becomes a heat in the bracket's own race class, one
+heat group per round, with the pilots seated in seed order.
 
 When a race ends, its finishing order is read from the timing and the bracket
 moves on: losers drop into the losers bracket, finalists are seated, and unused
