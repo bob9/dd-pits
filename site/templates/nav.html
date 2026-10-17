@@ -1,3 +1,42 @@
+{{define "navgroups"}}
+      <a class="nav-top" href="/#watch">Watch</a>
+      <details class="ng">
+        <summary>Race directors</summary>
+        <div class="ng-menu">
+          <a href="/#brackets"><b>Brackets <span class="new-tag">New</span></b><small>Finals drawn and run for you</small></a>
+          <a href="/#marshal"><b>Marshalling <span class="new-tag">New</span></b><small>Fix laps from each pilot's signal</small></a>
+          <a href="/#overlay"><b>OBS overlays</b><small>22 live scenes for your stream</small></a>
+          <a href="/#calls"><b>Race calls</b><small>Laps and results in one voice</small></a>
+          <a href="/#booth"><b>AI commentary</b><small>Play-by-play and colour</small></a>
+        </div>
+      </details>
+      <details class="ng">
+        <summary>Pilots</summary>
+        <div class="ng-menu">
+          <a href="/#displays"><b>Live dashboard</b><small>Live times and stats on every phone</small></a>
+          <a href="/#goggles"><b>Lap times in goggles</b><small>The OSD, race channels, DVR names</small></a>
+          <a href="/#hdzero"><b>HDZero firmware <span class="new-tag">New</span></b><small>Change channel, the quad follows</small></a>
+        </div>
+      </details>
+      <details class="ng">
+        <summary>Timers &amp; hardware</summary>
+        <div class="ng-menu">
+          <a href="/#timers"><b>RotorHazard &amp; FPVTrackside</b><small>What works with each</small></a>
+          <a href="/#rotorhazard"><b>RotorHazard plugin</b><small>dd-pits on the timer itself</small></a>
+          <a href="/#netpack"><b>ELRS Netpack</b><small>The backpack on your network</small></a>
+        </div>
+      </details>
+      <details class="ng{{if eq .Page "setup"}} on{{end}}">
+        <summary>Get started</summary>
+        <div class="ng-menu">
+          <a href="/best-setup"{{if eq .Page "setup"}} class="on" aria-current="page"{{end}}><b>Setup guide</b><small>Install everything, step by step</small></a>
+          <a href="/#how-to"><b>How to use</b><small>dd-pits beside FPVTrackside</small></a>
+          <a href="/#download"><b>Download</b><small>macOS, Windows and Linux</small></a>
+          <a href="/#faq"><b>FAQ</b><small>Questions race directors ask</small></a>
+        </div>
+      </details>
+{{end}}
+
 {{define "topnav"}}<a class="coffee-bar" href="{{.Links.coffee}}" target="_blank" rel="noopener">
   <span class="cb-cup" aria-hidden="true">☕</span>
   <span class="cb-text"><b>dd-pits is free for every club.</b> <span class="cb-more">If it makes your race day run smoother,</span> buy bob9 a coffee</span>
@@ -10,21 +49,14 @@
       <img src="{{asset "img/icon-256.webp"}}" alt="" width="28" height="28">
       <span class="wordmark"><span class="grad">dd</span>-pits</span>
     </a>
-    <nav class="nav-links" aria-label="Sections">
-      <a href="/#brackets" class="nav-new">Brackets <span class="new-tag">New</span></a>
-      <a href="/#marshal">Marshalling</a>
-      <a href="/best-setup"{{if eq .Page "setup"}} class="on" aria-current="page"{{end}}>Setup guide</a>
-      <a href="/#how-to">How to use</a>
-      <a href="/#displays">Displays</a>
-      <a href="/#overlay">OBS overlay</a>
-      <a href="/#calls">Race calls</a>
-      <a href="/#booth">Commentary</a>
-      <a href="/#goggles">Goggles</a>
-      <a href="/#rotorhazard">RotorHazard</a>
-    </nav>
+    <nav class="nav-links" aria-label="Sections">{{template "navgroups" .}}</nav>
     <div class="nav-cta">
       <a class="btn-coffee sm" href="{{.Links.coffee}}" target="_blank" rel="noopener"><span aria-hidden="true">☕</span> Buy me a coffee</a>
       <a class="btn sm" href="/#download">Get dd-pits</a>
+      <details class="nav-mobile">
+        <summary aria-label="Menu">Menu</summary>
+        <nav class="nav-mobile-panel" aria-label="Sections">{{template "navgroups" .}}</nav>
+      </details>
     </div>
   </div>
 </header>{{end}}

@@ -45,3 +45,24 @@
     });
   });
 })();
+
+// Grouped menu: one group open at a time; close on a click elsewhere or on a link.
+(function () {
+  var groups = document.querySelectorAll('.nav .ng, .nav .nav-mobile');
+  if (!groups.length) return;
+  groups.forEach(function (g) {
+    g.addEventListener('toggle', function () {
+      if (!g.open) return;
+      groups.forEach(function (o) { if (o !== g && !o.contains(g) && !g.contains(o)) o.open = false; });
+    });
+  });
+  document.addEventListener('click', function (e) {
+    groups.forEach(function (g) { if (g.open && !g.contains(e.target)) g.open = false; });
+  });
+  document.querySelectorAll('.nav .ng-menu a, .nav .nav-top').forEach(function (a) {
+    a.addEventListener('click', function () { groups.forEach(function (g) { g.open = false; }); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') groups.forEach(function (g) { g.open = false; });
+  });
+})();
