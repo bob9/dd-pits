@@ -39,7 +39,7 @@
   </picture>
   <div class="hero-shade"></div>
   <div class="hero-copy">
-    <a class="announce" href="#brackets"><span class="new-tag">New</span> Brackets that run themselves, on RotorHazard and FPVTrackside <span aria-hidden="true">→</span></a>
+    <a class="announce" href="#together"><span class="new-tag">New</span> Brackets, race channels and HDZero firmware, all working together <span aria-hidden="true">→</span></a>
     <p class="eyebrow">Free &amp; open source · for FPVTrackside &amp; RotorHazard</p>
     <h1 class="display">Race day,<br><span class="grad">run from one laptop.</span></h1>
     <p class="lede">A live dashboard on every phone. Race calls in one voice. AI commentary for your stream. Lap times in pilots' goggles. All from the timing laptop — no internet, no account.</p>
@@ -97,6 +97,48 @@
     </video>
   </div>
   <p class="watch-note reveal">Laps and signal are simulated for the demo; everything else is the real RotorHazard 4.4 and FPVTrackside alpha.</p>
+</section>
+
+<!-- ALL TOGETHER -->
+<section class="together" id="together" aria-labelledby="together-h">
+  <div class="wrap center">
+    <p class="eyebrow reveal">Why it works</p>
+    <h2 class="headline reveal" id="together-h">One race.<br><span class="grad">Everything at once.</span></h2>
+    <p class="sub reveal">No single feature makes race day easy. It's that every part of dd-pits reads the same timing and acts together, so one action from the race director sets off everything below. Here's one race.</p>
+  </div>
+  <div class="together-grid">
+    <article class="together-col reveal">
+      <p class="together-step">1 · The race is cued</p>
+      <ul class="ticks">
+        <li>Every pilot's <a href="#goggles">goggles</a> switch to their race channel, Lowband too</li>
+        <li>Their DVR is told to name the recording after the heat</li>
+        <li>The <a href="#displays">dashboard</a> on every phone shows who's up</li>
+        <li>The <a href="#overlay">stream</a> walks the line-up on with ranks and best laps</li>
+        <li><a href="#calls">Race calls</a> announce who's up next</li>
+      </ul>
+    </article>
+    <article class="together-col reveal">
+      <p class="together-step">2 · They race</p>
+      <ul class="ticks">
+        <li>Each pilot sees their position and lap times in their goggles</li>
+        <li>Live times on the dashboard and on the TV in the pits</li>
+        <li>Overlays update on stream, lap by lap</li>
+        <li>The <a href="#booth">AI commentary booth</a> calls the action</li>
+        <li>Lap calls in one voice, in your club's wording</li>
+      </ul>
+    </article>
+    <article class="together-col reveal">
+      <p class="together-step">3 · It finishes</p>
+      <ul class="ticks">
+        <li>Results and every pilot's personal bests, on every phone</li>
+        <li>The <a href="#brackets">bracket</a> moves on and the next races go to the timer</li>
+        <li>Any lap that looks wrong is flagged on the <a href="#marshal">Marshal</a> page</li>
+        <li>The podium and standings on stream</li>
+        <li>The next race is up, and it all starts again</li>
+      </ul>
+    </article>
+  </div>
+  <p class="together-foot reveal">All of it from one laptop or the timer itself, with RotorHazard or FPVTrackside. No internet, no account.</p>
 </section>
 
 <!-- TIMERS -->
@@ -353,29 +395,6 @@
   </div>
 </section>
 
-<!-- MARSHALLING -->
-<section class="feature" id="marshal" aria-labelledby="marshal-h">
-  <div class="wrap center">
-    <p class="eyebrow reveal"><span class="new-tag">New</span> Marshalling · RotorHazard timers</p>
-    <h2 class="headline reveal" id="marshal-h">Every lap.<br><span class="grad">Exactly right.</span></h2>
-    <p class="sub reveal">dd-pits reads each pilot's signal from your RotorHazard timer, finds the enter and exit lines for you, and points at the laps that look wrong, with the fix one tap away. Corrections go back through RotorHazard's own marshal save, so results, brackets and FPVTrackside all follow.</p>
-  </div>
-  <div class="brk-show marshal-show reveal">
-    <div class="brk-frame">
-      <div class="brk-bar" aria-hidden="true"><i></i><i></i><i></i><span>dd-pits · Marshal</span></div>
-      <img src="{{asset "img/screens/marshal.webp"}}" srcset="{{asset "img/screens/marshal-sm.webp"}} 900w, {{asset "img/screens/marshal.webp"}} 1844w" sizes="(max-width: 900px) 100vw, 1100px" alt="A pilot's signal trace in dd-pits' Marshal page: the enter and exit lines, counted passes, a missed weak pass marked at 0:13.3 with an Add lap here button, and auto-detect's suggested lines with medium confidence" width="1844" height="976" loading="lazy">
-    </div>
-  </div>
-  <div class="grid3">
-    <div class="card reveal"><h3>Lines found for you</h3><p>Auto-detect measures the background and the passes and picks the enter and exit lines that give steady, believable laps, then tells you how sure it is and why.</p></div>
-    <div class="card reveal"><h3>Problems pointed out</h3><p>Double counts, stray signals, missed passes (with the weak peak where it probably was), passes only just over the line, and too few laps for the race.</p></div>
-    <div class="card reveal"><h3>Bleed spotted</h3><p>Every pilot on one time axis. A weak bump that lines up with another pilot's strong pass is called out as their signal bleeding across, not a lap.</p></div>
-    <div class="card reveal"><h3>Drag, tap, done</h3><p>Drag the lines and the laps recalculate as you go, by RotorHazard's own rule. Tap a pass to drop it, tap the trace to add one. From the laptop or a phone at the field.</p></div>
-    <div class="card reveal"><h3>Saved the RotorHazard way</h3><p>Corrections save through RotorHazard's own marshal save, and <b>Use these lines from now on</b> sets the node for the races to come.</p></div>
-    <div class="card reveal"><h3>FPVTrackside too</h3><p>When FPVTrackside times with a RotorHazard, dd-pits finds the timer in FPVTrackside's settings and marshals from its signal. Corrections land back in FPVTrackside.</p></div>
-  </div>
-</section>
-
 <!-- DISPLAYS -->
 <section class="feature" id="displays" aria-labelledby="displays-h">
   <div class="split">
@@ -595,6 +614,29 @@
   </div>
   <p class="credit reveal">ELRS Netpack was originally created by <a href="{{.Links.netpackOrigin}}">i-am-grub</a>, and forked and extended by <a href="{{.Links.netpack}}">bob9</a>. Not affiliated with the ExpressLRS project.</p>
   <div class="center reveal"><a class="btn ghost" href="{{.Links.netpack}}">ELRS Netpack on GitHub <span aria-hidden="true">→</span></a></div>
+</section>
+
+<!-- MARSHALLING -->
+<section class="feature" id="marshal" aria-labelledby="marshal-h">
+  <div class="wrap center">
+    <p class="eyebrow reveal">Marshalling · RotorHazard timers</p>
+    <h2 class="headline reveal" id="marshal-h">Every lap.<br><span class="grad">Exactly right.</span></h2>
+    <p class="sub reveal">dd-pits reads each pilot's signal from your RotorHazard timer, finds the enter and exit lines for you, and points at the laps that look wrong, with the fix one tap away. Corrections go back through RotorHazard's own marshal save, so results, brackets and FPVTrackside all follow.</p>
+  </div>
+  <div class="brk-show marshal-show reveal">
+    <div class="brk-frame">
+      <div class="brk-bar" aria-hidden="true"><i></i><i></i><i></i><span>dd-pits · Marshal</span></div>
+      <img src="{{asset "img/screens/marshal.webp"}}" srcset="{{asset "img/screens/marshal-sm.webp"}} 900w, {{asset "img/screens/marshal.webp"}} 1844w" sizes="(max-width: 900px) 100vw, 1100px" alt="A pilot's signal trace in dd-pits' Marshal page: the enter and exit lines, counted passes, a missed weak pass marked at 0:13.3 with an Add lap here button, and auto-detect's suggested lines with medium confidence" width="1844" height="976" loading="lazy">
+    </div>
+  </div>
+  <div class="grid3">
+    <div class="card reveal"><h3>Lines found for you</h3><p>Auto-detect measures the background and the passes and picks the enter and exit lines that give steady, believable laps, then tells you how sure it is and why.</p></div>
+    <div class="card reveal"><h3>Problems pointed out</h3><p>Double counts, stray signals, missed passes (with the weak peak where it probably was), passes only just over the line, and too few laps for the race.</p></div>
+    <div class="card reveal"><h3>Bleed spotted</h3><p>Every pilot on one time axis. A weak bump that lines up with another pilot's strong pass is called out as their signal bleeding across, not a lap.</p></div>
+    <div class="card reveal"><h3>Drag, tap, done</h3><p>Drag the lines and the laps recalculate as you go, by RotorHazard's own rule. Tap a pass to drop it, tap the trace to add one. From the laptop or a phone at the field.</p></div>
+    <div class="card reveal"><h3>Saved the RotorHazard way</h3><p>Corrections save through RotorHazard's own marshal save, and <b>Use these lines from now on</b> sets the node for the races to come.</p></div>
+    <div class="card reveal"><h3>FPVTrackside too</h3><p>When FPVTrackside times with a RotorHazard, dd-pits finds the timer in FPVTrackside's settings and marshals from its signal. Corrections land back in FPVTrackside.</p></div>
+  </div>
 </section>
 
 <!-- AFTER THE RACE -->

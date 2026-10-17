@@ -34,6 +34,7 @@ func TestHomeRenders(t *testing.T) {
 		"/booth.wav",
 		"Model host mode",
 		"DVR recordings named after the heat",
+		"Everything at once",
 		"Three Digital Llamas",
 		"How to use dd-pits",
 		"https://demo.dd-pits.threedigitalllamas.com.au",
