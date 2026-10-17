@@ -14,5 +14,9 @@
   <!-- No window of its own (the browser is its window): no Dock icon. -->
   <key>LSUIElement</key><true/>
   <key>NSHighResolutionCapable</key><true/>
+  <!-- Shown when macOS asks to allow local network access: the ELRS netpack,
+       a RotorHazard timer and FPVTrackside on another machine are all on it. -->
+  <key>NSLocalNetworkUsageDescription</key><string>dd-pits talks to your race timer and to the ELRS netpack on the venue network, to show lap times and send them to pilots' goggles.</string>
+  <key>NSBonjourServices</key><array><string>_http._tcp</string></array>
 </dict>
 </plist>
