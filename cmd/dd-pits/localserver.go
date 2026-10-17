@@ -356,6 +356,10 @@ func buildMeeting(snap dronedash.Snapshot) *meetingView {
 		} else {
 			vr.Label = fmt.Sprintf("Round %d — %s %d", vr.Round, typeWord, vr.Number)
 		}
+		// A name given in the meeting editor wins: FPVTrackside has none.
+		if n := raceNames.get(r.ID); n != "" {
+			vr.Label = n
+		}
 		start := parseTime(r.Start)
 		end := parseTime(r.End)
 		// A started heat FPVTrackside left without an End is done (and must not read
@@ -1427,6 +1431,7 @@ func (s *liveServer) handler() http.Handler {
 	s.registerLocalSetup(mux)
 	s.registerStages(mux)
 	s.registerMarshal(mux)
+	s.registerMeeting(mux)
 	s.registerLogin(mux)
 
 	// JSON read-API + SSE streams + Swagger UI / OpenAPI — the shared surface

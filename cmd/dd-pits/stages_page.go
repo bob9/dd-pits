@@ -31,33 +31,8 @@ func (s *liveServer) registerStages(mux *http.ServeMux) {
 	mux.HandleFunc("/stages/", s.stageRoute)
 }
 
-// bracketsAvailable reports whether this timer can run brackets. For now
-// that's RotorHazard: FPVTrackside can only take races, start them and fix
-// laps with the REST API in bob9's FPVTracksideCore, not yet released. The
-// public demo keeps its read-only example bracket.
-func bracketsAvailable() bool {
-	return timingSystem != "FPVTrackside" || demoMode || ftBrackets
-}
-
-// ftBrackets turns brackets on for FPVTrackside: the code is kept working
-// (and tested) for when FPVTrackside's REST API is released.
-var ftBrackets = false
-
-// bracketsOff answers a bracket page on a timer that can't run brackets.
-func bracketsOff(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusNotFound)
-	writeSetup(w, r, "Brackets", `<div class="card"><h2>Brackets need RotorHazard for now</h2>
-<p>dd-pits runs brackets on a RotorHazard timer, through its dd-pits plugin: the races go on the timer as soon as their pilots are known, and results come back on their own.</p>
-<p class="mut">FPVTrackside doesn't yet let another program add races or start them. Bracket support for FPVTrackside will come once it does.</p></div>`)
-}
-
 func (s *liveServer) stageRoute(w http.ResponseWriter, r *http.Request) {
 	rest := strings.TrimPrefix(r.URL.Path, "/stages/")
-	if !bracketsAvailable() && rest != "find" && rest != "links" {
-		bracketsOff(w, r)
-		return
-	}
 	switch {
 	case rest == "":
 		http.Redirect(w, r, "/stages", http.StatusSeeOther)
@@ -79,10 +54,6 @@ func (s *liveServer) stageRoute(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *liveServer) stagesList(w http.ResponseWriter, r *http.Request) {
-	if !bracketsAvailable() {
-		bracketsOff(w, r)
-		return
-	}
 	admin := localSetupAllowed(r)
 	b := &strings.Builder{}
 	b.WriteString(loginBar(r))

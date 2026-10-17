@@ -260,6 +260,15 @@ every event on to them too.
 if you have several). It also turns FPVTrackside's own speech down so you don't
 hear both. Restart FPVTrackside when the page says to.
 
+**6. Edit the meeting from dd-pits (optional).** With an FPVTrackside that has
+the REST API, **Race director → Meeting editor** (`/meeting`) changes the
+meeting in FPVTrackside itself: the event's name, laps, race length and
+channels; rounds (add, rename, delete); races (add, delete, reset, select, laps
+to finish); each race's line-up and channels; and the event's pilots.
+FPVTrackside has no race names, so a race's name is kept by dd-pits and shown
+on dd-pits's pages and overlays. From another machine, give dd-pits
+FPVTrackside's API key as `FPV_API_TOKEN`.
+
 > **Tip:** [bob9's FPVTrackside fork](https://github.com/bob9/FPVTracksideCore)
 > adds a `/current` endpoint, which lets the dashboard show the next heat the
 > moment it is cued rather than when it starts. dd-pits works fine with stock
@@ -351,9 +360,7 @@ plugin installed: `dd-pits -rotorhazard http://<timer>:5000`.
 ## Brackets
 
 dd-pits runs **stages**: competitions made of several races, where each result
-decides who flies next. They run on **RotorHazard** for now; FPVTrackside
-support comes once FPVTrackside lets another program add and start races (the
-Brackets menu is hidden on FPVTrackside until then). The draw
+decides who flies next. They work on RotorHazard and on FPVTrackside. The draw
 and progression come from the same engine as the Stages in
 [bob9's FPVTrackside](https://github.com/bob9/FPVTracksideCore) and the AUFPV
 platform, so a stage gives the same races in all three.
@@ -374,8 +381,12 @@ so on.
 **Running it.** Each race is sent to the timer **as soon as its line-up is
 known**: round 1 straight away, later races as results come in.
 
-On RotorHazard each race becomes a heat in the bracket's own race class, one
-heat group per round, with the pilots seated in seed order.
+- **On RotorHazard,** each race becomes a heat in the bracket's own race
+  class, one heat group per round, with the pilots seated in seed order.
+- **On FPVTrackside,** races are created through FPVTrackside's REST API, one
+  round per bracket round, and dd-pits starts them and reads the results back.
+  This needs an FPVTrackside recent enough to have the REST API; on an older
+  one you add the races by hand and enter the results on the stage page.
 
 When a race ends, its finishing order is read from the timing and the bracket
 moves on: losers drop into the losers bracket, finalists are seated, and unused

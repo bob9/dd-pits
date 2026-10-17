@@ -180,7 +180,7 @@ func TestEveryFormatStarts(t *testing.T) {
 	}
 }
 
-// The FPVTrackside sender speaks bob9's /api/v1/meeting/sync: rounds and races
+// The FPVTrackside sender speaks FPVTrackside's /api/v1/meeting/sync: rounds and races
 // keyed by externalId, pilots by name, and the race ids come back as links.
 func TestFTStageTimerMeetingSync(t *testing.T) {
 	var got struct {
@@ -247,6 +247,3 @@ func TestFTStageTimerMeetingSync(t *testing.T) {
 		t.Fatalf("stock FPVTrackside error = %v", err)
 	}
 }
-
-// The bracket tests drive FPVTrackside too, where brackets are off for now.
-func init() { ftBrackets = true }

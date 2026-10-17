@@ -549,6 +549,7 @@ func main() {
 			timer = &rhStageTimer{base: *rhURL, token: os.Getenv("DD_PITS_TIMER_TOKEN")}
 		}
 		a.local.stages = newStageManager(stagesPath(lc.Path()), timer)
+		raceNames = loadRaceNames(raceNamesPath(lc.Path()))
 		go a.local.stages.run(ctx.Done())
 		a.local.logs = logRingBuf
 		// Keeps FPVTrackside's speech volume matching the who-speaks switch,

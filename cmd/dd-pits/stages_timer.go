@@ -6,11 +6,11 @@ package main
 // named after the stage (POST /dd-pits/api/stage-heat), seating the pilots in
 // order. The link is "rh-h<heat>", and the heat's first run is the result.
 //
-// FPVTrackside: the REST API in bob9's FPVTrackside (POST /api/v1/meeting/sync)
-// creates the races in rounds named after the stage's rounds, keyed by
-// externalId so a resend changes nothing. Stock FPVTrackside has no way to
-// create races from outside, so there the race director adds them by hand and
-// enters the results on the stage page.
+// FPVTrackside: its REST API (POST /api/v1/meeting/sync) creates the races in
+// rounds named after the stage's rounds, keyed by externalId so a resend
+// changes nothing. An FPVTrackside from before the REST API can't create races
+// from outside, so there the race director adds them by hand and enters the
+// results on the stage page.
 
 import (
 	"bytes"
@@ -315,8 +315,8 @@ func (t *ftStageTimer) send(st stageRecord, races []stageRace, makeCurrent bool)
 	}
 	err := postJSON(strings.TrimSuffix(t.base, "/")+"/api/v1/meeting/sync", plan, os.Getenv("FPV_API_TOKEN"), &out)
 	if errors.Is(err, errNoStageAPI) {
-		return nil, errors.New("this FPVTrackside has no REST API. Use bob9's FPVTrackside " +
-			"(github.com/bob9/FPVTracksideCore), or add the races by hand and enter results here")
+		return nil, errors.New("this FPVTrackside has no REST API. Update FPVTrackside to a version " +
+			"with the REST API, or add the races by hand and enter results here")
 	}
 	if err != nil {
 		return nil, err

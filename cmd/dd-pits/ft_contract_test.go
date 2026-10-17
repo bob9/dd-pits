@@ -18,8 +18,8 @@ import (
 	"github.com/bob9/dd-pits/internal/stages/raceformat"
 )
 
-// fakeFT is bob9's FPVTrackside as far as dd-pits uses it: the REST API under
-// /api/v1 (Webb/Api on feature/brackets) and the event JSON files the
+// fakeFT is FPVTrackside as far as dd-pits uses it: the REST API under
+// /api/v1 (Webb/Api in FPVTracksideCore master) and the event JSON files the
 // snapshot reads. It is strict where the real one would be: unknown paths are
 // 404 "no such endpoint", a wrong method is 405, changes need the API token,
 // and request fields must be the API's camelCase names.
@@ -38,7 +38,7 @@ type fakeFT struct {
 	calls  []string
 }
 
-type ftPilotRec struct{ ID, Name string }
+type ftPilotRec struct{ ID, Name, FirstName, LastName, Channel string }
 
 type ftRoundRec struct {
 	ID, Name, EventType string
@@ -55,7 +55,8 @@ type ftRaceRec struct {
 	ID, Round          string
 	ExternalID, Number int
 	TargetLaps         int
-	Pilots             []string // pilot ids
+	Pilots             []string          // pilot ids
+	Chans              map[string]string // pilot id -> channel id (meeting editor)
 	Start, End         time.Time
 	Dets               []*ftDet
 }
@@ -136,6 +137,7 @@ func (f *fakeFT) api(w http.ResponseWriter, r *http.Request, seg []string, body 
 		{"POST", "race-control/start", f.start},
 		{"POST", "race-control/stop", f.stop},
 	}
+	routes = append(routes, f.editRoutes()...)
 	pathExists := false
 	for _, rt := range routes {
 		tseg := strings.Split(rt.template, "/")
