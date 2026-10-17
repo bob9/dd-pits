@@ -27,36 +27,7 @@
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
-<a class="coffee-bar" href="{{.Links.coffee}}" target="_blank" rel="noopener">
-  <span class="cb-cup" aria-hidden="true">☕</span>
-  <span class="cb-text"><b>dd-pits is free for every club.</b> <span class="cb-more">If it makes your race day run smoother,</span> buy bob9 a coffee</span>
-  <span class="cb-go" aria-hidden="true">→</span>
-</a>
-
-<header class="nav" id="top">
-  <div class="nav-in">
-    <a class="brand" href="#top" aria-label="dd-pits home">
-      <img src="{{asset "img/icon-256.webp"}}" alt="" width="28" height="28">
-      <span class="wordmark"><span class="grad">dd</span>-pits</span>
-    </a>
-    <nav class="nav-links" aria-label="Sections">
-      <a href="#brackets" class="nav-new">Brackets <span class="new-tag">New</span></a>
-      <a href="#marshal">Marshalling</a>
-      <a href="/best-setup">Setup guide</a>
-      <a href="#how-to">How to use</a>
-      <a href="#displays">Displays</a>
-      <a href="#overlay">OBS overlay</a>
-      <a href="#calls">Race calls</a>
-      <a href="#booth">Commentary</a>
-      <a href="#goggles">Goggles</a>
-      <a href="#rotorhazard">RotorHazard</a>
-    </nav>
-    <div class="nav-cta">
-      <a class="btn-coffee sm" href="{{.Links.coffee}}" target="_blank" rel="noopener"><span aria-hidden="true">☕</span> Buy me a coffee</a>
-      <a class="btn sm" href="#download">Get dd-pits</a>
-    </div>
-  </div>
-</header>
+{{template "topnav" .}}
 
 <main id="main">
 

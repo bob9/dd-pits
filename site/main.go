@@ -65,6 +65,7 @@ func parseTemplates() *template.Template {
 }
 
 type pageData struct {
+	Page      string // "home" or "setup": marks the current page in the shared menu
 	SiteURL   string
 	Links     map[string]string
 	Overlays  []siteOverlayGroup
@@ -156,7 +157,9 @@ func newHandler() http.Handler {
 	}
 	homeBytes := home.Bytes()
 	var setup bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&setup, "setup.html", data); err != nil {
+	setupData := data
+	setupData.Page = "setup"
+	if err := tmpl.ExecuteTemplate(&setup, "setup.html", setupData); err != nil {
 		log.Fatalf("render setup guide: %v", err)
 	}
 	setupBytes := setup.Bytes()

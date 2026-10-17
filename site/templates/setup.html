@@ -21,22 +21,7 @@
 <body class="guide">
 <a class="skip" href="#main">Skip to content</a>
 
-<header class="nav" id="top">
-  <div class="nav-in">
-    <a class="brand" href="/" aria-label="dd-pits home">
-      <img src="{{asset "img/icon-256.webp"}}" alt="" width="28" height="28">
-      <span class="wordmark"><span class="grad">dd</span>-pits</span>
-    </a>
-    <nav class="nav-links" aria-label="Guide">
-      <a href="#how">How it fits</a>
-      <a href="#director">Race director</a>
-      <a href="#pilots">Each pilot</a>
-      <a href="#raceday">On the day</a>
-      <a href="/">dd-pits home</a>
-    </nav>
-    <div class="nav-cta"><a class="btn sm" href="/#download">Get dd-pits</a></div>
-  </div>
-</header>
+{{template "topnav" .}}
 
 <main id="main">
 
@@ -45,6 +30,9 @@
     <p class="eyebrow">Setup guide</p>
     <h1 class="display-2">The best <span class="grad">race-day setup.</span></h1>
     <p class="sub">Every piece, installed in order. Do the race director's part once on the timing laptop; each pilot does theirs once on their goggles. After that, race day runs itself: channels set, recordings named, lap times in every pilot's goggles.</p>
+    <nav class="guide-jump" aria-label="On this page">
+      <a href="#how">How it fits</a><a href="#director">Race director</a><a href="#pilots">Each pilot</a><a href="#raceday">On the day</a>
+    </nav>
   </div>
 </section>
 

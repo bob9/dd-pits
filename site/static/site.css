@@ -16,7 +16,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+html { scroll-behavior: smooth; scroll-padding-top: 64px; -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
   background: var(--bg);
@@ -520,3 +520,9 @@ section { position: relative; }
   .steps .two { grid-template-columns: 1fr; }
   .steps > li { padding-left: 50px; }
 }
+
+/* Shared menu: the current page */
+.nav-links a.on { color: var(--lime); }
+.guide-jump { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 26px; }
+.guide-jump a { font-size: 14px; font-weight: 600; color: #d2d2d7; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,.03); }
+.guide-jump a:hover { color: #fff; text-decoration: none; border-color: rgba(198,255,61,.4); }
