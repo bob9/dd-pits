@@ -472,3 +472,15 @@ section { position: relative; }
 /* Marshalling: the screenshot sits below its intro, not over a hero */
 .brk-show.marshal-show { margin-top: 44px; }
 #marshal .grid3 { margin-top: 56px; }
+
+/* See it in action */
+.watch { padding: clamp(64px, 9vw, 120px) 0; }
+.watch-switch { display: flex; justify-content: center; gap: 8px; margin: 34px auto 18px; }
+.watch-switch button { font: inherit; font-weight: 700; font-size: 15px; padding: 10px 22px; border-radius: 999px; cursor: pointer;
+  color: var(--mut); background: rgba(255,255,255,.04); border: 1px solid var(--line); }
+.watch-switch button[aria-selected="true"] { color: #07080a; background: var(--lime); border-color: var(--lime); }
+.watch-frame { max-width: 1180px; margin: 0 auto; padding: 0 22px; }
+.watch-frame video { display: block; width: 100%; height: auto; aspect-ratio: 16/9; border-radius: 18px; background: #000;
+  border: 1px solid var(--line); box-shadow: 0 40px 90px -30px rgba(0,0,0,.9); }
+.watch-frame video[hidden] { display: none; }
+.watch-note { text-align: center; color: var(--dim); font-size: 13px; margin: 14px 22px 0; }

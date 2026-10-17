@@ -28,3 +28,20 @@
   var el = document.querySelector('.dl-btn[data-os="' + os + '"]');
   if (el) el.classList.add("mine");
 })();
+
+// See it in action: the RotorHazard / FPVTrackside switch over the video.
+(function () {
+  var tabs = document.querySelectorAll('.watch-switch button');
+  if (!tabs.length) return;
+  var vids = { rh: document.getElementById('watchRH'), ft: document.getElementById('watchFT') };
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) { t.setAttribute('aria-selected', t === tab ? 'true' : 'false'); });
+      Object.keys(vids).forEach(function (k) {
+        if (!vids[k]) return;
+        if (k === tab.dataset.v) { vids[k].hidden = false; }
+        else { vids[k].pause(); vids[k].hidden = true; }
+      });
+    });
+  });
+})();

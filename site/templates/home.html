@@ -73,7 +73,8 @@
     <p class="lede">A live dashboard on every phone. Race calls in one voice. AI commentary for your stream. Lap times in pilots' goggles. All from the timing laptop — no internet, no account.</p>
     <div class="ctas">
       <a class="btn" href="#download">Get dd-pits</a>
-      <a class="btn demo" href="{{.Links.demo}}">Try the live demo <span aria-hidden="true">→</span></a>
+      <a class="btn demo" href="#watch">Watch it in action <span aria-hidden="true">▶</span></a>
+      <a class="btn ghost" href="{{.Links.demo}}">Try the live demo <span aria-hidden="true">→</span></a>
       <a class="btn ghost" href="{{.Links.github}}">View on GitHub</a>
     </div>
     <p class="byline">Free and open source · made by <a href="{{.Links.author}}">bob9</a></p>
@@ -102,6 +103,28 @@
     </div>
     <div class="laptop-base"></div>
   </div>
+</section>
+
+<!-- VIDEO -->
+<section class="watch" id="watch" aria-labelledby="watch-h">
+  <div class="wrap center">
+    <p class="eyebrow reveal">See it in action</p>
+    <h2 class="headline reveal" id="watch-h">Four minutes.<br><span class="grad">A whole race day.</span></h2>
+    <p class="sub reveal">dd-pits on the left, your timer on the right, live: a bracket drawn and run, stream graphics, laps marshalled, the dashboard on a phone, lap times in goggles and the AI commentary booth. Narrated, with captions.</p>
+  </div>
+  <div class="watch-switch reveal" role="tablist" aria-label="Choose your timer">
+    <button role="tab" aria-selected="true" data-v="rh">RotorHazard</button>
+    <button role="tab" aria-selected="false" data-v="ft">FPVTrackside</button>
+  </div>
+  <div class="watch-frame reveal">
+    <video id="watchRH" controls playsinline preload="none" poster="{{asset "video/rotorhazard-poster.webp"}}" width="1920" height="1080">
+      <source src="{{asset "video/dd-pits-rotorhazard.mp4"}}" type="video/mp4">
+    </video>
+    <video id="watchFT" controls playsinline preload="none" poster="{{asset "video/fpvtrackside-poster.webp"}}" width="1920" height="1080" hidden>
+      <source src="{{asset "video/dd-pits-fpvtrackside.mp4"}}" type="video/mp4">
+    </video>
+  </div>
+  <p class="watch-note reveal">Laps and signal are simulated for the demo; everything else is the real RotorHazard 4.4 and FPVTrackside alpha.</p>
 </section>
 
 <!-- TIMERS -->
