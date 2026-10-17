@@ -20,9 +20,15 @@ func get(t *testing.T, h http.Handler, path string) (*http.Response, string) {
 
 func TestHomeRenders(t *testing.T) {
 	h := newHandler()
-	res, body := get(t, h, "/")
-	if res.StatusCode != 200 {
-		t.Fatalf("GET / = %d", res.StatusCode)
+	// The site's content is spread over the home page and the topic pages;
+	// check it across all of them.
+	body := ""
+	for _, p := range []string{"/", "/race-directors", "/pilots", "/hardware", "/best-setup"} {
+		res, b := get(t, h, p)
+		if res.StatusCode != 200 {
+			t.Fatalf("GET %s = %d", p, res.StatusCode)
+		}
+		body += b
 	}
 	for _, want := range []string{
 		"Race day,",

@@ -65,11 +65,26 @@ func parseTemplates() *template.Template {
 }
 
 type pageData struct {
-	Page      string // "home" or "setup": marks the current page in the shared menu
+	Page      string // marks the current page in the shared menu
+	Title     string // the page's <title>
+	Desc      string // its meta description
+	Path      string // its URL path
 	SiteURL   string
 	Links     map[string]string
 	Overlays  []siteOverlayGroup
 	Downloads []siteDownload
+}
+
+// sitePages are the pages beside the home page, each with the shared menu.
+var sitePages = []struct{ Path, Tmpl, Page, Title, Desc string }{
+	{"/race-directors", "race-directors.html", "race-directors", "For race directors — dd-pits",
+		"Brackets that run themselves, race calls in one voice, an AI commentator, 22 OBS overlays and marshalling from each pilot's signal."},
+	{"/pilots", "pilots.html", "pilots", "For pilots — dd-pits",
+		"Live times and personal stats on every phone, lap times in HDZero goggles, and race-day HDZero firmware: change channel on the goggles and the quad follows."},
+	{"/hardware", "hardware.html", "hardware", "Timers & hardware — dd-pits",
+		"How dd-pits connects to RotorHazard and FPVTrackside, the RotorHazard plugin, the ELRS Netpack, running fully offline and what you need."},
+	{"/best-setup", "setup.html", "setup", "The best race-day setup — dd-pits",
+		"How to install everything for the best race day with dd-pits: the timer, dd-pits, an ELRS backpack, and HDZero goggles with race-day firmware."},
 }
 
 type siteOverlay struct{ Img, Title, What string }
@@ -156,13 +171,17 @@ func newHandler() http.Handler {
 		log.Fatalf("render home: %v", err)
 	}
 	homeBytes := home.Bytes()
-	var setup bytes.Buffer
-	setupData := data
-	setupData.Page = "setup"
-	if err := tmpl.ExecuteTemplate(&setup, "setup.html", setupData); err != nil {
-		log.Fatalf("render setup guide: %v", err)
+	// The topic pages, rendered once like the home page.
+	pageBytes := map[string][]byte{}
+	for _, pg := range sitePages {
+		d := data
+		d.Page, d.Title, d.Desc, d.Path = pg.Page, pg.Title, pg.Desc, pg.Path
+		var buf bytes.Buffer
+		if err := tmpl.ExecuteTemplate(&buf, pg.Tmpl, d); err != nil {
+			log.Fatalf("render %s: %v", pg.Path, err)
+		}
+		pageBytes[pg.Path] = buf.Bytes()
 	}
-	setupBytes := setup.Bytes()
 
 	sub, _ := fs.Sub(staticFS, "static")
 	static := http.StripPrefix("/static/", http.FileServer(http.FS(sub)))
@@ -179,14 +198,20 @@ func newHandler() http.Handler {
 	mux.HandleFunc("/sitemap.xml", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/xml; charset=utf-8")
 		fmt.Fprintf(w, `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>%s/</loc><changefreq>weekly</changefreq></url><url><loc>%s/best-setup</loc><changefreq>weekly</changefreq></url></urlset>
-`, siteURL, siteURL)
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>%s/</loc><changefreq>weekly</changefreq></url>`, siteURL)
+		for _, pg := range sitePages {
+			fmt.Fprintf(w, `<url><loc>%s%s</loc><changefreq>weekly</changefreq></url>`, siteURL, pg.Path)
+		}
+		fmt.Fprint(w, "</urlset>\n")
 	})
-	mux.HandleFunc("/best-setup", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Cache-Control", "public, max-age=300")
-		w.Write(setupBytes)
-	})
+	for path, body := range pageBytes {
+		body := body
+		mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Header().Set("Cache-Control", "public, max-age=300")
+			w.Write(body)
+		})
+	}
 	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		u, _ := asset("img/favicon-32.png")
 		http.Redirect(w, r, u, http.StatusMovedPermanently)

@@ -1,29 +1,33 @@
 {{define "navgroups"}}
       <a class="nav-top" href="/#watch">Watch</a>
-      <details class="ng">
+      <details class="ng{{if eq .Page "race-directors"}} on{{end}}">
         <summary>Race directors</summary>
         <div class="ng-menu">
-          <a href="/#calls"><b>Race calls</b><small>Laps and results in one voice</small></a>
-          <a href="/#booth"><b>AI commentary</b><small>Play-by-play and colour</small></a>
-          <a href="/#overlay"><b>OBS overlays</b><small>22 live scenes for your stream</small></a>
-          <a href="/#brackets"><b>Brackets <span class="new-tag">New</span></b><small>Finals drawn and run for you</small></a>
-          <a href="/#marshal"><b>Marshalling</b><small>Fix laps from each pilot's signal</small></a>
+          <a class="ng-all" href="/race-directors"><b>Everything for race directors →</b></a>
+          <a href="/race-directors#calls"><b>Race calls</b><small>Laps and results in one voice</small></a>
+          <a href="/race-directors#booth"><b>AI commentary</b><small>Play-by-play and colour</small></a>
+          <a href="/race-directors#overlay"><b>OBS overlays</b><small>22 live scenes for your stream</small></a>
+          <a href="/race-directors#brackets"><b>Brackets <span class="new-tag">New</span></b><small>Finals drawn and run for you</small></a>
+          <a href="/race-directors#marshal"><b>Marshalling</b><small>Fix laps from each pilot's signal</small></a>
         </div>
       </details>
-      <details class="ng">
+      <details class="ng{{if eq .Page "pilots"}} on{{end}}">
         <summary>Pilots</summary>
         <div class="ng-menu">
-          <a href="/#displays"><b>Live dashboard</b><small>Live times and stats on every phone</small></a>
-          <a href="/#goggles"><b>Lap times in goggles</b><small>The OSD, race channels, DVR names</small></a>
-          <a href="/#hdzero"><b>HDZero firmware <span class="new-tag">New</span></b><small>Change channel, the quad follows</small></a>
+          <a class="ng-all" href="/pilots"><b>Everything for pilots →</b></a>
+          <a href="/pilots#displays"><b>Live dashboard</b><small>Live times and stats on every phone</small></a>
+          <a href="/pilots#goggles"><b>Lap times in goggles</b><small>The OSD, race channels, DVR names</small></a>
+          <a href="/pilots#hdzero"><b>HDZero firmware <span class="new-tag">New</span></b><small>Change channel, the quad follows</small></a>
         </div>
       </details>
-      <details class="ng">
+      <details class="ng{{if eq .Page "hardware"}} on{{end}}">
         <summary>Timers &amp; hardware</summary>
         <div class="ng-menu">
+          <a class="ng-all" href="/hardware"><b>All timers &amp; hardware →</b></a>
           <a href="/#timers"><b>RotorHazard &amp; FPVTrackside</b><small>What works with each</small></a>
-          <a href="/#rotorhazard"><b>RotorHazard plugin</b><small>dd-pits on the timer itself</small></a>
-          <a href="/#netpack"><b>ELRS Netpack</b><small>The backpack on your network</small></a>
+          <a href="/hardware#connects"><b>How it connects</b><small>From the timer to every screen</small></a>
+          <a href="/hardware#rotorhazard"><b>RotorHazard plugin</b><small>dd-pits on the timer itself</small></a>
+          <a href="/hardware#netpack"><b>ELRS Netpack</b><small>The backpack on your network</small></a>
         </div>
       </details>
       <details class="ng{{if eq .Page "setup"}} on{{end}}">
@@ -31,7 +35,7 @@
         <div class="ng-menu">
           <a href="/#together"><b>How it all works together</b><small>One race, every feature at once</small></a>
           <a href="/best-setup"{{if eq .Page "setup"}} class="on" aria-current="page"{{end}}><b>Setup guide</b><small>Install everything, step by step</small></a>
-          <a href="/#how-to"><b>How to use</b><small>dd-pits beside FPVTrackside</small></a>
+          <a href="/best-setup#how-to"><b>How to use</b><small>dd-pits beside FPVTrackside</small></a>
           <a href="/#download"><b>Download</b><small>macOS, Windows and Linux</small></a>
           <a href="/#faq"><b>FAQ</b><small>Questions race directors ask</small></a>
         </div>
@@ -67,6 +71,9 @@
     <div class="foot-brand"><img src="{{asset "img/icon-256.webp"}}" alt="" width="24" height="24"> <span class="wordmark"><span class="grad">dd</span>-pits</span></div>
     <nav class="foot-links" aria-label="Footer">
       <a href="/">Home</a>
+      <a href="/race-directors">Race directors</a>
+      <a href="/pilots">Pilots</a>
+      <a href="/hardware">Timers &amp; hardware</a>
       <a href="/best-setup">Setup guide</a>
       <a href="/#download">Download</a>
       <a href="{{.Links.releases}}">Releases</a>
@@ -80,3 +87,40 @@
     <p class="foot-note">Built by <a href="{{.Links.author}}">bob9 on GitHub</a> (Glenn Pringle) · <a href="{{.Links.tdl}}">Three Digital Llamas</a>. Free and open source under the MIT licence. © {{year}}.</p>
   </div>
 </footer>{{end}}
+
+{{define "pagehead"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{.Title}}</title>
+<meta name="description" content="{{.Desc}}">
+<meta name="theme-color" content="#050607">
+<link rel="canonical" href="{{.SiteURL}}{{.Path}}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{asset "img/favicon-32.png"}}">
+<link rel="icon" type="image/png" sizes="64x64" href="{{asset "img/favicon-64.png"}}">
+<link rel="apple-touch-icon" href="{{asset "img/apple-touch-icon.png"}}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="dd-pits">
+<meta property="og:title" content="{{.Title}}">
+<meta property="og:description" content="{{.Desc}}">
+<meta property="og:url" content="{{.SiteURL}}{{.Path}}">
+<meta property="og:image" content="{{.SiteURL}}{{asset "img/hero.webp"}}">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="{{asset "site.css"}}">
+<script src="{{asset "site.js"}}" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+{{template "topnav" .}}
+
+<main id="main">
+{{end}}
+
+{{define "pagefoot"}}</main>
+
+{{template "footer" .}}
+</body>
+</html>
+{{end}}
