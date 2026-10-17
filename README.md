@@ -279,14 +279,14 @@ fetch the latest build:
 
 | Computer | Download |
 | --- | --- |
-| **Mac** (Apple Silicon or Intel) | [dd-pits-macos.dmg](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-macos.dmg): the dd-pits app |
-| Mac, command line (Apple Silicon) | [dd-pits-darwin-arm64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-darwin-arm64) |
-| Mac, command line (Intel) | [dd-pits-darwin-amd64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-darwin-amd64) |
-| Windows | [dd-pits-windows-amd64.exe](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-windows-amd64.exe) |
-| Linux PC | [dd-pits-linux-amd64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-linux-amd64) |
-| Raspberry Pi, 64-bit OS | [dd-pits-linux-arm64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-linux-arm64) |
-| Raspberry Pi, 32-bit OS | [dd-pits-linux-arm](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-linux-arm) |
-| **RotorHazard timer** | [dd-pits-rotorhazard-plugin.zip](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-rotorhazard-plugin.zip). See [RotorHazard](#rotorhazard) |
+| **Mac** (Apple Silicon or Intel) | [dd-pits-macos.dmg](https://dd-pits.threedigitalllamas.com.au/get/mac?utm_source=github): the dd-pits app |
+| Mac, command line (Apple Silicon) | [dd-pits-darwin-arm64](https://dd-pits.threedigitalllamas.com.au/get/mac-arm?utm_source=github) |
+| Mac, command line (Intel) | [dd-pits-darwin-amd64](https://dd-pits.threedigitalllamas.com.au/get/mac-intel?utm_source=github) |
+| Windows | [dd-pits-windows-amd64.exe](https://dd-pits.threedigitalllamas.com.au/get/windows?utm_source=github) |
+| Linux PC | [dd-pits-linux-amd64](https://dd-pits.threedigitalllamas.com.au/get/linux?utm_source=github) |
+| Raspberry Pi, 64-bit OS | [dd-pits-linux-arm64](https://dd-pits.threedigitalllamas.com.au/get/pi?utm_source=github) |
+| Raspberry Pi, 32-bit OS | [dd-pits-linux-arm](https://dd-pits.threedigitalllamas.com.au/get/pi32?utm_source=github) |
+| **RotorHazard timer** | [dd-pits-rotorhazard-plugin.zip](https://dd-pits.threedigitalllamas.com.au/get/rotorhazard?utm_source=github). See [RotorHazard](#rotorhazard) |
 
 **Mac:** open the `.dmg`, drag **dd-pits** onto **Applications**, then open it
 from Applications. The first
@@ -382,7 +382,7 @@ dd-pits on the timer itself. Nothing else needs to run on a laptop.
 and 4.4.0. RotorHazard 3.x has no plugin system, so it is not supported.
 
 **1. Install the plugin.** Download
-[dd-pits-rotorhazard-plugin.zip](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-rotorhazard-plugin.zip).
+[dd-pits-rotorhazard-plugin.zip](https://dd-pits.threedigitalllamas.com.au/get/rotorhazard?utm_source=github).
 
 - **RotorHazard 4.3 or later:** go to **Settings → Plugins**, upload the zip, and
   restart RotorHazard.
