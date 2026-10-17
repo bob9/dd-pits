@@ -176,6 +176,8 @@ func (c *elrsController) onRaceStage(race *vmRace, eventName string) {
 	// at stage time, before anyone arms and recording starts. Remembered so
 	// refreshDVRLabel can re-send it while the heat sits staged.
 	c.armDVRLabel(race, eventName)
+	// Every pilot onto their race channel, if the race director wants that.
+	c.raceChannelsOnStage(race)
 
 	heatMsg := ""
 	if race.Label != "" {

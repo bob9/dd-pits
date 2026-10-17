@@ -151,3 +151,44 @@ func (c *elrsController) announceToPilots(text string, callsigns []string) (sent
 // Long enough to be read by someone who is flying and cannot look away, short
 // enough that it is gone before it becomes clutter on the next lap.
 const announceHold = 8 * time.Second
+
+// setRaceChannels puts every pilot in a race on their race channel. It
+// returns who was sent their channel, and why the others weren't (no goggles
+// set up, or a channel the backpack can't express).
+func (c *elrsController) setRaceChannels(race *vmRace) ([]string, map[string]error) {
+	failed := map[string]error{}
+	var sent []string
+	if c == nil || c.bp == nil {
+		return nil, map[string]error{"*": fmt.Errorf("no backpack")}
+	}
+	if !c.bp.Connected() {
+		return nil, map[string]error{"*": fmt.Errorf("no backpack connected")}
+	}
+	for i := range race.Pilots {
+		p := &race.Pilots[i]
+		if p.Name == "" || p.Name == "—" {
+			continue
+		}
+		label := strings.ToUpper(strings.TrimSpace(p.ChannelLabel))
+		if label == "" {
+			failed[p.Name] = fmt.Errorf("no channel in this race")
+			continue
+		}
+		if err := c.setChannelByCallsign(p.Name, label); err != nil {
+			failed[p.Name] = err
+			continue
+		}
+		sent = append(sent, p.Name+" → "+label)
+	}
+	return sent, failed
+}
+
+// raceChannelsOnStage sends a cued race's channels when the race director
+// has that switched on.
+func (c *elrsController) raceChannelsOnStage(race *vmRace) {
+	if c.localCfg == nil || !c.localCfg.ELRSSettings().RaceChannels {
+		return
+	}
+	sent, failed := c.setRaceChannels(race)
+	log.Printf("elrs: race %s channels sent to %d pilots (%d not sent)", race.ID, len(sent), len(failed))
+}

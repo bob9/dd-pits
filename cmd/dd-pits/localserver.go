@@ -997,6 +997,8 @@ type liveServer struct {
 	// setChannel changes one pilot's goggle channel — the local replacement for
 	// the cloud command queue. nil when ELRS is not enabled.
 	setChannel func(callsign, channel string) error
+	// setRaceChannels puts every pilot in a race on their race channel.
+	setRaceChannels func(race *vmRace) ([]string, map[string]error)
 
 	mu    sync.RWMutex
 	snap  dronedash.Snapshot

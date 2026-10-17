@@ -153,6 +153,10 @@ You can also copy the URL into an OBS Browser source at 1920×1080.
   [race-day HDZero firmware](#race-day-firmware-for-hdzero-goggles).
 - **Configurable screen:** the OSD layout is set at `/setup/osd`, with an
   optional custom layout per pilot.
+- **Race channels:** on Goggle control (`/goggles`), one button puts every
+  pilot in the race on the line, or the race up next, on their race channel.
+  Switch on *Race channels as each race is cued* and dd-pits does it by itself
+  the moment a race is cued.
 - **Goggle control** (`/goggles`): change a pilot's video channel from the
   desk, or send a message to some or all pilots.
 - **Connection:** an [ELRS Netpack](#works-with-elrs-netpack) on the venue

@@ -21,8 +21,8 @@ var bandAliases = map[string]string{
 }
 
 // ChannelIndex maps a band + channel number (1-8) to the backpack's channel
-// index. NOTE: verify this band ordering against the target backpack
-// firmware on hardware before using SetChannelIndex at a live event.
+// index. The order (A, B, E, F, R, L) is the Backpack's frequencyTable
+// (lib/Channels/channels.h): Lowband is indices 40-47.
 func ChannelIndex(band string, channel int) (byte, error) {
 	canonical, ok := bandAliases[strings.ToUpper(strings.TrimSpace(band))]
 	if !ok {

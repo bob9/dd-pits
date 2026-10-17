@@ -1829,6 +1829,37 @@ func (s *liveServer) setupGoggles(w http.ResponseWriter, r *http.Request) {
 				msg = "Backpack starting — it may take a few seconds to connect."
 			}
 
+		case "race-channels":
+			race := s.raceForChannels(r.FormValue("race"))
+			switch {
+			case s.setRaceChannels == nil:
+				msg = "The backpack is not running."
+			case race == nil:
+				msg = "That race isn't on the line or up next any more."
+			default:
+				sent, failed := s.setRaceChannels(race)
+				switch {
+				case len(sent) == 0 && len(failed) > 0:
+					msg = "Nothing sent: " + firstError(failed)
+				case len(failed) > 0:
+					msg = fmt.Sprintf("Sent %s — but %s", strings.Join(sent, ", "), firstError(failed))
+				default:
+					msg = "Sent " + strings.Join(sent, ", ")
+				}
+			}
+
+		case "race-channels-auto":
+			e := s.cfg.ELRSSettings()
+			e.RaceChannels = r.FormValue("on") == "1"
+			s.cfg.SetELRS(e)
+			if err := s.cfg.Save(); err != nil {
+				msg = "Could not save: " + err.Error()
+			} else if e.RaceChannels {
+				msg = "On: each race's pilots are put on their channel as it's cued."
+			} else {
+				msg = "Off: channels change only when you press the button."
+			}
+
 		case "announce":
 			text := strings.TrimSpace(r.FormValue("message"))
 			var who []string
@@ -1907,13 +1938,41 @@ func (s *liveServer) setupGoggles(w http.ResponseWriter, r *http.Request) {
 <button class="sec">Set</button></form></td></tr>`,
 				esc(p.Name), esc(p.ChannelLabel), state, esc(p.Name), channelOptions(p.ChannelLabel))
 		}
-		b.WriteString(`</table></div>`)
+		b.WriteString(`</table>`)
+		if cur := s.raceForChannels("current"); cur != nil {
+			b.WriteString(`<form method="post" style="margin-top:.7rem"><input type="hidden" name="action" value="race-channels"><input type="hidden" name="race" value="current">
+<button>Put everyone on their race channel</button></form>`)
+		}
+		b.WriteString(`</div>`)
 	} else {
 		b.WriteString(`<div class="card"><h2>Nobody is racing</h2>
 <p class="mut">When a heat is on the line its pilots appear here, with their channels, so you can
 change one without hunting for them.</p></div>`)
 	}
+	if next := s.raceForChannels("next"); next != nil {
+		fmt.Fprintf(b, `<div class="card"><h2>Up next — %s</h2><p class="mut">Set their goggles now, before they're called to the line.</p>
+<table><tr><th>Pilot</th><th>Race channel</th><th>Goggles</th></tr>`, esc(next.Label))
+		for _, p := range next.Pilots {
+			state := `<span class="warn">not set up</span>`
+			if configured[strings.ToUpper(p.Name)] {
+				state = `<span class="ok">✓</span>`
+			}
+			fmt.Fprintf(b, `<tr><td><strong>%s</strong></td><td>%s</td><td>%s</td></tr>`, esc(p.Name), esc(p.ChannelLabel), state)
+		}
+		b.WriteString(`</table><form method="post" style="margin-top:.7rem"><input type="hidden" name="action" value="race-channels"><input type="hidden" name="race" value="next">
+<button>Put them on their race channels</button></form></div>`)
+	}
 	b.WriteString(`</div>`)
+
+	// Every race automatically, as it's cued.
+	auto := s.cfg.ELRSSettings().RaceChannels
+	onOff, btn, val := "off", "Turn on", "1"
+	if auto {
+		onOff, btn, val = `<span class="ok">on</span>`, "Turn off", "0"
+	}
+	fmt.Fprintf(b, `<div class="card"><h2>Race channels as each race is cued: %s</h2>
+<p class="mut">When it's on, dd-pits puts every pilot's goggles on their channel for the race the moment it's cued, so nobody starts on the wrong video. Lowband (L1–L8) channels need the <a href="https://github.com/bob9/hdzero-goggle">race-day HDZero firmware</a>.</p>
+<form method="post"><input type="hidden" name="action" value="race-channels-auto"><input type="hidden" name="on" value="%s"><button class="sec">%s</button></form></div>`, onOff, val, btn)
 
 	// Everyone configured, for a change outside a heat.
 	pilots := s.cfg.PilotList()
@@ -2744,4 +2803,24 @@ apply on the next heat.</p>
 </div>
 
 `
+}
+
+// raceForChannels is the race on the line ("current") or up next ("next").
+func (s *liveServer) raceForChannels(which string) *vmRace {
+	mv, _, ok := s.meeting()
+	if !ok || mv == nil {
+		return nil
+	}
+	switch which {
+	case "current":
+		return mv.Current
+	case "next":
+		for i := range mv.Upcoming {
+			if mv.Current == nil || mv.Upcoming[i].ID != mv.Current.ID {
+				r := mv.Upcoming[i]
+				return &r
+			}
+		}
+	}
+	return nil
 }

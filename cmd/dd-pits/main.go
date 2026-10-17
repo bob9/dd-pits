@@ -1277,6 +1277,7 @@ func (a *agent) startELRS(ctx context.Context, serial, netpack string) {
 			log.Printf("elrs: reloaded local pilot config (%d pilots)", n)
 		}
 		a.local.setChannel = a.elrs.setChannelByCallsign
+		a.local.setRaceChannels = a.elrs.setRaceChannels
 		a.local.backpackStatus = bp.Connected
 		a.local.sendAnnounce = a.elrs.announceToPilots
 	}

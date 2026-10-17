@@ -218,6 +218,10 @@ type localELRS struct {
 
 	Netpack string `json:"netpack,omitempty"` // hostname, TCP :8080
 	Serial  string `json:"serial,omitempty"`  // port, or "auto" to scan
+
+	// RaceChannels puts every pilot's goggles on their race channel as each
+	// race is cued, so nobody starts on the wrong video.
+	RaceChannels bool `json:"race_channels,omitempty"`
 }
 
 // transport resolves the mode into the hostname and port the backpack library
