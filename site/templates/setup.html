@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The best race-day setup — dd-pits</title>
+<meta name="description" content="How to install everything for the best race day with dd-pits: the timer, dd-pits, an ELRS backpack, and HDZero goggles with race-day firmware. Step by step, for the race director and for each pilot.">
+<meta name="theme-color" content="#050607">
+<link rel="canonical" href="{{.SiteURL}}/best-setup">
+<link rel="icon" type="image/png" sizes="32x32" href="{{asset "img/favicon-32.png"}}">
+<link rel="apple-touch-icon" href="{{asset "img/apple-touch-icon.png"}}">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="dd-pits">
+<meta property="og:title" content="The best race-day setup — dd-pits">
+<meta property="og:description" content="Every piece, installed in order: timer, dd-pits, backpack, and HDZero goggles with race-day firmware.">
+<meta property="og:url" content="{{.SiteURL}}/best-setup">
+<meta property="og:image" content="{{.SiteURL}}{{asset "img/goggles.webp"}}">
+<link rel="stylesheet" href="{{asset "site.css"}}">
+<script src="{{asset "site.js"}}" defer></script>
+</head>
+<body class="guide">
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="nav-in">
+    <a class="brand" href="/" aria-label="dd-pits home">
+      <img src="{{asset "img/icon-256.webp"}}" alt="" width="28" height="28">
+      <span class="wordmark"><span class="grad">dd</span>-pits</span>
+    </a>
+    <nav class="nav-links" aria-label="Guide">
+      <a href="#how">How it fits</a>
+      <a href="#director">Race director</a>
+      <a href="#pilots">Each pilot</a>
+      <a href="#raceday">On the day</a>
+      <a href="/">dd-pits home</a>
+    </nav>
+    <div class="nav-cta"><a class="btn sm" href="/#download">Get dd-pits</a></div>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="guide-hero">
+  <div class="wrap center">
+    <p class="eyebrow">Setup guide</p>
+    <h1 class="display-2">The best <span class="grad">race-day setup.</span></h1>
+    <p class="sub">Every piece, installed in order. Do the race director's part once on the timing laptop; each pilot does theirs once on their goggles. After that, race day runs itself: channels set, recordings named, lap times in every pilot's goggles.</p>
+  </div>
+</section>
+
+<!-- HOW IT FITS -->
+<section class="guide-sec" id="how" aria-labelledby="how-h">
+  <div class="wrap">
+    <h2 class="headline" id="how-h">How it fits together</h2>
+    <ol class="flow" aria-label="From the timer to the quad">
+      <li><b>Timer</b><span>RotorHazard 4.0+, or the FPVTrackside alpha</span></li>
+      <li><b>dd-pits</b><span>on the timer (plugin) or beside it on the laptop</span></li>
+      <li><b>Timer backpack</b><span>ELRS Netpack on the network, or a USB backpack</span></li>
+      <li><b>Pilot's goggles</b><span>HDZero firmware 9.5.45 + the race-day goggle backpack</span></li>
+      <li><b>Pilot's quad</b><span>follows the goggles' channel through their radio's TX backpack</span></li>
+    </ol>
+    <div class="grid3">
+      <div class="card"><h3>Race channels</h3><p>dd-pits puts every pilot on their race channel as each race is cued, Raceband or Lowband.</p></div>
+      <div class="card"><h3>Lap times in the goggles</h3><p>Position, lap, last and best lap on the OSD, live, in the layout you choose.</p></div>
+      <div class="card"><h3>DVR named after the race</h3><p><code>hdz_0042-WinterCup-Mains-A-R5-H1.mp4</code>, with the goggle clock set right.</p></div>
+      <div class="card"><h3>Quad follows the goggles</h3><p>A pilot picks a channel on the goggles; their VTX, radio and the timer follow.</p></div>
+      <div class="card"><h3>Brackets and marshalling</h3><p>Races drawn and run for you, laps fixed from each pilot's signal (RotorHazard timers).</p></div>
+      <div class="card"><h3>Dashboard and stream</h3><p>Live times on every phone, 22 OBS overlays and an AI commentator.</p></div>
+    </div>
+    <p class="guide-note">Everything except the goggle extras works with stock goggle firmware. The race-day firmware adds Lowband from the timer, DVR names and the quad following the goggles.</p>
+  </div>
+</section>
+
+<!-- RACE DIRECTOR -->
+<section class="guide-sec alt" id="director" aria-labelledby="director-h">
+  <div class="wrap">
+    <p class="eyebrow">Once, on the timing laptop</p>
+    <h2 class="headline" id="director-h">The race director</h2>
+    <ol class="steps">
+      <li>
+        <h3>Set up the timer and dd-pits</h3>
+        <div class="two">
+          <div class="card">
+            <p class="eyebrow">RotorHazard 4.0 or later</p>
+            <p>Upload the <a href="{{.Links.rhplugin}}">dd-pits plugin</a> at <b>Settings → Plugins</b> (4.3+; on 4.0–4.2 copy the <code>dd_pits</code> folder into <code>src/server/plugins</code>) and restart RotorHazard. dd-pits appears in its menu and runs on the timer itself.</p>
+          </div>
+          <div class="card">
+            <p class="eyebrow">FPVTrackside</p>
+            <p>Install the <a href="{{.Links.ftAlpha}}">FPVTrackside alpha</a> (brackets, the Meeting editor and race control need its REST API). In FPVTrackside tick <b>Menu → Application Settings → Auto start HTTP Server</b>, restart and open your event. Then <a href="/#download">download dd-pits</a> and run it on the same laptop.</p>
+          </div>
+        </div>
+      </li>
+      <li>
+        <h3>Connect a timer backpack</h3>
+        <p>This is how dd-pits reaches every pilot's goggles. The best is an <a href="{{.Links.netpack}}"><b>ELRS Netpack</b></a>: on a PoE board one Ethernet cable powers and connects it, anywhere on the venue network, and it confirms each message reached the goggles. A USB backpack plugged into the laptop works too.</p>
+        <p>In dd-pits open <b>Settings → Backpack</b> (<code>/setup/backpack</code>) and choose <b>Network (netpack)</b> with its name (<code>elrs-netpack.local</code>), <b>USB</b>, or netpack with USB fallback.</p>
+      </li>
+      <li>
+        <h3>Add your pilots</h3>
+        <p><b>Settings → Goggle pilots</b> (<code>/setup/pilots</code>): each pilot's callsign exactly as the timer spells it, and their ELRS <b>bind phrase</b> (or their 12-character goggle ID). dd-pits works out each goggle's address from the phrase, the same way ExpressLRS does. Set the OSD layout at <b>Settings → OSD screen</b>, for everyone or per pilot.</p>
+      </li>
+      <li>
+        <h3>Turn on race channels</h3>
+        <p><b>Race director → Goggle control</b> (<code>/goggles</code>): switch on <b>Race channels as each race is cued</b>. From then on every pilot's goggles go to their channel for the race the moment it's cued. Or use the buttons there for the race on the line or the one up next.</p>
+      </li>
+      <li>
+        <h3>Optional: brackets, marshalling, stream</h3>
+        <p><b>Brackets → Create bracket</b> draws the finals and runs them on the timer. <b>Race director → Marshal</b> fixes laps from each pilot's signal on a RotorHazard timer (beside FPVTrackside too, when it times with a RotorHazard). <b>Overlays</b> gives every OBS scene with an <b>Add to OBS</b> button.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- PILOTS -->
+<section class="guide-sec" id="pilots" aria-labelledby="pilots-h">
+  <div class="wrap">
+    <p class="eyebrow">Once, on each pilot's goggles · about 10 minutes</p>
+    <h2 class="headline" id="pilots-h">Each pilot</h2>
+    <p class="sub">For HDZero Goggle, Goggle 2 and BoxPro. You need the goggles, their SD card and a computer. Both firmwares are community builds by bob9, not affiliated with HDZero or ExpressLRS; stock firmware can always be flashed back.</p>
+    <ol class="steps">
+      <li>
+        <h3>Flash the goggle firmware (9.5.45)</h3>
+        <p>From the <a href="{{.Links.hdzRelease}}">9.5.45 release</a> download the one file for your goggles:</p>
+        <table class="kv">
+          <tr><th>HDZero Goggle</th><td><code>HDZERO_GOGGLE-…-9.5.45.bin</code></td></tr>
+          <tr><th>HDZero Goggle 2</th><td><code>HDZERO_GOGGLE2-…-9.5.45.bin</code></td></tr>
+          <tr><th>HDZero BoxPro</th><td><code>HDZERO_BOXPRO-…-9.5.45.bin</code></td></tr>
+        </table>
+        <p>Copy it, exactly as downloaded (don't open it), to the <b>top level</b> of the SD card. In the goggles: <b>Menu → Firmware → Update Goggle</b>. Keep them powered until they restart.</p>
+      </li>
+      <li>
+        <h3>Flash the goggle backpack</h3>
+        <p>From the <a href="{{.Links.bpRelease}}">race-day backpack release</a> download <code>AUFPV_HDZero_Goggle_Backpack.zip</code> and extract its four files (<code>bootloader.bin</code>, <code>partitions.bin</code>, <code>boot_app0.bin</code>, <code>firmware.bin</code>). On a Mac extract from Terminal (<code>unzip AUFPV_HDZero_Goggle_Backpack.zip</code>): double-clicking can damage the files.</p>
+        <p>Put them in a folder called <b><code>ELRS</code></b> at the top of the SD card, then <b>Menu → Firmware → Update ESP32</b>. Delete the files afterwards. <a href="{{.Links.backpack}}">What the backpack adds →</a></p>
+      </li>
+      <li>
+        <h3>Bind, and tell the race director your phrase</h3>
+        <p>Your existing binding survives both updates. Your goggle backpack, your radio's TX backpack and the race director's list should all use <b>your bind phrase</b>. To re-bind: goggle backpack into bind mode, then <b>Backpack → Bind</b> in your radio's ELRS Lua script. Give the race director your bind phrase (or goggle ID) for dd-pits.</p>
+      </li>
+      <li>
+        <h3>Name recordings after the race</h3>
+        <p><b>Menu → Record Option → Naming Scheme → ELRS</b>. It stays greyed out until the goggles know the time; the timer sets the clock as soon as it's running. Recordings then come out as <code>hdz_&lt;counter&gt;-&lt;Meeting&gt;-&lt;Mains/CTA&gt;-&lt;R|Q&gt;&lt;round&gt;-H&lt;heat&gt;.mp4</code>.</p>
+      </li>
+      <li>
+        <h3>Optional: let your quad follow your goggles</h3>
+        <p>Turn on your radio's TX backpack, bound to the same phrase, and get ELRS <b>VTX Administrator</b> working (as you would for the Lua script). Then picking a channel on the goggles and long-pressing the dial sends it to your quad, radio and the timer; a green <code>VTX SENT</code> confirms it. <b>Auto Send VTX</b> on the goggles' ELRS page does it on every change: leave it <b>off at races</b> where the timer assigns your channel, or browsing other pilots' feeds retunes your own quad.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- RACE DAY -->
+<section class="guide-sec alt" id="raceday" aria-labelledby="raceday-h">
+  <div class="wrap">
+    <p class="eyebrow">Before the first heat</p>
+    <h2 class="headline" id="raceday-h">On the day</h2>
+    <ul class="ticks">
+      <li>Pilots power on their goggles. On <b>Goggle control</b> each pilot in the race on the line shows a ✓ when their goggles are set up.</li>
+      <li>Check one pilot end to end: cue a race and watch their goggles switch channel and show the race name.</li>
+      <li>With a netpack, its test page (<code>http://elrs-netpack.local/test</code>) sends an OSD message, a channel or a DVR name to any pilot's goggles.</li>
+      <li>Share the dashboard address with pilots: <code>http://&lt;laptop or timer&gt;:8088</code>. They tap their name for their own stats.</li>
+    </ul>
+    <p class="guide-cta">
+      <a class="btn" href="/#download">Download dd-pits</a>
+      <a class="btn ghost" href="{{.Links.hdzRelease}}">Goggle firmware 9.5.45</a>
+      <a class="btn ghost" href="{{.Links.bpRelease}}">Goggle backpack</a>
+      <a class="btn ghost" href="/#watch">Watch it in action</a>
+    </p>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot-in">
+    <div class="foot-brand"><img src="{{asset "img/icon-256.webp"}}" alt="" width="24" height="24"> <span class="wordmark"><span class="grad">dd</span>-pits</span></div>
+    <nav class="foot-links" aria-label="Footer">
+      <a href="/">dd-pits home</a>
+      <a href="{{.Links.github}}">GitHub</a>
+      <a href="{{.Links.hdzFirmware}}">HDZero goggle firmware</a>
+      <a href="{{.Links.backpack}}">Goggle backpack</a>
+      <a href="{{.Links.netpack}}">ELRS Netpack</a>
+      <a href="{{.Links.coffee}}">Buy me a coffee</a>
+    </nav>
+    <p class="foot-note">Built by <a href="{{.Links.author}}">bob9 on GitHub</a> (Glenn Pringle) · <a href="{{.Links.tdl}}">Three Digital Llamas</a>. Free and open source under the MIT licence. © {{year}}.</p>
+  </div>
+</footer>
+</body>
+</html>

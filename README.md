@@ -214,6 +214,9 @@ with the ExpressLRS project.
 
 ## Race-day firmware for HDZero goggles
 
+> **Step-by-step:** the [best race-day setup guide](https://dd-pits.threedigitalllamas.com.au/best-setup)
+> walks through installing everything, for the race director and for each pilot.
+
 Stock HDZero goggles show dd-pits' lap times on the OSD with any ExpressLRS
 backpack. Three race-day features need firmware from
 [bob9's HDZero goggle fork](https://github.com/bob9/hdzero-goggle) and

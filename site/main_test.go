@@ -79,3 +79,23 @@ func TestMetaRoutes(t *testing.T) {
 		t.Errorf("/nope = %d, want 404", res.StatusCode)
 	}
 }
+
+func TestSetupGuideRenders(t *testing.T) {
+	h := newHandler()
+	res, body := get(t, h, "/best-setup")
+	if res.StatusCode != 200 {
+		t.Fatalf("GET /best-setup = %d", res.StatusCode)
+	}
+	for _, want := range []string{
+		"The best", "Update Goggle", "Update ESP32", "Naming Scheme", "ELRS",
+		"https://github.com/bob9/hdzero-goggle/releases/tag/v9.5.45",
+		"https://github.com/bob9/Backpack", "/setup/pilots", "Race channels as each race is cued",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("setup guide missing %q", want)
+		}
+	}
+	if strings.Contains(body, "style=\"") {
+		t.Error("inline style attribute would be blocked by the CSP")
+	}
+}

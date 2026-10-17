@@ -95,6 +95,7 @@ var data = pageData{
 		"hdzFirmware":   "https://github.com/bob9/hdzero-goggle",
 		"hdzRelease":    "https://github.com/bob9/hdzero-goggle/releases/tag/v9.5.45",
 		"bpRelease":     "https://github.com/bob9/Backpack/releases/tag/v2026.07.17-aufpv-race",
+		"backpack":      "https://github.com/bob9/Backpack",
 		"rotorhazard":   "https://github.com/RotorHazard/RotorHazard",
 		"demoBracket":   "https://demo.dd-pits.threedigitalllamas.com.au/stages/s1",
 		"rhplugin":      "https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-rotorhazard-plugin.zip",
@@ -154,6 +155,11 @@ func newHandler() http.Handler {
 		log.Fatalf("render home: %v", err)
 	}
 	homeBytes := home.Bytes()
+	var setup bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&setup, "setup.html", data); err != nil {
+		log.Fatalf("render setup guide: %v", err)
+	}
+	setupBytes := setup.Bytes()
 
 	sub, _ := fs.Sub(staticFS, "static")
 	static := http.StripPrefix("/static/", http.FileServer(http.FS(sub)))
@@ -170,8 +176,13 @@ func newHandler() http.Handler {
 	mux.HandleFunc("/sitemap.xml", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/xml; charset=utf-8")
 		fmt.Fprintf(w, `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>%s/</loc><changefreq>weekly</changefreq></url></urlset>
-`, siteURL)
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>%s/</loc><changefreq>weekly</changefreq></url><url><loc>%s/best-setup</loc><changefreq>weekly</changefreq></url></urlset>
+`, siteURL, siteURL)
+	})
+	mux.HandleFunc("/best-setup", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		w.Write(setupBytes)
 	})
 	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		u, _ := asset("img/favicon-32.png")

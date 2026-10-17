@@ -488,3 +488,35 @@ section { position: relative; }
 /* HDZero firmware */
 .hdz-ctas { text-align: center; margin-top: 34px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; padding: 0 22px; }
 #hdzero .grid3 { margin-top: 48px; }
+
+/* Setup guide (/best-setup) */
+.guide-hero { padding: clamp(70px, 10vw, 130px) 0 30px; }
+.guide-sec { padding: clamp(56px, 8vw, 100px) 0; }
+.guide-sec.alt { background: rgba(255,255,255,.015); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.guide-sec .headline { margin-bottom: 28px; }
+.guide-sec .grid3 { padding: 0; margin-top: 34px; }
+.flow { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; counter-reset: f; }
+.flow li { position: relative; background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)); border: 1px solid var(--line); border-radius: 18px; padding: 18px 16px; }
+.flow li b { display: block; font-size: 17px; margin-bottom: 6px; color: var(--lime); }
+.flow li span { color: #c7c7cc; font-size: 14px; line-height: 1.45; }
+.flow li:not(:last-child)::after { content: "→"; position: absolute; right: -12px; top: 50%; transform: translateY(-50%); color: var(--lime); font-weight: 800; z-index: 1; }
+.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; display: grid; gap: 26px; }
+.steps > li { counter-increment: s; position: relative; padding-left: 58px; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #07080a; background: linear-gradient(92deg, var(--lime), var(--cyan)); }
+.steps h3 { margin: 4px 0 10px; font-size: 22px; letter-spacing: -0.02em; }
+.steps p { color: #c7c7cc; margin: 0 0 10px; line-height: 1.6; }
+.steps a { color: var(--lime); }
+.steps .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.steps .card p { margin: 0; }
+.kv { border-collapse: collapse; margin: 6px 0 12px; font-size: 14px; }
+.kv th { text-align: left; font-weight: 600; padding: 6px 18px 6px 0; color: var(--fg); }
+.kv td { padding: 6px 0; color: #c7c7cc; }
+.guide-note { color: var(--mut); font-size: 14px; margin-top: 22px; }
+.guide-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
+.guide .ticks a, .guide .sub a { color: var(--lime); }
+@media (max-width: 900px) {
+  .flow { grid-template-columns: 1fr; }
+  .flow li:not(:last-child)::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -15px; transform: translateX(-50%); }
+  .steps .two { grid-template-columns: 1fr; }
+  .steps > li { padding-left: 50px; }
+}
