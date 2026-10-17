@@ -2,6 +2,9 @@
 
 # dd-pits
 
+<p align="center"><b>🌐 <a href="https://dd-pits.threedigitalllamas.com.au">dd-pits.threedigitalllamas.com.au</a></b><br>
+Website, video, setup guide and downloads</p>
+
 **A race-day companion for [FPVTrackside](https://github.com/FPVTrackside) and
 [RotorHazard](https://github.com/RotorHazard/RotorHazard).**
 dd-pits runs next to your timer (on the FPVTrackside laptop, or on the
