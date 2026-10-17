@@ -263,17 +263,34 @@ fetch the latest build:
 
 | Computer | Download |
 | --- | --- |
-| Mac, Apple Silicon (M1 or later) | [dd-pits-darwin-arm64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-darwin-arm64) |
-| Mac, Intel | [dd-pits-darwin-amd64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-darwin-amd64) |
+| **Mac** (Apple Silicon or Intel) | [dd-pits-macos.zip](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-macos.zip): the dd-pits app |
+| Mac, command line (Apple Silicon) | [dd-pits-darwin-arm64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-darwin-arm64) |
+| Mac, command line (Intel) | [dd-pits-darwin-amd64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-darwin-amd64) |
 | Windows | [dd-pits-windows-amd64.exe](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-windows-amd64.exe) |
 | Linux PC | [dd-pits-linux-amd64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-linux-amd64) |
 | Raspberry Pi, 64-bit OS | [dd-pits-linux-arm64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-linux-arm64) |
 | Raspberry Pi, 32-bit OS | [dd-pits-linux-arm](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-linux-arm) |
 | **RotorHazard timer** | [dd-pits-rotorhazard-plugin.zip](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-rotorhazard-plugin.zip). See [RotorHazard](#rotorhazard) |
 
-**Mac:** run `chmod +x dd-pits-darwin-*` and
-`xattr -d com.apple.quarantine dd-pits-darwin-*` once in Terminal.
-**Windows:** if SmartScreen warns, choose More info → Run anyway.
+**Mac:** unzip, move **dd-pits.app** to Applications and open it. The first
+time, macOS says it can't check the app: open **System Settings → Privacy &
+Security** and choose **Open Anyway**. It runs in the background without a Dock
+icon; open it again to bring back the Status page.
+**Windows:** if SmartScreen warns, choose More info → Run anyway. The window
+that opens shows dd-pits' log; closing it stops dd-pits.
+
+### When it starts
+
+dd-pits opens your browser on its **Status page** (`/status`): whether it's
+connected to the timer and the goggle backpack, the race on the line and up
+next, how many goggle pilots are set up, and its live log. **Quit dd-pits** is
+there too. The first time, it opens the setup help instead. It doesn't open a
+browser when the RotorHazard plugin runs it, on a machine with no screen, or
+with `-no-browser`.
+
+Everything it logs is also saved to **`dd-pits.log`** beside its settings file
+(on the Mac app, in `~/Library/Application Support/dd-pits/`). It rolls over at
+5 MB, keeping one older file as `dd-pits.log.1`.
 
 ## Set up with FPVTrackside
 

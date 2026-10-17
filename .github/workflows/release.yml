@@ -18,7 +18,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # dd-pits.app (Apple Silicon + Intel) needs a Mac to bundle, sign and zip.
+  macapp:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build dd-pits.app
+        run: packaging/macos/build-app.sh "v0.1.${{ github.run_number }}" dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macapp
+          path: dist/dd-pits-macos.zip
+
   release:
+    needs: macapp
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,7 +65,14 @@ jobs:
               -ldflags "-s -w -X main.version=$VERSION -X main.commit=$COMMIT" \
               -o "dist/dd-pits-$os-$arch$ext" ./cmd/dd-pits
           done
-          cd dist && sha256sum dd-pits-* > SHA256SUMS.txt
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: macapp
+          path: dist
+
+      - name: Checksums
+        run: cd dist && sha256sum dd-pits-* > SHA256SUMS.txt
 
       - name: Package the RotorHazard plugin
         env:
@@ -78,20 +101,22 @@ jobs:
           generate_release_notes: true
           files: dist/*
           body: |
-            Download the binary for your computer, put it next to FPVTrackside and run it.
-            The setup guide opens in your browser.
+            Download dd-pits for your computer and open it. It opens your browser on its Status page:
+            whether the timer and goggle backpack are connected, the race on now, and its live log.
+            Its log is also saved to `dd-pits.log` beside its settings.
 
             | Computer | File |
             | --- | --- |
-            | Mac with Apple Silicon (M1 or later) | `dd-pits-darwin-arm64` |
-            | Mac with Intel | `dd-pits-darwin-amd64` |
+            | **Mac** (Apple Silicon or Intel) | `dd-pits-macos.zip`: unzip and open **dd-pits.app** |
+            | Mac with Apple Silicon, command line | `dd-pits-darwin-arm64` |
+            | Mac with Intel, command line | `dd-pits-darwin-amd64` |
             | Windows | `dd-pits-windows-amd64.exe` |
             | Linux (PC) | `dd-pits-linux-amd64` |
             | Linux (Raspberry Pi, 64-bit OS) | `dd-pits-linux-arm64` |
             | Linux (Raspberry Pi, 32-bit OS) | `dd-pits-linux-arm` |
             | **RotorHazard timer** | `dd-pits-rotorhazard-plugin.zip`: upload it in RotorHazard under Settings → Plugins. It downloads and runs dd-pits for you. |
 
-            **Mac:** in Terminal, run `chmod +x dd-pits-darwin-*` and `xattr -d com.apple.quarantine dd-pits-darwin-*` once, then `./dd-pits-darwin-arm64`.
+            **Mac:** unzip, move **dd-pits.app** to Applications and open it. The first time, macOS says it can't check the app: open **System Settings → Privacy & Security** and choose **Open Anyway**. It runs in the background (no Dock icon); open it again to bring back the Status page, and quit from there. Settings and log: `~/Library/Application Support/dd-pits/`.
             **Windows:** if SmartScreen warns, choose More info → Run anyway.
 
             Try it first in the [live demo](https://demo.dd-pits.threedigitalllamas.com.au). Made by [bob9](https://github.com/bob9) · [Buy me a coffee](https://buymeacoffee.com/bobnine) ☕

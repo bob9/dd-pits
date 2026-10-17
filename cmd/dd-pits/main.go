@@ -178,6 +178,8 @@ func main() {
 		"ELRS backpack serial port (460800 8N1); \"auto\" scans all ports; empty = use -elrs-netpack")
 	elrsNetpack := flag.String("elrs-netpack", envOr("DD_PITS_ELRS_NETPACK", "elrs-netpack.local"),
 		"ELRS netpack hostname (TCP :8080)")
+	noBrowser := flag.Bool("no-browser", envOr("DD_PITS_NO_BROWSER", "") != "",
+		"don't open a browser at startup (it opens the Status page, or the setup help on a first run)")
 	localConfigPath := flag.String("local-config", envOr("DD_PITS_LOCAL_CONFIG", ""),
 		"settings file (default: dd-pits-local.json beside the agent)")
 	setupPINFlag := flag.String("setup-pin", envOr("DD_PITS_SETUP_PIN", ""),
@@ -262,6 +264,17 @@ func main() {
 		"read-only public demo: every page renders, but nothing can be changed, saved, installed or restarted")
 	showVersion := flag.Bool("version", false, "print the agent version and exit")
 	flag.Parse()
+
+	// The log goes to a file beside the settings too, so a race day's log is
+	// still there after the window closes. Never fatal: a read-only folder
+	// just means no file.
+	if lf, err := openRollingLog(logFilePath(*localConfigPath)); err == nil {
+		log.SetOutput(io.MultiWriter(os.Stderr, logRingBuf, lf))
+		appLogPath = lf.path
+		log.Printf("dd-pits: logging to %s", lf.path)
+	} else {
+		log.Printf("dd-pits: no log file (%v); the log is on screen and at /status", err)
+	}
 
 	if *showVersion {
 		fmt.Printf("dd-pits %s (%s)\n", version, commit)
@@ -573,7 +586,10 @@ func main() {
 		}
 		setSetupBase(*serveAddr)
 		logSetupReady()
-		offerSetupPages(lc.Path(), setupBaseURL)
+		a.local.quit = cancel
+		if shouldOpenBrowser(*noBrowser, *rhURL != "") {
+			openOnStart(lc.Path(), setupBaseURL)
+		}
 	}
 
 	if *raceAudio && a.local == nil {
@@ -856,7 +872,7 @@ func main() {
 			ReferenceAudio: *localVoiceRef,
 			ReferenceText:  *localVoiceRefText,
 		}, remoteVoice{APIKey: *qwenKey, Voice: *qwenVoice, BaseURL: *qwenBase})
-		log.Printf("booth: commentary bus ready — OBS media source: http://localhost%s/booth.wav (control: /setup/booth)", *serveAddr)
+		log.Printf("booth: commentary bus ready — OBS media source: %s/booth.wav (control: /setup/booth)", localServeURL(*serveAddr))
 	} else if *boothEnabled {
 		log.Fatalf("dd-pits: -booth requires -serve (the audio stream is served by the local server)")
 	}
@@ -991,6 +1007,7 @@ func (a *agent) runTick(ctx context.Context) {
 		// POST runs on the pushLoop goroutine, which tracks its own connection
 		// state), so a tick failure means FPVTrackside is unreachable / unparseable.
 		a.fetchFailures++
+		timerStatus.bad(err)
 		// First few failures verbosely, then sparsely, so a long outage doesn't
 		// flood the console while still showing it's alive and retrying.
 		if a.fetchFailures <= 3 || a.fetchFailures%20 == 0 {
@@ -999,6 +1016,7 @@ func (a *agent) runTick(ctx context.Context) {
 		}
 		return
 	}
+	timerStatus.good()
 	if a.fetchFailures > 0 {
 		log.Printf("dd-pits: %s read recovered after %d failed read(s)", timingSystem, a.fetchFailures)
 		a.fetchFailures = 0

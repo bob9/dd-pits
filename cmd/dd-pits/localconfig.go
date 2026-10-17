@@ -345,6 +345,12 @@ func defaultLocalConfigPath() string {
 	if err != nil {
 		return "dd-pits-local.json"
 	}
+	// Inside the Mac app (dd-pits.app/Contents/MacOS) the folder beside the
+	// program is part of the app and is replaced on every update, so the
+	// settings, log and data live in Application Support instead.
+	if dir := macAppDataDir(exe); dir != "" {
+		return filepath.Join(dir, "dd-pits-local.json")
+	}
 	return filepath.Join(filepath.Dir(exe), "dd-pits-local.json")
 }
 
@@ -672,4 +678,21 @@ func boothAllBeatKinds() []string {
 		"pilot_out", "pilot_back", "qual_move",
 		"finish",
 	}
+}
+
+// macAppDataDir is ~/Library/Application Support/dd-pits when dd-pits runs as
+// the Mac app, created if need be; "" otherwise.
+func macAppDataDir(exe string) string {
+	if !strings.Contains(filepath.ToSlash(exe), ".app/Contents/MacOS/") {
+		return ""
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	dir := filepath.Join(home, "Library", "Application Support", "dd-pits")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return ""
+	}
+	return dir
 }

@@ -58,6 +58,7 @@ func siteNav(admin bool) string {
 	)
 	group("Race director", director...)
 	settings := []navItem{
+		{"/status", "Status", "What dd-pits is doing right now, and its log"},
 		{"/setup", "Overview", "What this venue is running"},
 		{"/setup/pilots", "Goggle pilots", "Bind phrases, OSD on or off"},
 		{"/setup/osd", "OSD screen", "What pilots see in their goggles"},

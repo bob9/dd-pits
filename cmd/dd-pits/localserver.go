@@ -993,6 +993,8 @@ type liveServer struct {
 	// setup page can say so rather than leaving an operator guessing why the
 	// goggles are dark. nil when ELRS is not enabled.
 	backpackStatus func() bool
+	// quit stops dd-pits (the Status page's Quit button).
+	quit func()
 
 	// setChannel changes one pilot's goggle channel — the local replacement for
 	// the cloud command queue. nil when ELRS is not enabled.
@@ -1434,6 +1436,7 @@ func (s *liveServer) handler() http.Handler {
 	s.registerStages(mux)
 	s.registerMarshal(mux)
 	s.registerMeeting(mux)
+	s.registerStatus(mux)
 	s.registerLogin(mux)
 
 	// JSON read-API + SSE streams + Swagger UI / OpenAPI — the shared surface
