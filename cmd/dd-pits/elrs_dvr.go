@@ -4,9 +4,9 @@ package main
 // to name their next DVR recording (MSP_SET_DVR_NAME) —
 // "<Meeting>-<Mains-A..F|CTA>-<R|Q><Round>-H<Heat>", where the Mains/CTA tag
 // appears only when the round name identifies one, and the meeting name takes
-// as much of the remaining space as fits. The goggles prepend the date and
-// their own file counter, producing e.g.
-// 2026-07-13-0042-WinterCup-Mains-A-R2-H1.mp4. The label is cleared when the
+// as much of the remaining space as fits. With the goggles' Naming Scheme on
+// ELRS they add it after their own file counter, producing e.g.
+// hdz_0042-WinterCup-Mains-A-R2-H1.mp4. The label is cleared when the
 // heat ends so a later non-race recording never inherits the race's name (the
 // goggles also expire it after a few minutes as a backstop).
 

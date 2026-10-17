@@ -235,8 +235,10 @@ backpack. Three race-day features need firmware from
   quad.
 - **DVR recordings named after the heat.** dd-pits sends each pilot a label
   for their next recording as their heat is staged, and the goggles append it
-  to the usual file name: `hdz_0042-WinterCup-Mains-A-R5-H1.mp4`. Labels can be
-  up to 43 characters, so the meeting name fits.
+  to the usual file name: `hdz_0042-WinterCup-Mains-A-R5-H1.mp4`
+  (`hdz_<counter>-<Meeting>-<Mains-A…F | CTA>-<R|Q><round>-H<heat>`). Turn it
+  on once on the goggles: **Record Option → Naming Scheme → ELRS**. Labels can
+  be up to 43 characters, so the meeting name fits.
 
 The same builds set the goggle clock from the timer, so recordings carry the
 right date.
