@@ -159,19 +159,6 @@
 
 </main>
 
-<footer class="foot">
-  <div class="foot-in">
-    <div class="foot-brand"><img src="{{asset "img/icon-256.webp"}}" alt="" width="24" height="24"> <span class="wordmark"><span class="grad">dd</span>-pits</span></div>
-    <nav class="foot-links" aria-label="Footer">
-      <a href="/">dd-pits home</a>
-      <a href="{{.Links.github}}">GitHub</a>
-      <a href="{{.Links.hdzFirmware}}">HDZero goggle firmware</a>
-      <a href="{{.Links.backpack}}">Goggle backpack</a>
-      <a href="{{.Links.netpack}}">ELRS Netpack</a>
-      <a href="{{.Links.coffee}}">Buy me a coffee</a>
-    </nav>
-    <p class="foot-note">Built by <a href="{{.Links.author}}">bob9 on GitHub</a> (Glenn Pringle) · <a href="{{.Links.tdl}}">Three Digital Llamas</a>. Free and open source under the MIT licence. © {{year}}.</p>
-  </div>
-</footer>
+{{template "footer" .}}
 </body>
 </html>
