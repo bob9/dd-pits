@@ -5,6 +5,8 @@
 <p align="center"><b>🌐 <a href="https://dd-pits.threedigitalllamas.com.au">dd-pits.threedigitalllamas.com.au</a></b><br>
 Website, video, setup guide and downloads</p>
 
+<p align="center"><img src="docs/readme/banner.webp" width="100%" alt="FPV quad racing through glowing gates at night"></p>
+
 **A race-day companion for [FPVTrackside](https://github.com/FPVTrackside) and
 [RotorHazard](https://github.com/RotorHazard/RotorHazard).**
 dd-pits runs next to your timer (on the FPVTrackside laptop, or on the
@@ -27,6 +29,17 @@ beside the binary.
 made by **[bob9](https://github.com/bob9)**
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support%20dd--pits-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/bobnine)
+
+## See it in action
+
+<table>
+<tr>
+<td align="center" width="50%"><a href="https://dd-pits.threedigitalllamas.com.au/#watch"><img src="docs/readme/demo-fpvtrackside.webp" alt="dd-pits with FPVTrackside demo"></a><br><b>With FPVTrackside</b><br>Build the meeting in dd-pits, watch it appear in FPVTrackside</td>
+<td align="center" width="50%"><a href="https://dd-pits.threedigitalllamas.com.au/#watch"><img src="docs/readme/demo-rotorhazard.webp" alt="dd-pits with RotorHazard demo"></a><br><b>With RotorHazard</b><br>Live dashboard, overlays, goggles OSD and marshalling</td>
+</tr>
+</table>
+
+<p align="center">▶ <b><a href="https://dd-pits.threedigitalllamas.com.au/#watch">Watch the full narrated videos</a></b></p>
 
 ![The live dashboard during a heat](docs/screenshots/dashboard.webp)
 
