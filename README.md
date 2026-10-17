@@ -141,8 +141,16 @@ You can also copy the URL into an OBS Browser source at 1920×1080.
 
 - **On-screen info:** lap times and race info appear in pilots' goggles. Each
   pilot needs only a bind phrase; dd-pits derives the goggle ID from it.
-- **DVR names:** recordings are named after the heat.
+- **DVR names:** recordings are named after the heat
+  (`hdz_0042-WinterCup-Mains-A-R5-H1.mp4`).
 - **Clock sync:** the goggle clock is set correctly.
+- **Any band, including Lowband:** set a pilot to Raceband or L1–L8 from the
+  desk; their goggles switch band and tune.
+- **Channel from the goggles:** a channel picked on the goggles is sent on to
+  the drone's VTX and the timer.
+
+  DVR names, Lowband and channel-from-goggles need
+  [race-day HDZero firmware](#race-day-firmware-for-hdzero-goggles).
 - **Configurable screen:** the OSD layout is set at `/setup/osd`, with an
   optional custom layout per pilot.
 - **Goggle control** (`/goggles`): change a pilot's video channel from the
@@ -199,6 +207,46 @@ enter its name or address. ELRS Netpack was originally created by
 [i-am-grub](https://github.com/i-am-grub/elrs-netpack), and is forked and
 extended by [bob9](https://github.com/bob9/elrs-netpack). It is not affiliated
 with the ExpressLRS project.
+
+## Race-day firmware for HDZero goggles
+
+Stock HDZero goggles show dd-pits' lap times on the OSD with any ExpressLRS
+backpack. Three race-day features need firmware from
+[bob9's HDZero goggle fork](https://github.com/bob9/hdzero-goggle) and
+[bob9's Backpack fork](https://github.com/bob9/Backpack), flashed as a pair
+(each goggle release lists the matching backpack file):
+
+- **Lowband from the timer.** On stock firmware a Lowband channel (L1–L8) sent
+  by the timer never arrives: the goggles only switch band from their own
+  menu. With the fork, setting a pilot to L1–L8 from dd-pits' **Goggle
+  control** (`/goggles`) switches the goggles into Lowband and tunes them, and
+  a Raceband channel switches them back.
+- **Change channel from the goggles.** Pick a channel on the goggles and the
+  backpack broadcasts it: the drone's VTX, the radio's VTX Administrator and
+  the timer all follow. *Auto Send VTX* on the goggles' ELRS page sends on
+  every change; a dial long-press sends (or re-sends) on demand, and a
+  `VTX SENT` pill confirms it on screen. The race-day goggle builds also let
+  the dial reach every band, Lowband included. Leave Auto Send VTX off when
+  the timer assigns channels, or spectating another channel retunes your own
+  quad.
+- **DVR recordings named after the heat.** dd-pits sends each pilot a label
+  for their next recording as their heat is staged, and the goggles append it
+  to the usual file name: `hdz_0042-WinterCup-Mains-A-R5-H1.mp4`. Labels can be
+  up to 43 characters, so the meeting name fits.
+
+The same builds set the goggle clock from the timer, so recordings carry the
+right date.
+
+| Firmware | Release | What it adds |
+| --- | --- | --- |
+| HDZero goggles | [AUFPV race build](https://github.com/bob9/hdzero-goggle/releases/tag/v2026.07.17-aufpv-race) | Stock HDZero plus the three features above and clock sync |
+| HDZero goggles | [Race Day](https://github.com/bob9/hdzero-goggle/releases/tag/race-day-lowband-5) | All of that, plus the all-band dial and DVR recording and playback fixes |
+| Goggle backpack | [AUFPV race build](https://github.com/bob9/Backpack/releases/tag/v2026.07.17-aufpv-race) | Forwards the DVR name and clock, and broadcasts goggle channel changes |
+
+The goggle changes are submitted upstream as
+[hd-zero/hdzero-goggle#613](https://github.com/hd-zero/hdzero-goggle/pull/613)
+and [#614](https://github.com/hd-zero/hdzero-goggle/pull/614). Neither fork is
+affiliated with HDZero or the ExpressLRS project.
 
 ## Download
 
