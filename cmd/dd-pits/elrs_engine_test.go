@@ -359,7 +359,7 @@ func TestEngineLapUsesOneSession(t *testing.T) {
 
 	c.processSnapshot(raceSnap(t, "", false, false, nil, nil)) // prime
 	c.processSnapshot(raceSnap(t, "", true, false, nil, nil))  // start
-	before := len(fake.Frames())
+	before := waitFramesQuiet(t, fake)                         // the start's own sessions finish first (slow CI runners)
 
 	// One lap for Alice, with Bob also lapping so Alice gets a gap line too.
 	c.processSnapshot(raceSnap(t, "", true, false, []float64{31}, []float64{30}))
@@ -382,6 +382,24 @@ func TestEngineLapUsesOneSession(t *testing.T) {
 	if uidSets != 2 {
 		t.Fatalf("lap event set the send UID %d times, want 2 (one session per pilot)", uidSets)
 	}
+}
+
+// waitFramesQuiet waits until no new frames have arrived for 100ms and
+// returns the frame count.
+func waitFramesQuiet(t *testing.T, fake *elrs.FakeBackpack) int {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	n := len(fake.Frames())
+	for time.Now().Before(deadline) {
+		time.Sleep(100 * time.Millisecond)
+		m := len(fake.Frames())
+		if m == n {
+			return n
+		}
+		n = m
+	}
+	t.Fatal("frames never stopped arriving")
+	return n
 }
 
 // withRaceStart replaces the heat's start stamp — a re-run gets a new one

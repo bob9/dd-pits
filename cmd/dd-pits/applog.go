@@ -75,6 +75,18 @@ func (l *rollingLog) Write(p []byte) (int, error) {
 	return n, err
 }
 
+// Close closes the log file.
+func (l *rollingLog) Close() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.f == nil {
+		return nil
+	}
+	err := l.f.Close()
+	l.f = nil
+	return err
+}
+
 // timerState is what the Status page says about the timer connection.
 type timerState struct {
 	mu       sync.Mutex

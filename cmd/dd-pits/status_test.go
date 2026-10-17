@@ -14,6 +14,7 @@ func TestRollingLogRollsOver(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer l.Close() // Windows can't delete an open file at cleanup
 	line := []byte(strings.Repeat("x", 1023) + "\n")
 	for i := 0; i < (logFileMax/len(line))+50; i++ {
 		l.Write(line)
