@@ -176,7 +176,7 @@ func (e ftEditor) meeting() (*ftMeeting, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, errors.New("this FPVTrackside has no REST API. Update FPVTrackside to a version with the REST API to edit the meeting from dd-pits")
+		return nil, errors.New("this FPVTrackside has no REST API. For now that needs the FPVTrackside alpha (alpha.fpvtrackside.com); install it to edit the meeting from dd-pits")
 	}
 	if resp.StatusCode >= 300 {
 		return nil, readAPIError(resp)
@@ -604,10 +604,12 @@ func renderMeetingEditor(b *strings.Builder, mt *ftMeeting) {
 				esc(anchorR), label, cur, esc(state), esc(strings.Join(who, ", ")), ext,
 				esc(rc.ID), esc(anchor), rc.TargetLaps, esc(lineupKey(key)), esc(name), esc(rc.Name), rc.TargetLaps, lineup)
 		}
-		fmt.Fprintf(b, `<details class="race add"><summary>+ Add a race to this round</summary><form method="post">
+		// The label names the round: the page re-opens panels by their label
+		// after a save, so identical labels would open every round's.
+		fmt.Fprintf(b, `<details class="race add"><summary>+ Add a race to %s</summary><form method="post">
 <input type="hidden" name="round" value="%s"><input type="hidden" name="at" value="%s"><label>Line-up</label><div class="seats">%s</div>
 <div class="row btns"><button name="do" value="race-add">Add race</button></div></form></details></details>`,
-			esc(rd.ID), esc(anchor), seatRows(nil))
+			esc(title), esc(rd.ID), esc(anchor), seatRows(nil))
 	}
 	fmt.Fprintf(b, `<form method="post" class="row" style="margin-top:1rem;align-items:flex-end">
 <input type="hidden" name="at" value="rounds">

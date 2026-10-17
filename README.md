@@ -260,8 +260,9 @@ every event on to them too.
 if you have several). It also turns FPVTrackside's own speech down so you don't
 hear both. Restart FPVTrackside when the page says to.
 
-**6. Edit the meeting from dd-pits (optional).** With an FPVTrackside that has
-the REST API, **Race director → Meeting editor** (`/meeting`) changes the
+**6. Edit the meeting from dd-pits (optional).** With the
+[FPVTrackside alpha](https://alpha.fpvtrackside.com/) (the first version with
+FPVTrackside's REST API), **Race director → Meeting editor** (`/meeting`) changes the
 meeting in FPVTrackside itself: the event's name, laps, race length and
 channels; rounds (add, rename, delete); races (add, delete, reset, select, laps
 to finish); each race's line-up and channels; and the event's pilots.
@@ -357,6 +358,41 @@ PIN. The plugin's **Set up dd-pits** link supplies it to RotorHazard admins.
 Without the plugin, any dd-pits can still read a RotorHazard timer that has the
 plugin installed: `dd-pits -rotorhazard http://<timer>:5000`.
 
+## Marshalling
+
+**Race director → Marshal** (`/marshal`) fixes a race's laps. With a
+**RotorHazard** timer (on its own, or as FPVTrackside's timer) it works from
+each pilot's signal trace, the way RotorHazard's own Marshal page does, and
+goes further:
+
+- **Every pilot on one time axis.** Each pilot's signal with the red enter and
+  orange exit lines; counted passes shaded, lap times on the trace. Scroll to
+  zoom, drag to pan. A bleed from another channel lines up with that pilot's
+  pass right above it.
+- **Drag the lines** and the laps recalculate as you go, by RotorHazard's own
+  rule (a pass starts above enter, ends below exit, and is stamped at its peak),
+  so what you save is what RotorHazard would have counted.
+- **Auto-detect** finds the lines from the trace itself: it measures the
+  background and the passes, tries lines across the gap and keeps the ones that
+  give steady lap times, no impossible laps, the race's lap count and the most
+  room either side, then says how sure it is and why.
+- **Problems found for you:** a lap far too short (a double count, or a stray
+  signal), one far too long (a missed pass, with the weak peak where it
+  probably was and an *Add lap here* button), a pass only just over the line,
+  another pilot's signal bleeding into this channel, too few laps for the race.
+- **Click** a pass to remove or restore it, **shift-click** the trace to add a
+  missed lap. *Save laps* saves through RotorHazard's own marshal save, so
+  results, brackets, the dashboard and FPVTrackside all follow. *Use these lines
+  from now on* sets the node's enter/exit for the races to come.
+
+**On RotorHazard** it's in RotorHazard's menu under *dd-pits → Marshal*.
+**Beside FPVTrackside with a RotorHazard timer**, dd-pits finds the timer's
+address in FPVTrackside's own settings (or set it at *Settings → FPVTrackside*)
+and reads the traces through the dd-pits plugin on that RotorHazard (give dd-pits
+the key shown in RotorHazard's dd-pits settings), or through the FPVTrackside
+connector 1.2.0 or later. With other timers, the Marshal page lists each pilot's
+crossings to remove or add by hand.
+
 ## Brackets
 
 dd-pits runs **stages**: competitions made of several races, where each result
@@ -385,8 +421,9 @@ known**: round 1 straight away, later races as results come in.
   class, one heat group per round, with the pilots seated in seed order.
 - **On FPVTrackside,** races are created through FPVTrackside's REST API, one
   round per bracket round, and dd-pits starts them and reads the results back.
-  This needs an FPVTrackside recent enough to have the REST API; on an older
-  one you add the races by hand and enter the results on the stage page.
+  For now this needs the [FPVTrackside alpha](https://alpha.fpvtrackside.com/),
+  the first version with the REST API; on an older one you add the races by
+  hand and enter the results on the stage page.
 
 When a race ends, its finishing order is read from the timing and the bracket
 moves on: losers drop into the losers bracket, finalists are seated, and unused

@@ -91,6 +91,7 @@ var data = pageData{
 		"netpackOrigin": "https://github.com/i-am-grub/elrs-netpack",
 		"coffee":        "https://buymeacoffee.com/bobnine",
 		"fpvtrackside":  "https://fpvtrackside.com",
+		"ftAlpha":       "https://alpha.fpvtrackside.com/",
 		"rotorhazard":   "https://github.com/RotorHazard/RotorHazard",
 		"demoBracket":   "https://demo.dd-pits.threedigitalllamas.com.au/stages/s1",
 		"rhplugin":      "https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-rotorhazard-plugin.zip",

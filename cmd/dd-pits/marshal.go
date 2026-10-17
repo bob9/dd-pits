@@ -90,6 +90,7 @@ func sendJSON(method, u string, body any) error {
 
 func (s *liveServer) registerMarshal(mux *http.ServeMux) {
 	mux.HandleFunc("/marshal", s.marshalPage)
+	s.registerSignalMarshal(mux)
 }
 
 // marshalTimer is the timer to send corrections to, if there is one.
@@ -197,6 +198,12 @@ func (s *liveServer) marshalPage(w http.ResponseWriter, r *http.Request) {
 		if vr.ID == raceID {
 			label = vr.Label
 		}
+	}
+	// A timer that keeps signal traces (RotorHazard, or the RotorHazard
+	// behind FPVTrackside) gets the trace view; ?simple=1 is the plain list.
+	if r.FormValue("simple") != "1" && s.traceSource() != nil {
+		s.signalMarshalPage(w, r, raceID, label)
+		return
 	}
 	idx := -1
 	for i := range snap.Races {

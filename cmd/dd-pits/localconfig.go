@@ -323,6 +323,12 @@ type localConfig struct {
 	Audio localAudio `json:"audio"`
 	Video localVideo `json:"video"`
 
+	// RHTimer is the RotorHazard an FPVTrackside times with, for marshalling
+	// from its signal traces. Empty URL: read it from FPVTrackside's own timer
+	// settings. Key: the dd-pits plugin's key on that RotorHazard, if the
+	// plugin is installed there (without it the FPVTrackside connector is used).
+	RHTimer localRHTimer `json:"rh_timer,omitempty"`
+
 	path string       // where it came from; not serialised
 	mu   sync.RWMutex // guards everything above once loaded
 }
@@ -546,6 +552,27 @@ func (c *localConfig) CallsConfig() localCalls {
 func (c *localConfig) SetCalls(v localCalls) {
 	c.mu.Lock()
 	c.Calls = v
+	c.mu.Unlock()
+}
+
+// localRHTimer is the RotorHazard behind FPVTrackside (see RHTimer).
+type localRHTimer struct {
+	URL string `json:"url,omitempty"`
+	Key string `json:"key,omitempty"`
+}
+
+func (c *localConfig) RHTimerConfig() localRHTimer {
+	if c == nil {
+		return localRHTimer{}
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.RHTimer
+}
+
+func (c *localConfig) SetRHTimer(v localRHTimer) {
+	c.mu.Lock()
+	c.RHTimer = v
 	c.mu.Unlock()
 }
 

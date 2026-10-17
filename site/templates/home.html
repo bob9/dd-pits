@@ -41,6 +41,7 @@
     </a>
     <nav class="nav-links" aria-label="Sections">
       <a href="#brackets" class="nav-new">Brackets <span class="new-tag">New</span></a>
+      <a href="#marshal">Marshalling</a>
       <a href="#how-to">How to use</a>
       <a href="#displays">Displays</a>
       <a href="#overlay">OBS overlay</a>
@@ -100,6 +101,51 @@
       <img src="{{asset "img/screens/dashboard.webp"}}" alt="The dd-pits live dashboard showing the current heat, positions, holeshots, lap times and totals" loading="lazy" width="2000" height="1250">
     </div>
     <div class="laptop-base"></div>
+  </div>
+</section>
+
+<!-- TIMERS -->
+<section class="timers" id="timers" aria-labelledby="timers-h">
+  <div class="wrap center">
+    <p class="eyebrow reveal">Works with your timer</p>
+    <h2 class="headline reveal" id="timers-h">RotorHazard or FPVTrackside.</h2>
+    <p class="sub reveal">dd-pits works with both. Here's how it runs with each, and what you need.</p>
+  </div>
+  <div class="timer-cards">
+    <article class="timer-card reveal">
+      <p class="eyebrow">RotorHazard 4.0 or later</p>
+      <h3>Runs on the timer itself</h3>
+      <p>Install the dd-pits plugin and RotorHazard runs dd-pits for you. Nothing else to install: open it from RotorHazard's menu.</p>
+      <ul class="ticks">
+        <li>Live dashboard and OBS overlays</li>
+        <li>Race calls and AI commentary</li>
+        <li>Lap times in pilots' goggles</li>
+        <li>Brackets: each race becomes a heat, and results come back by themselves</li>
+        <li>Marshal from each pilot's signal: lines found for you, odd laps flagged</li>
+      </ul>
+      <p class="timer-note">Heats, classes and pilots stay in RotorHazard, where you already manage them.</p>
+      <a class="btn" href="{{.Links.rhplugin}}">Download the RotorHazard plugin</a>
+    </article>
+    <article class="timer-card reveal">
+      <p class="eyebrow">FPVTrackside</p>
+      <h3>Runs beside it on the laptop</h3>
+      <p>Download dd-pits and run it next to FPVTrackside. Switch on FPVTrackside's web server and dd-pits reads the timing.</p>
+      <p class="timer-sub">With any FPVTrackside</p>
+      <ul class="ticks">
+        <li>Live dashboard and OBS overlays</li>
+        <li>Race calls and AI commentary</li>
+        <li>Lap times in pilots' goggles</li>
+        <li>Signal marshalling when it times with a RotorHazard</li>
+      </ul>
+      <p class="timer-sub"><span class="new-tag alpha-tag">Alpha</span> With the <a href="{{.Links.ftAlpha}}">FPVTrackside alpha</a></p>
+      <ul class="ticks">
+        <li>Brackets: races created in FPVTrackside, results come back by themselves</li>
+        <li>Meeting editor: rounds, races, line-ups and pilots from any browser</li>
+        <li>Start races and fix laps from dd-pits</li>
+      </ul>
+      <p class="timer-note"><b>For now these need the alpha version of FPVTrackside.</b> They use FPVTrackside's new REST API, which is only in the current alpha. Once it's in a normal release, any up-to-date FPVTrackside will do.</p>
+      <div class="timer-btns"><a class="btn ghost" href="#download">Download dd-pits</a> <a class="btn ghost" href="{{.Links.ftAlpha}}">Get the FPVTrackside alpha</a></div>
+    </article>
   </div>
 </section>
 
@@ -306,9 +352,32 @@
     <div class="brk-card reveal">
       <p class="eyebrow"><span class="new-tag">Back</span> FPVTrackside</p>
       <h3>Run it beside the timer</h3>
-      <ol><li>Download dd-pits for your laptop and run it next to an FPVTrackside with the REST API.</li><li>Open <b>Brackets → Create bracket</b> at <code>localhost:8088</code>.</li><li>Every race goes on FPVTrackside round by round, with pilots and channels set. dd-pits starts them and reads the results back.</li><li>Need to change something by hand? <b>Race director → Meeting editor</b> edits rounds, races, line-ups and pilots in FPVTrackside.</li></ol>
+      <ol><li>Download dd-pits for your laptop and run it next to the <a href="{{.Links.ftAlpha}}">FPVTrackside alpha</a> (brackets need its REST API).</li><li>Open <b>Brackets → Create bracket</b> at <code>localhost:8088</code>.</li><li>Every race goes on FPVTrackside round by round, with pilots and channels set. dd-pits starts them and reads the results back.</li><li>Need to change something by hand? <b>Race director → Meeting editor</b> edits rounds, races, line-ups and pilots in FPVTrackside.</li></ol>
       <a class="btn ghost" href="#download">Download dd-pits</a>
     </div>
+  </div>
+</section>
+
+<!-- MARSHALLING -->
+<section class="feature" id="marshal" aria-labelledby="marshal-h">
+  <div class="wrap center">
+    <p class="eyebrow reveal"><span class="new-tag">New</span> Marshalling · RotorHazard timers</p>
+    <h2 class="headline reveal" id="marshal-h">Every lap.<br><span class="grad">Exactly right.</span></h2>
+    <p class="sub reveal">dd-pits reads each pilot's signal from your RotorHazard timer, finds the enter and exit lines for you, and points at the laps that look wrong, with the fix one tap away. Corrections go back through RotorHazard's own marshal save, so results, brackets and FPVTrackside all follow.</p>
+  </div>
+  <div class="brk-show marshal-show reveal">
+    <div class="brk-frame">
+      <div class="brk-bar" aria-hidden="true"><i></i><i></i><i></i><span>dd-pits · Marshal</span></div>
+      <img src="{{asset "img/screens/marshal.webp"}}" srcset="{{asset "img/screens/marshal-sm.webp"}} 900w, {{asset "img/screens/marshal.webp"}} 1844w" sizes="(max-width: 900px) 100vw, 1100px" alt="A pilot's signal trace in dd-pits' Marshal page: the enter and exit lines, counted passes, a missed weak pass marked at 0:13.3 with an Add lap here button, and auto-detect's suggested lines with medium confidence" width="1844" height="976" loading="lazy">
+    </div>
+  </div>
+  <div class="grid3">
+    <div class="card reveal"><h3>Lines found for you</h3><p>Auto-detect measures the background and the passes and picks the enter and exit lines that give steady, believable laps, then tells you how sure it is and why.</p></div>
+    <div class="card reveal"><h3>Problems pointed out</h3><p>Double counts, stray signals, missed passes (with the weak peak where it probably was), passes only just over the line, and too few laps for the race.</p></div>
+    <div class="card reveal"><h3>Bleed spotted</h3><p>Every pilot on one time axis. A weak bump that lines up with another pilot's strong pass is called out as their signal bleeding across, not a lap.</p></div>
+    <div class="card reveal"><h3>Drag, tap, done</h3><p>Drag the lines and the laps recalculate as you go, by RotorHazard's own rule. Tap a pass to drop it, tap the trace to add one. From the laptop or a phone at the field.</p></div>
+    <div class="card reveal"><h3>Saved the RotorHazard way</h3><p>Corrections save through RotorHazard's own marshal save, and <b>Use these lines from now on</b> sets the node for the races to come.</p></div>
+    <div class="card reveal"><h3>FPVTrackside too</h3><p>When FPVTrackside times with a RotorHazard, dd-pits finds the timer in FPVTrackside's settings and marshals from its signal. Corrections land back in FPVTrackside.</p></div>
   </div>
 </section>
 
@@ -539,7 +608,7 @@
   <div class="grid3">
     <div class="card reveal"><h3>Browser setup</h3><p>Everything is configured at <code>/setup</code>, with a guided first run and help at <code>/setup/help</code>.</p></div>
     <div class="card reveal"><h3>Debug page</h3><p>The log in the browser at <code>/setup/debug</code>, with API keys removed, plus a downloadable report to send when something goes wrong.</p></div>
-    <div class="card reveal"><h3>Meeting editor</h3><p>On FPVTrackside, change the meeting from any browser: event rules and channels, rounds, races, line-ups and pilots. Name races your way and dd-pits shows those names everywhere.</p></div>
+    <div class="card reveal"><h3>Meeting editor</h3><p>On FPVTrackside (alpha), change the meeting from any browser: event rules and channels, rounds, races, line-ups and pilots. Name races your way and dd-pits shows those names everywhere.</p></div>
     <div class="card reveal"><h3>JSON API</h3><p>Meeting, race, round, leaderboard, pilot and channel data at <code>/docs</code> — with an OpenAPI spec and a live event stream for your own displays.</p></div>
   </div>
 </section>
@@ -578,7 +647,8 @@
   <div class="wrap narrow">
     <h2 class="headline center reveal" id="faq-h">Questions.</h2>
     <details class="reveal"><summary>Does it work with RotorHazard?</summary><p>Yes. Install the <a href="#rotorhazard">dd-pits RotorHazard plugin</a> (RotorHazard 4.0 or later) and the timer runs dd-pits itself, with the same dashboard, overlays, race calls, commentary and goggle OSD.</p></details>
-    <details class="reveal"><summary>Do brackets work with FPVTrackside?</summary><p>Yes, with an FPVTrackside that has the REST API. dd-pits creates every race in FPVTrackside with its pilots and channels, starts it, and moves the bracket on when it finishes. The <b>Meeting editor</b> lets you change rounds, races, line-ups and pilots in FPVTrackside from dd-pits too.</p></details>
+    <details class="reveal"><summary>Do brackets work with FPVTrackside?</summary><p>Yes, with the current <a href="{{.Links.ftAlpha}}">alpha version of FPVTrackside</a>, which has the REST API they need. Everything else in dd-pits works with any FPVTrackside. dd-pits creates every race in FPVTrackside with its pilots and channels, starts it, and moves the bracket on when it finishes. The <b>Meeting editor</b> lets you change rounds, races, line-ups and pilots in FPVTrackside from dd-pits too.</p></details>
+    <details class="reveal"><summary>Can it fix a missed or double-counted lap?</summary><p>Yes. With a RotorHazard timer (on its own, or as FPVTrackside's timer), the <a href="#marshal">Marshal page</a> shows each pilot's signal, finds the enter and exit lines for you and flags the laps that look wrong, with the fix one tap away. With other timers you can still remove or add a pilot's laps by hand.</p></details>
     <details class="reveal"><summary>Does it replace FPVTrackside?</summary><p>No. FPVTrackside keeps doing the timing. dd-pits reads it on the same laptop and does everything else: the dashboard, overlays, race calls, commentary and goggles.</p></details>
     <details class="reveal"><summary>Does it need the internet?</summary><p>No. The dashboard, overlays, race calls, goggle OSD and API all run on the laptop. Only the cloud AI options (Gemini or Qwen) and YouTube Watch links use a connection — and the commentary booth can run fully locally on Apple Silicon.</p></details>
     <details class="reveal"><summary>How do pilots see the dashboard?</summary><p>They open the laptop's address on their phones over the venue wifi. Settings pages only accept changes from the laptop itself, so a phone in the pits can't change anyone's goggle channel.</p></details>

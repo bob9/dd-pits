@@ -451,3 +451,24 @@ section { position: relative; }
 .nav-links { gap: 20px; }
 @media (max-width: 1240px) { .nav-links { gap: 14px; } .nav-links a { font-size: 12.5px; } }
 @media (max-width: 1160px) { .nav-links { display: none; } .nav-cta { margin-left: auto; } }
+
+/* Works with your timer */
+.timers { padding: clamp(64px, 9vw, 120px) 0; }
+.timer-cards { max-width: 1180px; margin: 48px auto 0; padding: 0 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.timer-card { background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)); border: 1px solid var(--line); border-radius: var(--radius); padding: 34px; display: flex; flex-direction: column; }
+.timer-card h3 { margin: 0 0 12px; font-size: 28px; letter-spacing: -0.03em; }
+.timer-card > p { color: #c7c7cc; margin: 0 0 16px; }
+.timer-card .timer-sub { margin: 6px 0 8px; font-weight: 700; color: var(--fg); font-size: 15px; }
+.timer-card .ticks { margin: 0 0 18px; gap: 9px; }
+.timer-card .timer-note { font-size: 14px; color: var(--mut); border-left: 3px solid var(--lime); padding: 2px 0 2px 12px; margin: 4px 0 24px; }
+.timer-card .timer-note b { color: var(--fg); }
+.timer-card .btn { align-self: flex-start; margin-top: auto; }
+.timer-card .timer-btns { margin-top: auto; display: flex; flex-wrap: wrap; gap: 10px; }
+.timer-card .timer-btns .btn { margin-top: 0; }
+.timer-card a:not(.btn) { color: var(--lime); }
+.alpha-tag { background: linear-gradient(92deg, #ffb340, #ff6b3d); }
+@media (max-width: 860px) { .timer-cards { grid-template-columns: 1fr; } .timer-card { padding: 26px; } }
+
+/* Marshalling: the screenshot sits below its intro, not over a hero */
+.brk-show.marshal-show { margin-top: 44px; }
+#marshal .grid3 { margin-top: 56px; }

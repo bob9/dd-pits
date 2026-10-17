@@ -315,8 +315,8 @@ func (t *ftStageTimer) send(st stageRecord, races []stageRace, makeCurrent bool)
 	}
 	err := postJSON(strings.TrimSuffix(t.base, "/")+"/api/v1/meeting/sync", plan, os.Getenv("FPV_API_TOKEN"), &out)
 	if errors.Is(err, errNoStageAPI) {
-		return nil, errors.New("this FPVTrackside has no REST API. Update FPVTrackside to a version " +
-			"with the REST API, or add the races by hand and enter results here")
+		return nil, errors.New("this FPVTrackside has no REST API. For now that needs the FPVTrackside " +
+			"alpha (alpha.fpvtrackside.com); or add the races by hand and enter results here")
 	}
 	if err != nil {
 		return nil, err

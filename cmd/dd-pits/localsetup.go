@@ -930,27 +930,41 @@ func (s *liveServer) setupTrackside(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		_ = r.ParseForm()
-		cc := cfg.CallsConfig()
-		cc.TracksideDir = strings.TrimSpace(r.FormValue("dir"))
-		cc.Profile = strings.TrimSpace(r.FormValue("profile"))
-
-		// Checked BEFORE saving: a path that holds no Sounds.xml produces no
-		// race calls and no error, so accepting it silently would hand the
-		// operator the exact failure this page exists to prevent.
-		switch {
-		case cc.TracksideDir != "" && inspectTracksideDir(cc.TracksideDir) == nil:
-			msg = "Nothing usable in " + cc.TracksideDir +
-				" — it needs a data folder with a profile in it. Pick one of the folders found below."
-		default:
-			cfg.SetCalls(cc)
+		if r.FormValue("rh_form") == "1" {
+			cfg.SetRHTimer(localRHTimer{
+				URL: strings.TrimSuffix(strings.TrimSpace(r.FormValue("rh_url")), "/"),
+				Key: strings.TrimSpace(r.FormValue("rh_key")),
+			})
 			if err := cfg.Save(); err != nil {
 				msg = "Could not save: " + err.Error()
 			} else {
-				msg = "Saved — restart dd-pits to read from there."
+				msg = "Saved the RotorHazard timer."
+			}
+			goto render
+		}
+		{
+			cc := cfg.CallsConfig()
+			cc.TracksideDir = strings.TrimSpace(r.FormValue("dir"))
+			cc.Profile = strings.TrimSpace(r.FormValue("profile"))
+
+			// Checked BEFORE saving: a path that holds no Sounds.xml produces no
+			// race calls and no error, so accepting it silently would hand the
+			// operator the exact failure this page exists to prevent.
+			switch {
+			case cc.TracksideDir != "" && inspectTracksideDir(cc.TracksideDir) == nil:
+				msg = "Nothing usable in " + cc.TracksideDir +
+					" — it needs a data folder with a profile in it. Pick one of the folders found below."
+			default:
+				cfg.SetCalls(cc)
+				if err := cfg.Save(); err != nil {
+					msg = "Could not save: " + err.Error()
+				} else {
+					msg = "Saved — restart dd-pits to read from there."
+				}
 			}
 		}
 	}
-
+render:
 	cc := cfg.CallsConfig()
 	found := findTracksideInstalls()
 
@@ -1052,6 +1066,7 @@ an error.</p><form method="post">`)
 })();
 </script>`)
 
+	s.rhTimerCard(b)
 	writeSetup(w, r, "FPVTrackside", b.String())
 }
 

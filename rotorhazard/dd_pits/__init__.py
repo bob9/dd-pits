@@ -29,7 +29,7 @@ from RHUI import UIField, UIFieldType
 
 from .runner import Runner
 from .snapshot import SnapshotBuilder, live_signature
-from .marshal import marshal
+from .marshal import marshal, traces as marshal_traces, calibrate as marshal_calibrate
 from .stages import StageError, delete_heats, race_control, seed_classes, stage_format, stage_heat, stage_heats
 
 logger = logging.getLogger(__name__)
@@ -270,11 +270,15 @@ class DDPits:
             "* [Set up dd-pits](/dd-pits/setup): race calls, commentary, goggles\n"
             "* [OBS overlays](/dd-pits/overlays) for your stream\n"
             "* [Brackets](/dd-pits/stages): double elimination, qualifiers, ladders\n"
-            "* [Upcoming races](/dd-pits/upcoming): every race still to run\n\n"
+            "* [Upcoming races](/dd-pits/upcoming): every race still to run\n"
+            "* [Marshal](/dd-pits/marshal): fix laps from each pilot's signal, with the lines found for you\n\n"
             "%s\n\n"
+            "Running dd-pits beside an FPVTrackside that times with this RotorHazard? "
+            "Give it this timer's address and the key `%s` (FPVTrackside setup in dd-pits) "
+            "to marshal from the signal traces here.\n\n"
             "Free and open source by [bob9](%s). If it helps your club, "
             "[buy me a coffee](%s) ☕"
-        ) % (state, where, PROJECT_URL, SUPPORT_URL)
+        ) % (state, where, r.api_token(), PROJECT_URL, SUPPORT_URL)
         self.rhapi.ui.register_markdown(PANEL, "dd_pits_status", md)
 
     def _field(self, name, label, ftype, **kw):
@@ -472,6 +476,28 @@ class DDPits:
             self.builder.invalidate()
             return jsonify(out)
 
+        @bp.route("/api/marshal-traces", methods=["POST"])
+        def api_marshal_traces():
+            # Every pilot's signal trace for one saved race. dd-pits beside an
+            # FPVTrackside that times with this RotorHazard asks for it too.
+            auth = request.headers.get("Authorization", "")
+            if auth != "Bearer " + self.runner.api_token() and not self._admin_ok(require=True):
+                return jsonify({"error": "not allowed"}), 401
+            try:
+                return jsonify(marshal_traces(self.rhapi, request.get_json(force=True) or {}, server_config))
+            except StageError as ex:
+                return jsonify({"error": str(ex)}), 409
+
+        @bp.route("/api/marshal-calibrate", methods=["POST"])
+        def api_marshal_calibrate():
+            auth = request.headers.get("Authorization", "")
+            if auth != "Bearer " + self.runner.api_token() and not self._admin_ok(require=True):
+                return jsonify({"error": "not allowed"}), 401
+            try:
+                return jsonify(marshal_calibrate(self.rhapi, request.get_json(force=True) or {}))
+            except StageError as ex:
+                return jsonify({"error": str(ex)}), 409
+
         @bp.route("/api/heat-info")
         def api_heat_info():
             # Where a heat sits on the Event page: its class and its place
@@ -611,6 +637,15 @@ class DDPits:
         @bp.route("/upcoming")
         def upcoming():
             return redirect(self._dd_url("/dronedash/upcoming"))
+
+        @bp.route("/marshal")
+        def marshal_page():
+            # Marshalling changes results: the admin's login carries over
+            # to dd-pits as its PIN, as for the setup pages.
+            if not self._admin_ok():
+                return Response("Log in to RotorHazard to marshal races.", 401,
+                                {"WWW-Authenticate": 'Basic realm="Login Required"'})
+            return redirect(self._dd_url("/marshal?pin=%s" % self.runner.setup_pin()))
 
         @bp.after_app_request
         def add_menu_links(resp):

@@ -51,7 +51,7 @@ func siteNav(admin bool) string {
 		director = append(director, navItem{"/meeting", "Meeting editor", "Rounds, races, line-ups, pilots, event"})
 	}
 	director = append(director,
-		navItem{"/marshal", "Marshal", "Fix a race's laps"},
+		navItem{"/marshal", "Marshal", "Fix laps from each pilot's signal"},
 		navItem{"/calls", "Race calls", "Say a call now"},
 		navItem{"/goggles", "Goggle control", "Channels and messages to goggles"},
 		navItem{"/logout", "Log out", "View as a spectator: no race controls"},
