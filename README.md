@@ -218,7 +218,7 @@ Stock HDZero goggles show dd-pits' lap times on the OSD with any ExpressLRS
 backpack. Three race-day features need firmware from
 [bob9's HDZero goggle fork](https://github.com/bob9/hdzero-goggle) and
 [bob9's Backpack fork](https://github.com/bob9/Backpack), flashed as a pair
-(each goggle release lists the matching backpack file):
+(one goggle file, one backpack file):
 
 - **Lowband from the timer.** On stock firmware a Lowband channel (L1–L8) sent
   by the timer never arrives: the goggles only switch band from their own
@@ -229,8 +229,8 @@ backpack. Three race-day features need firmware from
   backpack broadcasts it: the drone's VTX, the radio's VTX Administrator and
   the timer all follow. *Auto Send VTX* on the goggles' ELRS page sends on
   every change; a dial long-press sends (or re-sends) on demand, and a
-  `VTX SENT` pill confirms it on screen. The race-day goggle builds also let
-  the dial reach every band, Lowband included. Leave Auto Send VTX off when
+  `VTX SENT` pill confirms it on screen. The dial also reaches every band,
+  Lowband included. Leave Auto Send VTX off when
   the timer assigns channels, or spectating another channel retunes your own
   quad.
 - **DVR recordings named after the heat.** dd-pits sends each pilot a label
@@ -243,8 +243,7 @@ right date.
 
 | Firmware | Release | What it adds |
 | --- | --- | --- |
-| HDZero goggles | [AUFPV race build](https://github.com/bob9/hdzero-goggle/releases/tag/v2026.07.17-aufpv-race) | Stock HDZero plus the three features above and clock sync |
-| HDZero goggles | [Race Day](https://github.com/bob9/hdzero-goggle/releases/tag/race-day-lowband-5) | All of that, plus the all-band dial and DVR recording and playback fixes |
+| HDZero goggles | [9.5.45](https://github.com/bob9/hdzero-goggle/releases/tag/v9.5.45) | Stock HDZero plus the three features above, the all-band dial and clock sync; for Goggle, Goggle 2 and BoxPro |
 | Goggle backpack | [AUFPV race build](https://github.com/bob9/Backpack/releases/tag/v2026.07.17-aufpv-race) | Forwards the DVR name and clock, and broadcasts goggle channel changes |
 
 The goggle changes are submitted upstream as

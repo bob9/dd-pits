@@ -1971,7 +1971,7 @@ change one without hunting for them.</p></div>`)
 		onOff, btn, val = `<span class="ok">on</span>`, "Turn off", "0"
 	}
 	fmt.Fprintf(b, `<div class="card"><h2>Race channels as each race is cued: %s</h2>
-<p class="mut">When it's on, dd-pits puts every pilot's goggles on their channel for the race the moment it's cued, so nobody starts on the wrong video. Lowband (L1–L8) channels need the <a href="https://github.com/bob9/hdzero-goggle">race-day HDZero firmware</a>.</p>
+<p class="mut">When it's on, dd-pits puts every pilot's goggles on their channel for the race the moment it's cued, so nobody starts on the wrong video. Lowband (L1–L8) channels need the <a href="https://github.com/bob9/hdzero-goggle/releases/tag/v9.5.45">race-day HDZero firmware (9.5.45)</a>.</p>
 <form method="post"><input type="hidden" name="action" value="race-channels-auto"><input type="hidden" name="on" value="%s"><button class="sec">%s</button></form></div>`, onOff, val, btn)
 
 	// Everyone configured, for a change outside a heat.

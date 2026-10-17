@@ -93,7 +93,7 @@ var data = pageData{
 		"fpvtrackside":  "https://fpvtrackside.com",
 		"ftAlpha":       "https://alpha.fpvtrackside.com/",
 		"hdzFirmware":   "https://github.com/bob9/hdzero-goggle",
-		"hdzRelease":    "https://github.com/bob9/hdzero-goggle/releases/tag/v2026.07.17-aufpv-race",
+		"hdzRelease":    "https://github.com/bob9/hdzero-goggle/releases/tag/v9.5.45",
 		"bpRelease":     "https://github.com/bob9/Backpack/releases/tag/v2026.07.17-aufpv-race",
 		"rotorhazard":   "https://github.com/RotorHazard/RotorHazard",
 		"demoBracket":   "https://demo.dd-pits.threedigitalllamas.com.au/stages/s1",
