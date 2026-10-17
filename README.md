@@ -572,9 +572,11 @@ internal/qwenchat/   Qwen chat client (commentary writer)
 internal/qwentts/    Qwen3-TTS client
 internal/localchat/  local MLX chat model sidecar
 cmd/fpvtrackside-sim/ simulated FPVTrackside meeting for development and demos
-site/                the promo website (dd-pits.threedigitalllamas.com.au)
 docs/                design notes and screenshots
 ```
+
+The website, [dd-pits.threedigitalllamas.com.au](https://dd-pits.threedigitalllamas.com.au),
+is maintained separately and isn't part of this repository.
 
 ## Contributing
 
