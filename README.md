@@ -263,7 +263,7 @@ fetch the latest build:
 
 | Computer | Download |
 | --- | --- |
-| **Mac** (Apple Silicon or Intel) | [dd-pits-macos.zip](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-macos.zip): the dd-pits app |
+| **Mac** (Apple Silicon or Intel) | [dd-pits-macos.dmg](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-macos.dmg): the dd-pits app |
 | Mac, command line (Apple Silicon) | [dd-pits-darwin-arm64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-darwin-arm64) |
 | Mac, command line (Intel) | [dd-pits-darwin-amd64](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-darwin-amd64) |
 | Windows | [dd-pits-windows-amd64.exe](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-windows-amd64.exe) |
@@ -272,7 +272,8 @@ fetch the latest build:
 | Raspberry Pi, 32-bit OS | [dd-pits-linux-arm](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-linux-arm) |
 | **RotorHazard timer** | [dd-pits-rotorhazard-plugin.zip](https://github.com/bob9/dd-pits/releases/latest/download/dd-pits-rotorhazard-plugin.zip). See [RotorHazard](#rotorhazard) |
 
-**Mac:** unzip, move **dd-pits.app** to Applications and open it. The first
+**Mac:** open the `.dmg`, drag **dd-pits** onto **Applications**, then open it
+from Applications. The first
 time, macOS says it can't check the app: open **System Settings → Privacy &
 Security** and choose **Open Anyway**. It runs in the background without a Dock
 icon; open it again to bring back the Status page.

@@ -18,7 +18,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # dd-pits.app (Apple Silicon + Intel) needs a Mac to bundle, sign and zip.
+  # dd-pits.app (Apple Silicon + Intel) needs a Mac to bundle, sign and put
+  # on a disk image.
   macapp:
     runs-on: macos-latest
     steps:
@@ -31,7 +32,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: macapp
-          path: dist/dd-pits-macos.zip
+          path: dist/dd-pits-macos.dmg
 
   release:
     needs: macapp
@@ -107,7 +108,7 @@ jobs:
 
             | Computer | File |
             | --- | --- |
-            | **Mac** (Apple Silicon or Intel) | `dd-pits-macos.zip`: unzip and open **dd-pits.app** |
+            | **Mac** (Apple Silicon or Intel) | `dd-pits-macos.dmg`: open it and drag **dd-pits** to Applications |
             | Mac with Apple Silicon, command line | `dd-pits-darwin-arm64` |
             | Mac with Intel, command line | `dd-pits-darwin-amd64` |
             | Windows | `dd-pits-windows-amd64.exe` |
@@ -116,7 +117,7 @@ jobs:
             | Linux (Raspberry Pi, 32-bit OS) | `dd-pits-linux-arm` |
             | **RotorHazard timer** | `dd-pits-rotorhazard-plugin.zip`: upload it in RotorHazard under Settings → Plugins. It downloads and runs dd-pits for you. |
 
-            **Mac:** unzip, move **dd-pits.app** to Applications and open it. The first time, macOS says it can't check the app: open **System Settings → Privacy & Security** and choose **Open Anyway**. It runs in the background (no Dock icon); open it again to bring back the Status page, and quit from there. Settings and log: `~/Library/Application Support/dd-pits/`.
+            **Mac:** open `dd-pits-macos.dmg`, drag **dd-pits** onto **Applications**, then open it from Applications. The first time, macOS says it can't check the app: open **System Settings → Privacy & Security** and choose **Open Anyway**. It runs in the background (no Dock icon); open it again to bring back the Status page, and quit from there. Settings and log: `~/Library/Application Support/dd-pits/`.
             **Windows:** if SmartScreen warns, choose More info → Run anyway.
 
             Try it first in the [live demo](https://demo.dd-pits.threedigitalllamas.com.au). Made by [bob9](https://github.com/bob9) · [Buy me a coffee](https://buymeacoffee.com/bobnine) ☕

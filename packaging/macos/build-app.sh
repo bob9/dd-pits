@@ -1,5 +1,6 @@
 #!/bin/sh
-# Build dd-pits.app (Apple Silicon + Intel in one) and zip it. Run on a Mac.
+# Build dd-pits.app (Apple Silicon + Intel in one) and package it as a disk
+# image with an Applications shortcut to drag it onto. Run on a Mac.
 #   packaging/macos/build-app.sh <version> <out-dir>
 set -eu
 VERSION=${1:-dev}
@@ -31,5 +32,11 @@ iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/dd-pits.icns"
 # Ad-hoc signed: not notarised, so the first open needs Open Anyway.
 codesign --force --deep --sign - "$APP"
 mkdir -p "$OUT"
-ditto -c -k --keepParent "$APP" "$OUT/dd-pits-macos.zip"
-echo "$OUT/dd-pits-macos.zip"
+# The disk image: the app beside an Applications shortcut.
+STAGE="$WORK/dmg"; mkdir -p "$STAGE"
+cp -R "$APP" "$STAGE/"
+ln -s /Applications "$STAGE/Applications"
+rm -f "$OUT/dd-pits-macos.dmg"
+hdiutil create -quiet -volname "dd-pits" -srcfolder "$STAGE" -fs HFS+ -format UDZO -ov "$OUT/dd-pits-macos.dmg"
+codesign --force --sign - "$OUT/dd-pits-macos.dmg"
+echo "$OUT/dd-pits-macos.dmg"
