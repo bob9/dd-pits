@@ -25,9 +25,11 @@ beside the binary.
 **[Set up with FPVTrackside](#set-up-with-fpvtrackside)** ·
 **[RotorHazard plugin](#rotorhazard)** ·
 **[Brackets](#brackets)** ·
+**[Discord](https://dd-pits.threedigitalllamas.com.au/discord?utm_source=github)** ·
 [ELRS Netpack](https://github.com/bob9/elrs-netpack) ·
 made by **[bob9](https://github.com/bob9)**
 
+[![Join the dd-pits Discord](https://img.shields.io/badge/Discord-join%20the%20dd--pits%20server-5865F2?logo=discord&logoColor=white)](https://dd-pits.threedigitalllamas.com.au/discord?utm_source=github)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support%20dd--pits-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/bobnine)
 
 ## See it in action
@@ -308,6 +310,10 @@ with `-no-browser`.
 Everything it logs is also saved to **`dd-pits.log`** beside its settings file
 (on the Mac app, in `~/Library/Application Support/dd-pits/`). It rolls over at
 5 MB, keeping one older file as `dd-pits.log.1`.
+
+> 💬 **Downloaded dd-pits? [Join the dd-pits Discord](https://dd-pits.threedigitalllamas.com.au/discord?utm_source=github).**
+> Get help setting up, hear about new releases first, and swap race-day tips
+> with other race directors and pilots.
 
 ## Set up with FPVTrackside
 
@@ -637,6 +643,13 @@ docs/                design notes and screenshots
 
 The website, [dd-pits.threedigitalllamas.com.au](https://dd-pits.threedigitalllamas.com.au),
 is maintained separately and isn't part of this repository.
+
+## Community
+
+Come and say hello on the **[dd-pits Discord](https://dd-pits.threedigitalllamas.com.au/discord?utm_source=github)**. It's the place to ask
+for help with setup, share how your club runs its race days, suggest features
+and hear about new releases first. Bugs and feature requests are also welcome
+as [GitHub issues](https://github.com/bob9/dd-pits/issues).
 
 ## Contributing
 
