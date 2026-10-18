@@ -5,3 +5,4 @@ dd-pits-local.json
 !docs/**/*.wav
 .DS_Store
 __pycache__/
+/cmd/dd-pits/dd-pits
