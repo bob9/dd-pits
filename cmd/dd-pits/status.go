@@ -6,10 +6,13 @@ package main
 // backpack are connected and what race is on, and can quit from there.
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"runtime"
 	"strings"
@@ -20,6 +23,7 @@ func (s *liveServer) registerStatus(mux *http.ServeMux) {
 	mux.HandleFunc("/status", s.statusPage)
 	mux.HandleFunc("/status.json", s.statusJSON)
 	mux.HandleFunc("/status/quit", s.statusQuit)
+	mux.HandleFunc("/status/register", s.statusRegister)
 }
 
 type statusItem struct {
@@ -152,6 +156,18 @@ func (s *liveServer) statusPage(w http.ResponseWriter, r *http.Request) {
 		setupDenied(w)
 		return
 	}
+	s.renderStatus(w, r, regView{edit: r.URL.Query().Get("register") == "change"})
+}
+
+// regView is the state of the "Register your club" card.
+type regView struct {
+	edit bool             // show the form even though a club is registered
+	msg  string           // plain-words result of the last attempt
+	bad  bool             // msg is an error
+	form clubRegistration // what was typed, to show again after an error
+}
+
+func (s *liveServer) renderStatus(w http.ResponseWriter, r *http.Request, rv regView) {
 	logFile := `<span class="mut">no log file</span>`
 	if appLogPath != "" {
 		logFile = "<code>" + esc(appLogPath) + "</code>"
@@ -191,6 +207,7 @@ func (s *liveServer) statusPage(w http.ResponseWriter, r *http.Request) {
   tick(); setInterval(tick,2000);
 })();
 </script>`, esc("dd-pits "+version), runtime.GOOS, runtime.GOARCH, quit, logFile)
+	body += s.registerCard(rv) + usageNote(s.cfg)
 	writeSetup(w, r, "Status", body)
 }
 
@@ -246,4 +263,117 @@ func localServeURL(addr string) string {
 		return "http://localhost" + addr
 	}
 	return "http://" + addr
+}
+
+// registerCard is the optional "Register your club" card.
+func (s *liveServer) registerCard(rv regView) string {
+	if s.cfg == nil {
+		return ""
+	}
+	msg := ""
+	if rv.msg != "" {
+		cls := "ok"
+		if rv.bad {
+			cls = "err"
+		}
+		msg = `<p class="st-msg ` + cls + `">` + esc(rv.msg) + `</p>`
+	}
+	reg := s.cfg.Registration()
+	if reg != nil && !rv.edit && !rv.bad {
+		return `<div class="card" id="register"><h2>Your club</h2>` + msg +
+			`<p>Registered as <b>` + esc(reg.Club) + `</b>. Thanks! <a class="mut" href="/status?register=change#register">change</a></p></div>`
+	}
+	f := rv.form
+	if f.Timer == "" {
+		f.Timer = timingSystem
+	}
+	if f.Name == "" && f.Email == "" && reg != nil {
+		f.Name, f.Email, f.Club, f.City = reg.Name, reg.Email, reg.Club, reg.City
+	}
+	sel := func(v string) string {
+		if f.Timer == v {
+			return " selected"
+		}
+		return ""
+	}
+	return `<div class="card" id="register"><h2>Register your club</h2>
+<p class="mut">Optional. Tell us who's racing with dd-pits: it helps keep dd-pits free, and you'll hear about new features first.</p>` + msg + `
+<form method="post" action="/status/register#register" class="st-reg">
+<label>Your name<input type="text" name="name" required maxlength="100" value="` + esc(f.Name) + `" autocomplete="name"></label>
+<label>Email<input name="email" type="email" required maxlength="200" value="` + esc(f.Email) + `" autocomplete="email"></label>
+<label>Club<input type="text" name="club" required maxlength="100" value="` + esc(f.Club) + `"></label>
+<label>City<input type="text" name="city" maxlength="100" value="` + esc(f.City) + `"></label>
+<label>Timer<select name="timer"><option` + sel("FPVTrackside") + `>FPVTrackside</option><option` + sel("RotorHazard") + `>RotorHazard</option></select></label>
+<label class="st-consent"><input type="checkbox" name="consent" value="1" required> Email me dd-pits news and new features. Unsubscribe any time.</label>
+<p class="mut">See the <a href="` + privacyURL + `" target="_blank" rel="noopener">privacy page</a>.</p>
+<button>Register</button></form>
+<style>.st-reg{display:grid;gap:.6rem;max-width:30rem}.st-reg label{display:grid;gap:.25rem}.st-reg .st-consent{display:flex;gap:.5rem;align-items:flex-start}.st-reg .st-consent input{width:auto;margin-top:.2rem}.st-reg button{justify-self:start}.st-msg.ok{color:#c6ff3d}.st-msg.err{color:#ffb340}</style></div>`
+}
+
+// usageNote discloses the daily install count at the foot of the Status page.
+func usageNote(cfg *localConfig) string {
+	state := "Turn it off in <a href=\"/setup#privacy\">Settings</a>."
+	if cfg == nil || !cfg.UsagePingEnabled() || usagePingOffByEnv() {
+		state = "It's switched off on this computer."
+	}
+	return `<p class="mut st-privacy">dd-pits tells its website once a day that an install is running: a random ID, version, timer and OS, nothing else. ` +
+		state + ` <a href="` + privacyURL + `" target="_blank" rel="noopener">Privacy</a></p>`
+}
+
+// sameOrigin refuses form posts sent from another website: the Status page is
+// trusted from this machine without a PIN, so a page elsewhere must not be
+// able to post to it.
+func sameOrigin(r *http.Request) bool {
+	o := r.Header.Get("Origin")
+	if o == "" || o == "null" {
+		return r.Header.Get("Sec-Fetch-Site") != "cross-site"
+	}
+	u, err := url.Parse(o)
+	return err == nil && u.Host == r.Host
+}
+
+func (s *liveServer) statusRegister(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost || !localSetupAllowed(r) || !sameOrigin(r) || s.cfg == nil {
+		setupDenied(w)
+		return
+	}
+	_ = r.ParseForm()
+	reg := clubRegistration{
+		Name:    strings.TrimSpace(r.FormValue("name")),
+		Email:   strings.TrimSpace(r.FormValue("email")),
+		Club:    strings.TrimSpace(r.FormValue("club")),
+		City:    strings.TrimSpace(r.FormValue("city")),
+		Timer:   r.FormValue("timer"),
+		Consent: r.FormValue("consent") == "1",
+		Source:  "app",
+	}
+	if reg.Timer != "RotorHazard" {
+		reg.Timer = "FPVTrackside"
+	}
+	rv := regView{form: reg, edit: true}
+	switch {
+	case reg.Name == "" || reg.Club == "" || !strings.Contains(reg.Email, "@"):
+		rv.msg, rv.bad = "Fill in your name, email and club.", true
+	case !reg.Consent:
+		rv.msg, rv.bad = "Tick the box to agree to emails, or skip registering.", true
+	default:
+		reg.InstallID = s.cfg.EnsureInstallID()
+		ctx, cancel := context.WithTimeout(r.Context(), usageHTTPTimeout)
+		err := forwardRegistration(ctx, reg)
+		cancel()
+		switch {
+		case errors.Is(err, errOffline):
+			rv.msg, rv.bad = "Couldn't reach the dd-pits website. Try again when this computer is online.", true
+		case err != nil:
+			rv.msg, rv.bad = "Not registered: "+err.Error(), true
+		default:
+			s.cfg.SetRegistration(localRegistration{Name: reg.Name, Email: reg.Email, Club: reg.Club, City: reg.City, At: time.Now()})
+			if err := s.cfg.Save(); err != nil {
+				log.Printf("dd-pits: registration saved on the website, but not in %s: %v", s.cfg.Path(), err)
+			}
+			log.Printf("dd-pits: registered %s with the dd-pits website", reg.Club)
+			rv = regView{msg: "Registered. Thanks for racing with dd-pits!"}
+		}
+	}
+	s.renderStatus(w, r, rv)
 }

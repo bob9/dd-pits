@@ -561,6 +561,32 @@ startup.
 On other hardware, use a Gemini or Qwen API key for the writer and voice, or
 point `-model-url` at a Mac running `dd-pits -model-host :9099`.
 
+## Privacy
+
+dd-pits runs on your own computer and needs no internet connection or account.
+When it is online, it sends one small message a day to its website so we can
+count how many installs are in use. That count is what we show sponsors to
+keep dd-pits free. This is everything the message contains:
+
+```json
+{"id":"<random 32-character ID made on this computer>","version":"v0.1.60",
+ "timer":"RotorHazard","os":"linux","arch":"arm64","app":"plugin"}
+```
+
+It contains no names, pilots, races, lap times or network details. `app` is
+`mac-app`, `plugin` or `binary`. If the computer is offline, the message is
+simply skipped. To turn it off, use any of these:
+
+- **Settings → Privacy →** untick *Share an anonymous install count*
+- start dd-pits with `-no-usage-ping`
+- set the environment variable `DD_PITS_NO_USAGE_PING=1`
+
+**Register your club (optional).** The Status page has a form to register your
+club. It sends your name, email, club, city and timer to the dd-pits website,
+and only does so if you fill it in and tick the box agreeing to emails. You can
+unsubscribe any time. Details are on the
+[privacy page](https://dd-pits.threedigitalllamas.com.au/privacy).
+
 ## Building
 
 You need Go 1.25 or later.

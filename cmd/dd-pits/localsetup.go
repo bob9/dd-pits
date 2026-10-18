@@ -233,7 +233,7 @@ func setupPage(admin bool, title, body string) string {
  table{width:100%;border-collapse:collapse;font-size:.93rem}
  th,td{text-align:left;padding:.55rem .5rem;border-bottom:1px solid rgba(255,255,255,.06)}
  th{color:var(--mut);font-weight:650;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase}
- input[type=text],input[type=password],input[type=number],select,textarea{background:rgba(0,0,0,.45);color:var(--fg);border:1px solid rgba(255,255,255,.12);border-radius:12px;
+ input[type=text],input[type=email],input[type=password],input[type=number],select,textarea{background:rgba(0,0,0,.45);color:var(--fg);border:1px solid rgba(255,255,255,.12);border-radius:12px;
   padding:.6rem .75rem;font:inherit;width:100%;transition:border-color .15s,box-shadow .15s}
  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(198,255,61,.18)}
  label{display:block;font-size:.85rem;color:var(--mut);margin:.65rem 0 .25rem}
@@ -306,6 +306,7 @@ func (s *liveServer) registerLocalSetup(mux *http.ServeMux) {
 	}
 	mux.HandleFunc("/setup", s.setupOverview)
 	mux.HandleFunc("/setup/help", s.setupHelp)
+	mux.HandleFunc("/setup/privacy", s.setupPrivacy)
 	mux.HandleFunc("/setup/pilots", s.setupPilots)
 	mux.HandleFunc("/setup/osd", s.setupOSD)
 	mux.HandleFunc("/setup/backpack", s.setupBackpack)
@@ -373,6 +374,8 @@ func (s *liveServer) setupOverview(w http.ResponseWriter, r *http.Request) {
 <a href="/docs">JSON API</a>
 </p></div>`)
 
+	b.WriteString(privacyCard(cfg))
+
 	if ready == 0 {
 		b.WriteString(`<div class="card"><h2>Start here</h2>
 <p>No goggle pilots are set up yet. Adding a pilot's <strong>bind phrase</strong> turns on
@@ -381,6 +384,39 @@ the goggle ID is worked out from it.</p>
 <p><a href="/setup/pilots"><button>Add a pilot</button></a></p></div>`)
 	}
 	writeSetup(w, r, "Overview", b.String())
+}
+
+// privacyCard is the switch for the anonymous daily install count.
+func privacyCard(cfg *localConfig) string {
+	on := cfg.UsagePingEnabled()
+	checked := ""
+	if on {
+		checked = " checked"
+	}
+	note := ""
+	if usagePingOffByEnv() {
+		note = `<p class="mut">Switched off for this run by DD_PITS_NO_USAGE_PING or -no-usage-ping.</p>`
+	}
+	return `<div class="card" id="privacy"><h2>Privacy</h2>
+<form method="post" action="/setup/privacy">
+<label><input type="checkbox" name="usage_ping" value="1"` + checked + `> Share an anonymous install count</label>
+<p class="mut">Once a day dd-pits tells its website that an install is running: a random ID, the version, the timer and the operating system. Nothing about pilots or races. It shows sponsors how many clubs use dd-pits. Everything works the same with it off, and with no internet. <a href="` + privacyURL + `" target="_blank" rel="noopener">Privacy page</a></p>` + note + `
+<button>Save</button></form></div>`
+}
+
+func (s *liveServer) setupPrivacy(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost || !localSetupAllowed(r) || !sameOrigin(r) {
+		setupDenied(w)
+		return
+	}
+	_ = r.ParseForm()
+	on := r.FormValue("usage_ping") == "1"
+	s.cfg.SetUsagePing(on)
+	if err := s.cfg.Save(); err != nil {
+		log.Printf("dd-pits: could not save %s: %v", s.cfg.Path(), err)
+	}
+	log.Printf("dd-pits: anonymous install count %s", map[bool]string{true: "on", false: "off"}[on])
+	http.Redirect(w, r, "/setup#privacy", http.StatusSeeOther)
 }
 
 func writeSetup(w http.ResponseWriter, r *http.Request, title, body string) {

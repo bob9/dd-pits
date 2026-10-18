@@ -180,6 +180,8 @@ func main() {
 		"ELRS netpack hostname (TCP :8080)")
 	noBrowser := flag.Bool("no-browser", envOr("DD_PITS_NO_BROWSER", "") != "",
 		"don't open a browser at startup (it opens the Status page, or the setup help on a first run)")
+	noUsagePing := flag.Bool("no-usage-ping", usagePingOffByEnv(),
+		"don't send the anonymous daily install count to the dd-pits website (also: Settings, or DD_PITS_NO_USAGE_PING=1)")
 	localConfigPath := flag.String("local-config", envOr("DD_PITS_LOCAL_CONFIG", ""),
 		"settings file (default: dd-pits-local.json beside the agent)")
 	setupPINFlag := flag.String("setup-pin", envOr("DD_PITS_SETUP_PIN", ""),
@@ -590,6 +592,8 @@ func main() {
 		if shouldOpenBrowser(*noBrowser, *rhURL != "") {
 			openOnStart(lc.Path(), setupBaseURL)
 		}
+		exe, _ := os.Executable()
+		go runUsagePing(ctx, lc, appKind(exe, *rhURL != "" && os.Getenv("DD_PITS_TIMER_TOKEN") != ""), *noUsagePing)
 	}
 
 	if *raceAudio && a.local == nil {

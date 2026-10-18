@@ -29,6 +29,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/bob9/dd-pits/internal/elrs"
 )
@@ -333,6 +334,13 @@ type localConfig struct {
 	// plugin is installed there (without it the FPVTrackside connector is used).
 	RHTimer localRHTimer `json:"rh_timer,omitempty"`
 
+	// InstallID is a random ID for the daily install count (see usage.go).
+	// UsagePingOff switches that count off; it is on unless turned off.
+	InstallID    string `json:"install_id,omitempty"`
+	UsagePingOff bool   `json:"usage_ping_off,omitempty"`
+	// Registered is the club registered from the Status page, if any.
+	Registered *localRegistration `json:"registered,omitempty"`
+
 	path string       // where it came from; not serialised
 	mu   sync.RWMutex // guards everything above once loaded
 }
@@ -394,7 +402,8 @@ func (c *localConfig) Save() error {
 		Version: c.Version, Club: c.Club,
 		DefaultLayout: c.DefaultLayout, Pilots: c.Pilots,
 		Booth: c.Booth, Calls: c.Calls, ELRS: c.ELRS, Audio: c.Audio,
-		Video: c.Video,
+		Video: c.Video, RHTimer: c.RHTimer,
+		InstallID: c.InstallID, UsagePingOff: c.UsagePingOff, Registered: c.Registered,
 	}
 	path := c.path
 	c.mu.RUnlock()
@@ -584,6 +593,65 @@ func (c *localConfig) SetRHTimer(v localRHTimer) {
 	c.mu.Lock()
 	c.RHTimer = v
 	c.mu.Unlock()
+}
+
+// localRegistration remembers a club registered from the Status page.
+type localRegistration struct {
+	Name  string    `json:"name"`
+	Email string    `json:"email"`
+	Club  string    `json:"club"`
+	City  string    `json:"city,omitempty"`
+	At    time.Time `json:"at"`
+}
+
+// EnsureInstallID returns the install ID, creating and saving one the first
+// time it is needed.
+func (c *localConfig) EnsureInstallID() string {
+	c.mu.Lock()
+	if c.InstallID != "" {
+		id := c.InstallID
+		c.mu.Unlock()
+		return id
+	}
+	c.InstallID = newInstallID()
+	id := c.InstallID
+	c.mu.Unlock()
+	if err := c.Save(); err != nil {
+		log.Printf("dd-pits: could not save the install ID: %v", err)
+	}
+	return id
+}
+
+// UsagePingEnabled reports whether the daily install count is on.
+func (c *localConfig) UsagePingEnabled() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return !c.UsagePingOff
+}
+
+// SetUsagePing switches the daily install count on or off.
+func (c *localConfig) SetUsagePing(on bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.UsagePingOff = !on
+}
+
+// Registration returns the registered club, or nil.
+func (c *localConfig) Registration() *localRegistration {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Registered == nil {
+		return nil
+	}
+	r := *c.Registered
+	return &r
+}
+
+// SetRegistration remembers a registered club.
+func (c *localConfig) SetRegistration(r localRegistration) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Registered = &r
 }
 
 func (c *localConfig) Path() string {
